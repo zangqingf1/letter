@@ -1,0 +1,144 @@
+/* 06 · 回形针优先展示 */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 顶部轻导航：‹ 我的 + 居中标题 ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+/* 页首轻量说明 */
+.page-note {
+  margin: 8rpx 32rpx 20rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 2rpx;
+}
+
+/* ── 有内容态：别着回形针的纸条列表 ── */
+.clip-list {
+  flex: 1 1 auto;
+  margin-top: 8rpx;
+}
+.clip-row {
+  margin: 0 32rpx 20rpx;
+  background: var(--color-base-surface);
+  border-radius: 28rpx;
+  padding: 28rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  box-shadow: var(--shadow-warm-sm);
+}
+.clip-row-hover {
+  transform: scale(0.98) !important;
+  opacity: 0.9;
+}
+/* 主题信封图：正常彩色呈现（优先展示为点亮语义），角上别金色回形针（BR-06 仅标记不改设计） */
+.clip-row .env-wrap {
+  position: relative;
+  width: 120rpx;
+  height: 80rpx; /* 3:2 封面比例，与首页信封素材一致 */
+  border-radius: 10rpx;
+  flex: none;
+  box-shadow: 0 4rpx 10rpx rgba(90, 80, 60, 0.16);
+}
+.clip-row .env-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10rpx;
+}
+.clip-row .clip-wrap {
+  position: absolute;
+  top: -8rpx;
+  left: -8rpx;
+  transform: rotate(4deg);
+  z-index: 3;
+}
+.clip-row .clip {
+  display: block;
+  width: 34rpx;
+  height: 34rpx;
+}
+.row-info {
+  flex: 1;
+  min-width: 0;
+}
+.row-name {
+  font-family: var(--font-heading);
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-date {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  margin-top: 10rpx;
+}
+.row-arrow {
+  flex: none;
+  font-size: 36rpx;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+.list-hint {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+  padding: 12rpx 0 32rpx;
+}
+
+/* ── 空状态 ── */
+.empty-illust {
+  display: flex;
+  justify-content: center;
+  margin-top: 140rpx;
+}
+.empty-box {
+  width: 360rpx;
+  height: 360rpx;
+  opacity: 0.9;
+}
+.empty-txt {
+  margin-top: 16rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  line-height: 1.9;
+}
+.empty-txt + .empty-txt {
+  margin-top: 0;
+}
+.empty-txt .em {
+  color: var(--color-accent-primary);
+}

@@ -1,0 +1,48 @@
+<!-- 06 · 回形针优先展示（两个状态：有内容态[纸条列表 + 回形针角标] / 空状态） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 我的 + 居中标题 -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">回形针优先展示</view>
+  </view>
+  <view class="page-note">别上回形针的信，会排在信匣最前面。</view>
+
+  <!-- 状态一：有内容态（别着回形针的纸条列表） -->
+  <block wx:if="{{hasItems}}">
+    <view class="clip-list">
+      <view
+        class="clip-row"
+        wx:for="{{items}}"
+        wx:key="id"
+        style="transform: rotate({{item.tilt}}deg);"
+        data-id="{{item.id}}"
+        hover-class="clip-row-hover"
+        bindtap="onTapRow"
+      >
+        <view class="env-wrap">
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
+          <view class="clip-wrap">
+            <image class="clip" src="/assets/clip.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view class="row-info">
+          <view class="row-name">{{item.name}}</view>
+          <view class="row-date">写于 {{item.dateText}}</view>
+        </view>
+        <text class="row-arrow">›</text>
+      </view>
+    </view>
+    <view class="list-hint">— 轻触纸条，重新读一读它 —</view>
+  </block>
+
+  <!-- 状态二：空状态（手绘插画 + 治愈系品牌文案） -->
+  <block wx:else>
+    <view class="empty-illust">
+      <image class="empty-box" src="/assets/mailbox.png" mode="aspectFit" />
+    </view>
+    <view class="empty-txt">还没有别上回形针的信。</view>
+    <view class="empty-txt">拆开一封信，点亮底部的回形针，<text class="em">它就会排在这里等你。</text></view>
+  </block>
+
+</view>

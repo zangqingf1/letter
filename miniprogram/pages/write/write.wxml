@@ -1,0 +1,77 @@
+<!-- 02 · 写信第一步「写下这封信」（状态一：空白初始态 Placeholder / 状态二：填写中态手写体渲染） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：返回 + 极轻量宋体步骤条 -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 返回</view>
+    <view class="steps">
+      <text class="step on">写内容</text>
+      <text class="step-sep">·</text>
+      <text class="step">选信纸</text>
+    </view>
+  </view>
+
+  <!-- 信纸容器：整页一张可滚动信纸 -->
+  <scroll-view class="paper-scroll" scroll-y>
+    <view class="paper">
+
+      <!-- 信纸头线 + 信件名称（标题行输入） -->
+      <view class="headline">
+        <input
+          class="title-input"
+          placeholder="给这封信起个名字…"
+          placeholder-class="title-ph"
+          maxlength="{{NAME_MAX}}"
+          value="{{name}}"
+          bindinput="onNameInput"
+          bindblur="onFieldBlur"
+        />
+      </view>
+
+      <!-- 当时的问题：印制引导语 + 信纸横线手写区 -->
+      <view class="field-label">未来的你，会需要这个答案。</view>
+      <textarea
+        class="hand-input hand-question {{handwritingOff ? 'hand-off' : ''}}"
+        value="{{question}}"
+        maxlength="{{QUESTION_MAX}}"
+        auto-height
+        show-confirm-bar="{{false}}"
+        bindinput="onQuestionInput"
+        bindblur="onFieldBlur"
+      ></textarea>
+      <view class="count">{{questionLen}} / {{QUESTION_MAX}}</view>
+
+      <!-- 物理折痕分隔线（两端纸边处向内缺失小三角形缺口） -->
+      <view class="fold-row">
+        <view class="fold"></view>
+        <view class="notch notch-l"></view>
+        <view class="notch notch-r"></view>
+      </view>
+
+      <!-- 想明白的答案：纵深更长的手写区 -->
+      <view class="field-label">你是怎么想通的？把当时想明白的话留下来。</view>
+      <textarea
+        class="hand-input hand-answer {{handwritingOff ? 'hand-off' : ''}}"
+        value="{{answer}}"
+        maxlength="{{ANSWER_MAX}}"
+        auto-height
+        show-confirm-bar="{{false}}"
+        bindinput="onAnswerInput"
+        bindblur="onFieldBlur"
+      ></textarea>
+      <view class="count">{{answerLen}} / {{ANSWER_MAX}}</view>
+
+    </view>
+  </scroll-view>
+
+  <!-- 底部固定操作栏：存草稿便签按钮 + 主按钮（未填完整置灰） -->
+  <view class="btn-bar">
+    <view class="btn-sec" hover-class="btn-sec-hover" bindtap="onTapSaveDraft">💾 存草稿</view>
+    <view
+      class="btn-primary btn-next {{canNext ? '' : 'btn-next-disabled'}}"
+      hover-class="{{canNext ? 'btn-primary-hover' : 'none'}}"
+      bindtap="onTapNext"
+    >选一张信纸 →</view>
+  </view>
+
+</view>

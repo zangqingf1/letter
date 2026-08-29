@@ -1,0 +1,299 @@
+/* 02 · 写信第二步「选信纸并寄出」 */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航 ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.steps {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-family: var(--font-heading);
+  font-size: 24rpx;
+}
+.steps .step {
+  color: var(--color-text-secondary);
+}
+.steps .step.on {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  position: relative;
+}
+.steps .step.on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -12rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--color-accent-primary);
+}
+.steps .step-sep {
+  color: var(--color-text-secondary);
+  font-size: 22rpx;
+}
+
+/* ── 实时预览区（占满主题区与寄出栏以外的全部空间，暖桌面） ── */
+.preview {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* 信纸视图：整张信纸居中展开 */
+.lv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* 切换主题的"翻页"微动效（纸张物理感：淡入 + 轻位移，无弹跳闪光） */
+.lv-flip {
+  animation: page-flip 240ms ease;
+}
+@keyframes page-flip {
+  from {
+    opacity: 0.25;
+    transform: translateY(10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.lv-paper {
+  position: relative;
+  width: 590rpx;
+  filter: drop-shadow(0 8rpx 20rpx rgba(80, 100, 90, 0.18));
+}
+.lv-paper-img {
+  display: block;
+  width: 100%;
+}
+/* 正文渲染区：对位信纸素材的横线区（素材规格待 PRD 第十五节固化） */
+.lv-text {
+  position: absolute;
+  left: 10%;
+  right: 9.5%;
+  top: 35.5%;
+  bottom: 21%;
+  overflow: hidden;
+  font-family: var(--font-hand);
+  color: #4A4438;
+}
+.lv-name {
+  font-family: var(--font-heading);
+  font-size: 26rpx;
+  font-weight: 700;
+  text-align: center;
+  color: #6B5C48;
+  margin-bottom: 8rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lv-tag {
+  font-family: var(--font-ui);
+  font-size: 17rpx;
+  color: #9A9284;
+  letter-spacing: 2rpx;
+  margin-top: 6rpx;
+}
+.lv-body {
+  font-size: 22rpx;
+  line-height: 36rpx;
+  letter-spacing: 0.5rpx;
+}
+.lv-date {
+  position: absolute;
+  right: 12%;
+  bottom: 13%;
+  font-size: 19rpx;
+  color: var(--color-text-secondary);
+}
+
+/* ── 主题选择与交互区（压缩到刚好放下卡片流，剩余空间让给预览） ── */
+.theme-area {
+  flex: none;
+  padding-top: 12rpx;
+}
+.theme-label {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding-bottom: 12rpx;
+}
+.theme-name {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+}
+.theme-row {
+  white-space: nowrap;
+}
+.theme-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 152rpx;
+  margin: 0 12rpx;
+  padding: 10rpx 10rpx 12rpx;
+  border-radius: 20rpx;
+  background: var(--color-base-surface);
+  border: 3rpx solid transparent;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+.theme-card.sel {
+  border-color: var(--color-accent-primary);
+  background: #FFFFFF;
+}
+.tc-img {
+  width: 128rpx;
+  height: 84rpx;
+  border-radius: 10rpx;
+}
+/* 素材未就绪主题的色样占位（对应低保真 tc d1-d6 色块） */
+.tc-swatch {
+  width: 128rpx;
+  height: 84rpx;
+  border-radius: 10rpx;
+  box-shadow: inset 0 0 0 1rpx rgba(80, 100, 90, 0.08);
+}
+.theme-card.pending {
+  opacity: 0.72;
+}
+.tc-name {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.theme-card.sel .tc-name {
+  color: var(--color-accent-primary);
+}
+.tc-desc {
+  margin-top: 2rpx;
+  font-size: 18rpx;
+  color: var(--color-text-secondary);
+}
+
+/* ── 底部火漆寄出栏 ── */
+.wax-wrap {
+  flex: none;
+  margin-top: 8rpx;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(244, 243, 238, 0.9);
+  backdrop-filter: blur(16rpx);
+  border-top: 1rpx solid var(--line);
+}
+.wax-cta {
+  gap: 16rpx;
+}
+/* 寄出完成动效：火漆盖下（缩小按压，无弹跳） */
+.wax-sealing {
+  transform: scale(0.94);
+  box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
+}
+.wax-amp {
+  width: 36rpx;
+  height: 36rpx;
+  background: #5E8378;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 6rpx rgba(244, 243, 238, 0.5);
+  flex: none;
+}
+
+/* ── 寄出动效：火漆按压时预览信纸轻沉折起（位移 + 微缩，无弹跳） ── */
+.preview .lv {
+  transition: transform 400ms ease, opacity 400ms ease;
+}
+.preview-sealing .lv {
+  transform: translateY(8rpx) scale(0.985);
+  opacity: 0.85;
+}
+
+/* ── 寄出完成幕：暖纸底全屏浮层，信封落定 → 火漆印 → 文案依次淡入 ── */
+.send-fx {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 243, 238, 0.96);
+  animation: fx-in 220ms ease;
+}
+@keyframes fx-in {
+  from { opacity: 0; }
+}
+/* 幕布淡出后跳转信匣 */
+.send-fx.fx-out {
+  animation: fx-out 220ms ease forwards;
+}
+@keyframes fx-out {
+  to { opacity: 0; }
+}
+.fx-env {
+  position: relative;
+  width: 420rpx;
+  border-radius: 16rpx;
+  box-shadow: var(--shadow-warm-sm);
+  /* 信封从上方 10px 落定（位移方向模拟投进信匣） */
+  animation: fx-env-in 380ms ease-out;
+}
+@keyframes fx-env-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+.fx-env-img {
+  display: block;
+  width: 100%;
+  height: 280rpx;
+  border-radius: 16rpx;
+}
+.fx-copy {
+  margin-top: 40rpx;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  animation: fx-copy-in 260ms ease 520ms backwards;
+}
+@keyframes fx-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}

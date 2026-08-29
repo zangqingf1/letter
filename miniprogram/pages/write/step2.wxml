@@ -1,0 +1,70 @@
+<!-- 02 · 写信第二步「选信纸并寄出」（默认选中态 / 切换主题态） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：返回修改 + 步骤条（第二步高亮） -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 返回修改</view>
+    <view class="steps">
+      <text class="step">写内容</text>
+      <text class="step-sep">·</text>
+      <text class="step on">选信纸</text>
+    </view>
+  </view>
+
+  <!-- 实时预览区（占满剩余屏高）：信封 + 展开的信纸，内容实时渲染，信纸等比放大至恰好充满；寄出时信纸轻沉"折起" -->
+  <view class="preview {{sealing ? 'preview-sealing' : ''}}" style="background: {{currentTheme.desk}};">
+    <template is="letter-view" data="{{ theme: currentTheme, letter: letter, dateText: dateText, mode: flipping ? 'lv-flip' : '', paperStyle: paperStyle }}" />
+  </view>
+
+  <!-- 主题选择与交互区：当前主题名称 + 横滑卡片流（缩略图展示信封，素材未就绪的主题用色样占位） -->
+  <view class="theme-area">
+    <view class="theme-label">—— 当前选择：<text class="theme-name">{{currentTheme.name}}{{currentIndex === 0 ? '（默认）' : ''}}</text> ——</view>
+    <scroll-view class="theme-row" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{themes}}"
+        wx:key="id"
+        class="theme-card {{index === currentIndex ? 'sel' : ''}} {{item.pending ? 'pending' : ''}}"
+        data-index="{{index}}"
+        bindtap="onSelectTheme"
+      >
+        <image wx:if="{{item.envelope}}" class="tc-img" src="{{item.envelope}}" mode="aspectFill" />
+        <view wx:else class="tc-swatch" style="background: {{item.swatch}};"></view>
+        <view class="tc-name">{{item.name}}</view>
+        <view class="tc-desc">{{item.desc}}</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 底部火漆寄出栏 -->
+  <view class="wax-wrap">
+    <view class="btn-primary wax-cta {{sealing ? 'wax-sealing' : ''}}" hover-class="btn-primary-hover" bindtap="onTapSend">
+      <view class="wax-amp"></view>{{editMode ? '保存修改并封存' : '封存寄出'}}
+    </view>
+  </view>
+
+  <!-- 寄出完成幕（点击任意处跳过）：主题信封落定 → 固定文案，随后淡出返回信匣 -->
+  <view wx:if="{{fx}}" class="send-fx {{fxOut ? 'fx-out' : ''}}" catchtap="onSkipFx">
+    <view class="fx-env">
+      <image class="fx-env-img" src="{{currentTheme.envelope}}" mode="aspectFill" />
+    </view>
+    <view class="fx-copy">{{editMode ? '已重新封存。那些新的思考，也一起安放好了。' : '已封存。未来的某一天，它会在这里等你。'}}</view>
+  </view>
+
+</view>
+
+<!-- 信纸视图模板：整张信纸展开，正文渲染在横线区（信封素材由首页信匣展示，此处不出现） -->
+<template name="letter-view">
+  <view class="lv {{mode}}">
+    <view class="lv-paper" style="{{paperStyle}}">
+      <image class="lv-paper-img" src="{{theme.paper}}" mode="widthFix" />
+      <view class="lv-text">
+        <view class="lv-name">{{letter.name}}</view>
+        <view class="lv-tag">【当时的问题】</view>
+        <view class="lv-body">{{letter.question}}</view>
+        <view class="lv-tag">【想明白的答案】</view>
+        <view class="lv-body">{{letter.answer}}</view>
+      </view>
+      <view class="lv-date">—— 写于 {{dateText}}</view>
+    </view>
+  </view>
+</template>

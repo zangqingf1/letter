@@ -1,0 +1,550 @@
+/* 03 · 信件详情 / 拆信阅读 / 回信 */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航：‹ 信匣 + 主题名称标签（靠左排列） ── */
+.nav {
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-tag {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  padding: 8rpx 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* ── 可滚动主容器 ── */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.body-inner {
+  padding-bottom: 8rpx;
+}
+
+/* ── 主信纸区：主题信纸素材铺底，文字落在素材的横线排版区内 ── */
+.detail-paper {
+  position: relative;
+  margin: 8rpx 32rpx 0;
+  min-height: 920rpx; /* 信纸素材 896×1200 等比基准高，短内容也保持整张信纸 */
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: var(--shadow-warm-sm);
+  box-sizing: border-box;
+}
+/* 主题信纸底图：随卡片尺寸铺满（内容更长时整纸等比拉伸，撕边/火漆封印保持完整） */
+.dp-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.dp-content {
+  position: relative;
+  z-index: 1;
+  /* 上：避开信纸头部插画（约整纸 1/3）；左右：对齐素材横线区；下：避开底部火漆封印 */
+  padding: 300rpx 80rpx 170rpx;
+}
+.lp-title {
+  font-family: var(--font-heading);
+  font-size: 40rpx;
+  font-weight: 700;
+  text-align: center;
+  color: #5A4F3E;
+  margin-bottom: 16rpx;
+}
+.sec-tag {
+  font-size: 22rpx;
+  color: #9A9284;
+  letter-spacing: 4rpx;
+  margin: 32rpx 0 8rpx;
+}
+/* 手写体正文（32rpx / 行高 1.8 = 57.6rpx，沿用信纸横线排版） */
+.sec-body {
+  font-family: var(--font-hand);
+  font-size: 32rpx;
+  line-height: 57.6rpx;
+  letter-spacing: 1rpx;
+  color: #4A4438;
+}
+.lp-sign {
+  font-size: 24rpx;
+  color: #9A9284;
+  text-align: right;
+  margin-top: 36rpx;
+}
+/* 无障碍：关闭手写体开关生效时回落到系统字体 */
+.hand-off .sec-body,
+.hand-off .rb,
+.hand-off .reply-input {
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+}
+
+/* ── 桌面区块（邮戳墙 / 回信便签的承载容器） ── */
+.sect {
+  margin: 20rpx 32rpx 0;
+  background: var(--color-base-surface);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  box-shadow: var(--shadow-warm-sm);
+}
+.ph-h {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 24rpx;
+}
+.ph-sub {
+  font-weight: 400;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+}
+
+/* 邮戳墙：印章质感圆形小邮戳，流式排列，微倾交替 */
+.postmarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx;
+}
+.postmark {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(125, 133, 128, 0.42);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  box-sizing: border-box;
+}
+/* 内圈细线，做出盖印的层次感 */
+.postmark::after {
+  content: "";
+  position: absolute;
+  top: 6rpx;
+  left: 6rpx;
+  right: 6rpx;
+  bottom: 6rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(125, 133, 128, 0.22);
+}
+.postmark:nth-child(odd) {
+  transform: rotate(-4deg);
+}
+.postmark:nth-child(even) {
+  transform: rotate(3deg);
+}
+.pm-date {
+  font-weight: 800;
+  font-size: 24rpx;
+}
+.pm-label {
+  font-size: 18rpx;
+  margin-top: 2rpx;
+}
+.postmark.today {
+  color: var(--color-accent-primary);
+  border-color: rgba(107, 142, 133, 0.55);
+}
+.postmark.today::after {
+  border-color: rgba(107, 142, 133, 0.3);
+}
+.postmark.more {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ── 回信便签（主题便签变体：暖黄便签纸，交替微倾贴在桌面上） ── */
+.reply-note {
+  background: #FFF6E2;
+  border: 1rpx solid #EADFC5;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-top: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(80, 100, 90, 0.08);
+}
+.reply-note.r1 {
+  transform: rotate(-1deg);
+}
+.reply-note.r2 {
+  transform: rotate(0.8deg);
+}
+.rd {
+  font-size: 20rpx;
+  color: #B08D5F;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  margin-bottom: 8rpx;
+}
+.rb {
+  font-family: var(--font-hand);
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: #5C4D3A;
+}
+
+/* 回信引导入口：陶土色虚线框触发块 */
+.reply-cta {
+  margin: 24rpx 32rpx 0;
+  border: 3rpx dashed rgba(107, 142, 133, 0.55);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--color-accent-primary);
+  background: rgba(107, 142, 133, 0.07);
+}
+.reply-cta-hover {
+  background: rgba(107, 142, 133, 0.14);
+}
+.body-space {
+  height: 24rpx;
+}
+
+/* ── 底部悬浮操作栏（毛玻璃独立底板）：编辑 / 回形针 / 分享 / 删除 ── */
+.detail-ops {
+  flex: none;
+  margin: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(244, 243, 238, 0.92);
+  backdrop-filter: blur(16rpx);
+  border: 1rpx solid var(--line);
+  border-radius: 32rpx;
+  padding: 20rpx 12rpx;
+  display: flex;
+  justify-content: space-around;
+}
+.op {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 22rpx;
+  color: var(--color-text-primary);
+}
+.op-hover {
+  opacity: 0.7;
+}
+.op .oi {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  border: 3rpx solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  box-sizing: border-box;
+}
+/* 回形针点亮态（优先展示 BR-06） */
+.op.on {
+  color: var(--color-accent-secondary);
+  font-weight: 700;
+}
+.op.on .oi {
+  background: var(--color-accent-secondary);
+  color: #FFFFFF;
+  border-color: var(--color-accent-secondary);
+  box-shadow: 0 4rpx 16rpx rgba(196, 164, 130, 0.35);
+}
+
+/* ── 拆信动画（约 1.2s，可点击跳过；纸张物理感：仅位移/淡入淡出，无弹跳闪光） ── */
+.unseal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EDE9DC;
+  animation: unseal-fade 1.3s ease forwards;
+}
+@keyframes unseal-fade {
+  0%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.us-stage {
+  position: relative;
+  width: 560rpx;
+  height: 500rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 信纸：从信封后抽出并展开（z 层在信封之下，向上位移即"抽出"） */
+.us-paper {
+  position: absolute;
+  width: 400rpx;
+  z-index: 1;
+  animation: paper-out 1.25s ease forwards;
+}
+.us-paper-img {
+  display: block;
+  width: 100%;
+}
+@keyframes paper-out {
+  0% {
+    opacity: 0;
+    transform: translateY(140rpx) scale(0.82);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(-160rpx) scale(0.88);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+}
+/* 信封：微浮起（阴影加深）→ 淡出移出屏幕 */
+.us-env {
+  position: absolute;
+  width: 560rpx;
+  z-index: 2;
+  animation: env-out 1.25s ease forwards;
+}
+.us-env-img {
+  display: block;
+  width: 100%;
+  border-radius: 14rpx;
+  box-shadow: 0 10rpx 32rpx rgba(80, 100, 90, 0.2);
+}
+@keyframes env-out {
+  0% {
+    opacity: 0;
+    transform: translateY(16rpx);
+    box-shadow: none;
+  }
+  10% {
+    opacity: 1;
+  }
+  22% {
+    transform: translateY(-14rpx);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  85% {
+    opacity: 0;
+    transform: translateY(90rpx) rotate(-5deg);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.us-env-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 20rpx;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #6B5C48;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 今日重读邮戳：随浮起盖到信封右上角 */
+.us-stamp {
+  position: absolute;
+  top: 5%;
+  right: 5%;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(107, 142, 133, 0.85);
+  transform: rotate(8deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(107, 142, 133, 0.9);
+  background: rgba(244, 243, 238, 0.35);
+  animation: stamp-in 0.45s ease 0.35s both;
+}
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: rotate(8deg) scale(1.3);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(8deg) scale(1);
+  }
+}
+.us-stamp-date {
+  font-weight: 800;
+  font-size: 26rpx;
+}
+.us-stamp-label {
+  font-size: 18rpx;
+}
+.us-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  opacity: 0.85;
+}
+
+/* ── 回信弹层：40% 暖灰遮罩 + 半屏便签抽屉 ── */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  background: rgba(46, 51, 48, 0.4);
+  backdrop-filter: blur(8rpx);
+  display: flex;
+  align-items: flex-end;
+  animation: overlay-in 0.3s ease;
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.drawer {
+  width: 100%;
+  background: var(--color-base-light);
+  border-radius: 48rpx 48rpx 0 0;
+  padding: 24rpx 40rpx 0;
+  transform: rotate(-0.6deg);
+  animation: drawer-up 0.35s ease-out;
+}
+@keyframes drawer-up {
+  from {
+    transform: translateY(100%) rotate(-0.6deg);
+  }
+  to {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+}
+.handle {
+  width: 72rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: var(--color-disabled);
+  margin: 0 auto 24rpx;
+}
+/* 日期固定不可修改：纯展示，无任何选择器控件 */
+.drawer-date {
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 20rpx;
+}
+.reply-editor {
+  background: #FFF6E2;
+  border: 1rpx solid #EADFC5;
+  border-radius: 20rpx;
+  padding: 20rpx 28rpx;
+}
+.reply-input {
+  width: 100%;
+  min-height: 232rpx;
+  box-sizing: border-box;
+  font-family: var(--font-hand);
+  font-size: 32rpx;
+  line-height: 57.6rpx;
+  letter-spacing: 1rpx;
+  color: #5C4D3A;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 57.4rpx,
+    rgba(150, 140, 110, 0.24) 57.4rpx,
+    rgba(150, 140, 110, 0.24) 57.6rpx
+  );
+  background-attachment: local;
+}
+.reply-ph {
+  color: rgba(125, 133, 128, 0.55);
+  font-family: var(--font-hand);
+}
+.reply-save {
+  margin-top: 28rpx;
+}
+.drawer-collapse {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding-top: 20rpx;
+}
+
+/* ── 便签样式轻 Toast：中上方浮现 2 秒，无遮罩不挡操作 ── */
+.note-toast {
+  position: fixed;
+  top: 24%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  z-index: 120;
+  max-width: 80%;
+  background: #FFF6E2;
+  border: 1rpx solid #EADFC5;
+  border-radius: 16rpx;
+  padding: 20rpx 32rpx;
+  font-size: 26rpx;
+  color: #5C4D3A;
+  box-shadow: var(--shadow-warm-sm);
+  animation: toast-in 0.3s ease;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-1.5deg) translateY(-12rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-1.5deg) translateY(0);
+  }
+}

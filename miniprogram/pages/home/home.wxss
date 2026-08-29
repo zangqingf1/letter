@@ -1,0 +1,310 @@
+/* 01 · 首页 · 信匣 */
+.page {
+  box-sizing: border-box; /* 让 padding-bottom 计入 100vh，避免内容放得下仍可滚动 */
+  min-height: 100vh;
+  background: var(--color-base-light);
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 顶部品牌区（8% 屏高，克制宋体基调） ── */
+.home-head {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx 16rpx;
+}
+.home-head .logo {
+  width: 80rpx;
+  height: 80rpx;
+  flex: none;
+  position: relative;
+  top: -14rpx; /* 视觉上共上移 7px（1px = 2rpx） */
+}
+.home-head .brand-name {
+  height: 52rpx;
+  width: 203rpx; /* 480:123 按高 52rpx 等比宽，避免 aspectFit 左右留白拉开间距 */
+  margin-left: -6rpx; /* 抵消 logo 图右侧透明边，使两者几乎贴合 */
+}
+
+/* ── 今日来信（28% 屏高焦点区） ── */
+.today {
+  position: relative;
+  margin: 16rpx 32rpx 0;
+  background: var(--color-base-surface);
+  border-radius: 36rpx;
+  padding: 32rpx;
+  box-shadow: var(--shadow-warm-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 文案整体在卡片内垂直居中 */
+}
+.today .t-label {
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 4rpx;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+.today .t-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin: 0;
+}
+.today .t-text {
+  flex: 1;
+  font-size: 30rpx;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+.today .t-text-center {
+  text-align: center;
+  margin-top: 8rpx;
+}
+.today .t-text .em,
+.today .em {
+  color: var(--color-accent-primary);
+  font-style: normal;
+}
+.today .t-img-wrap {
+  flex: none;
+  position: relative;
+}
+.today .t-img {
+  flex: none;
+  width: 208rpx;
+  height: 139rpx; /* 统一 3:2 封面比例（208×139，匹配主题信封素材） */
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: #EFE9DC;
+  box-shadow: 0 8rpx 16rpx rgba(90, 80, 60, 0.14);
+}
+.today .t-img-src {
+  width: 100%;
+  height: 100%;
+}
+.today-empty {
+  padding-bottom: 44rpx;
+}
+.today-empty .t-text {
+  flex: none;
+}
+
+/* 当日日期邮戳：经典邮政日戳造型 —— 外圈实线 + 内圈虚线环 + 左侧波浪销票线；盖在信封右上角 */
+.today .stamp {
+  position: absolute;
+  top: -50rpx;
+  right: -32rpx;
+  display: flex;
+  align-items: center;
+  transform: rotate(10deg);
+  color: var(--color-text-secondary);
+  opacity: 0.72;
+  mix-blend-mode: multiply; /* 印在信封上的油墨感；不支持时自然回落普通叠加 */
+  z-index: 2;
+}
+/* 左侧销票波浪线，尾部穿入圆环形成经典盖戳效果 */
+.today .stamp-waves {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  margin-right: -8rpx;
+}
+.today .stamp-waves .wave {
+  width: 48rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  border-bottom: 2rpx solid currentColor;
+}
+.today .stamp-seal {
+  position: relative;
+  width: 96rpx;
+  height: 96rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 1;
+}
+.today .stamp-seal::before {
+  content: '';
+  position: absolute;
+  inset: 6rpx;
+  border: 1.5rpx dashed currentColor;
+  border-radius: 50%;
+}
+.today .stamp-brand {
+  font-size: 11rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.3;
+}
+.today .stamp-date {
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1.3;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+}
+.today .stamp-year {
+  font-size: 11rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.3;
+}
+
+/* ── 草稿横条（便签纸感轻量横条） ── */
+.draft-bar {
+  margin: 12rpx 32rpx 0;
+  border: 2rpx dashed var(--color-accent-primary);
+  border-radius: 20rpx;
+  padding: 18rpx 24rpx;
+  font-size: 24rpx;
+  color: var(--color-accent-primary);
+  background: rgba(107, 142, 133, 0.14);
+}
+.draft-bar .draft-num {
+  font-weight: 700;
+  margin: 0 4rpx;
+}
+.draft-bar .draft-emoji {
+  margin-right: 6rpx;
+}
+
+/* ── 空状态 ── */
+.empty-illust {
+  height: 320rpx;
+  margin: 24rpx auto 0;
+  width: 340rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-illust .empty-mailbox {
+  width: 300rpx;
+  height: 300rpx;
+  opacity: 0.92;
+}
+.empty-txt {
+  text-align: center;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  padding: 0 44rpx;
+}
+.center-cta {
+  padding: 48rpx 40rpx 0;
+}
+.btn-primary-hover {
+  transform: scale(0.97);
+  box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
+}
+
+/* ── 信匣桌面网格区（50% 屏高，可滚动） ── */
+.desk {
+  margin: 16rpx 32rpx 0;
+  padding: 16rpx 0;
+}
+.letters {
+  display: grid;
+  justify-items: center;
+}
+/* ≥7 封：三列整齐网格 */
+.letters-tidy {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx 18rpx;
+}
+/* 1–6 封：两列 ±2° 伪随机摆放 */
+.letters-few {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28rpx 20rpx;
+  padding-top: 8rpx;
+}
+.letter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  transition: transform 0.3s ease-out;
+}
+/* 新信落格动效（寄出后回到信匣）：整卡淡入，信封自上方 10px 落定（位移+淡入，无弹跳闪光） */
+.letter-card.arrive {
+  animation: card-arrive 480ms ease-out;
+}
+@keyframes card-arrive {
+  from { opacity: 0; }
+}
+.letter-card.arrive .env-wrap {
+  animation: env-arrive 480ms ease-out;
+}
+@keyframes env-arrive {
+  from { transform: translateY(-10px); }
+}
+.letter-card-hover {
+  transform: scale(0.97) !important;
+  opacity: 0.9;
+}
+.letter-card .env-wrap {
+  position: relative;
+  width: 176rpx;
+  height: 117rpx; /* 统一 3:2 封面比例（176×117，匹配主题信封素材） */
+  border-radius: 12rpx;
+  overflow: visible;
+  box-shadow: 0 6rpx 14rpx rgba(90, 80, 60, 0.16);
+}
+.letter-card .env-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+}
+/* 金色回形针角标（图片素材，点亮态，仅做标记不改信封设计 BR-06） */
+.letter-card .clip-wrap {
+  position: absolute;
+  top: -5rpx;
+  left: -10rpx;
+  transform: rotate(4deg);
+  z-index: 3;
+}
+.letter-card .clip {
+  display: block;
+  width: 30rpx;
+  height: 30rpx;
+}
+.letter-card .env-name {
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.3;
+  max-width: 176rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.desk-hint {
+  text-align: center;
+  margin-top: 24rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 2rpx;
+}
+
+/* ── 右下角悬浮写信入口（手绘信箱，无底板，紧贴 TabBar） ── */
+.float-write {
+  position: fixed;
+  right: 24rpx;
+  bottom: -20rpx; /* 整体下移，信箱底部贴近/略沉入 TabBar 上缘 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 45;
+  transition: transform 0.3s ease-out;
+}
+.float-write-hover {
+  transform: scale(0.95);
+}
+.float-write .float-mailbox {
+  width: 118rpx;
+  height: 198rpx;
+}

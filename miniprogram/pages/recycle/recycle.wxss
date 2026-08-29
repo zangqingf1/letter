@@ -1,0 +1,184 @@
+/* 05 · 废纸篓 */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航：‹ 我的 + 居中标题 ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+/* 页首轻量说明 */
+.page-note {
+  margin: 8rpx 32rpx 20rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 2rpx;
+}
+
+/* ── 有内容态 ── */
+.rc-list {
+  flex: 1 1 auto;
+}
+.rc-item {
+  position: relative;
+  margin: 0 32rpx 20rpx;
+  border-radius: 28rpx;
+}
+/* 左滑露出的操作区（双独立按钮） */
+.rc-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 296rpx;
+  display: flex;
+  gap: 12rpx;
+}
+.rc-btn {
+  flex: 1;
+  border-radius: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #FFFFFF;
+}
+.rc-btn.restore {
+  background: var(--color-accent-primary);
+}
+/* 彻底删除：深灰（非纯黑） */
+.rc-btn.remove {
+  background: #6E7570;
+}
+.rc-btn-hover {
+  opacity: 0.85;
+}
+/* 信纸卡片：可左滑，露出底部操作区 */
+.rc-row {
+  position: relative;
+  z-index: 1;
+  background: var(--color-base-surface);
+  border-radius: 28rpx;
+  padding: 28rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  box-shadow: var(--shadow-warm-sm);
+  transition: transform 0.25s ease;
+}
+/* 手指拖动中：跟手无过渡 */
+.rc-row.dragging {
+  transition: none;
+}
+/* 临近删除强调态（≤3 天）：陶土/鼠尾草微亮背景 + 细边 */
+.rc-row.warn {
+  background: rgba(107, 142, 133, 0.10);
+  border: 1rpx solid rgba(107, 142, 133, 0.35);
+}
+/* 主题信封图：置灰呈现（废纸篓灰度语义，BR：以敞口信封灰度样式呈现） */
+.env-grey {
+  width: 88rpx;
+  height: 60rpx;
+  border-radius: 6rpx;
+  flex: none;
+  filter: grayscale(1);
+  opacity: 0.75;
+}
+/* 临近删除强调态：细虚线描边提示 */
+.rc-row.warn .env-grey {
+  border: 3rpx dashed var(--color-text-secondary);
+  box-sizing: border-box;
+  opacity: 0.85;
+}
+.rc-info {
+  flex: 1;
+  min-width: 0;
+}
+.rc-name {
+  font-family: var(--font-heading);
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-days {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  margin-top: 10rpx;
+}
+.rc-row.warn .rc-days {
+  color: var(--color-accent-primary);
+}
+/* 剩余天数胶囊 */
+.rc-pill {
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  background: var(--color-base-light);
+  border: 1rpx solid var(--line);
+  border-radius: 24rpx;
+  padding: 8rpx 18rpx;
+  flex: none;
+}
+.rc-row.warn .rc-pill {
+  color: var(--color-accent-primary);
+  border-color: rgba(107, 142, 133, 0.4);
+}
+.list-hint {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+  padding: 12rpx 0 32rpx;
+}
+
+/* ── 空状态 ── */
+.empty-illust {
+  display: flex;
+  justify-content: center;
+  margin-top: 140rpx;
+}
+.empty-box {
+  width: 360rpx;
+  height: 360rpx;
+  opacity: 0.9;
+}
+.empty-txt {
+  margin-top: 16rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  line-height: 1.9;
+}
+.empty-txt + .empty-txt {
+  margin-top: 0;
+}
+.empty-txt .em {
+  color: var(--color-accent-primary);
+}

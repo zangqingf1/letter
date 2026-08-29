@@ -1,0 +1,198 @@
+/* 09 · 我的：名片 + 2×2 便签统计 + 数量行 + 功能列表 */
+.page {
+  box-sizing: border-box; /* 让 padding-bottom 计入 100vh，避免内容放得下仍可滚动 */
+  min-height: 100vh;
+  background: var(--color-base-light);
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 顶部品牌区：与首页信匣完全一致的 logo + 名称（同位置同尺寸） ── */
+.home-head {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx 16rpx;
+}
+.home-head .logo {
+  width: 80rpx;
+  height: 80rpx;
+  flex: none;
+  position: relative;
+  top: -14rpx; /* 视觉上共上移 7px（1px = 2rpx） */
+}
+.home-head .brand-name {
+  height: 52rpx;
+  width: 203rpx; /* 480:123 按高 52rpx 等比宽，避免 aspectFit 左右留白拉开间距 */
+  margin-left: -6rpx; /* 抵消 logo 图右侧透明边，使两者几乎贴合 */
+}
+
+/* ── 顶部用户资料区（15% 屏高，暖米白个人名片信封） ── */
+.profile-card {
+  margin: 24rpx 32rpx 0;
+  background: var(--color-base-surface);
+  border-radius: 36rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  box-shadow: var(--shadow-warm-sm);
+}
+.profile-card .avatar {
+  flex: none;
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-base-light);
+  border: 2rpx solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-card .avatar-img {
+  width: 100%;
+  height: 100%;
+}
+.profile-card .avatar-char {
+  font-family: var(--font-heading);
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+.profile-card-hover {
+  opacity: 0.85;
+}
+.profile-card .profile-arrow {
+  flex: none;
+  margin-left: auto;
+  font-size: 40rpx;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+.profile-card .profile-info {
+  flex: 1;
+  min-width: 0;
+}
+.profile-card .nickname {
+  font-family: var(--font-heading);
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 2rpx;
+}
+.profile-card .wrote-days {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.profile-card .wrote-days .days-num {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+}
+
+/* ── 区块小标签 ── */
+.section-label {
+  margin: 40rpx 40rpx 0;
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 4rpx;
+}
+
+/* ── 2×2 手作便签统计区（35% 屏高，微倾错落） ── */
+.notes {
+  margin: 20rpx 32rpx 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28rpx 24rpx;
+  padding: 8rpx 4rpx 12rpx;
+}
+.note {
+  background: var(--color-base-surface);
+  border-radius: 20rpx;
+  padding: 30rpx 28rpx 26rpx;
+  box-shadow: 0 6rpx 18rpx rgba(80, 100, 90, 0.12);
+  transition: transform 0.3s ease-out;
+}
+.note:active {
+  transform: rotate(0deg) scale(0.98) !important;
+}
+.note .note-name {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.note .note-line {
+  width: 56rpx;
+  height: 2rpx;
+  background: var(--line);
+  margin: 18rpx 0 20rpx;
+}
+.note .note-num {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.note .note-value {
+  font-family: var(--font-hand);
+  font-size: 56rpx;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-right: 8rpx;
+}
+
+/* ── 回形针与废纸篓数量行（别着回形针的纸条） ── */
+.count-bar {
+  margin: 36rpx 32rpx 0;
+  background: var(--color-base-surface);
+  border-radius: 24rpx;
+  padding: 24rpx 8rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-warm-sm);
+}
+.count-bar .count-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  font-size: 24rpx;
+  color: var(--color-text-primary);
+}
+.count-item-hover {
+  opacity: 0.7;
+}
+.count-bar .count-emoji {
+  font-size: 26rpx;
+}
+.count-bar .count-num {
+  color: var(--color-text-secondary);
+}
+.count-bar .count-divider {
+  flex: none;
+  width: 2rpx;
+  height: 32rpx;
+  background: var(--line);
+}
+
+/* ── 底部功能列表（浅色信纸下划线分隔，干净黑体系统 UI） ── */
+.menu {
+  margin: 36rpx 32rpx 0;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 34rpx 8rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.menu-item-hover {
+  opacity: 0.7;
+}
+.menu-item .menu-text {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+}
+.menu-item .menu-arrow {
+  font-size: 36rpx;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
