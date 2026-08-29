@@ -63,10 +63,13 @@
   box-sizing: border-box;
   overflow: hidden;
 }
-/* 按钮只做点击热区：透明、铺满圆形，去除微信 button 默认边框与内边距 */
+/* 按钮只做点击热区：透明、显式铺满圆形（不用百分比，规避 button 默认样式把内容拉变形） */
 .avatar-btn {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128rpx;
+  height: 128rpx;
   padding: 0;
   margin: 0;
   border: none;
@@ -84,9 +87,14 @@
 .avatar-btn-hover {
   opacity: 0.85;
 }
+/* 头像图绝对定位铺满圆形容器，尺寸显式固定，任何情况下不随容器布局拉伸 */
 .avatar-btn .avatar-img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128rpx;
+  height: 128rpx;
+  display: block;
 }
 .avatar-btn .avatar-char {
   font-family: var(--font-heading);

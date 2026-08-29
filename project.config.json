@@ -1,24 +1,38 @@
 {
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "projectname": "heart-mailbox",
+  "appid": "wx3afb5493420deef2",
+  "compileType": "miniprogram",
+  "libVersion": "3.0.0",
   "setting": {
     "es6": true,
     "postcss": true,
     "minified": true,
-    "uglifyFileName": false,
+    "urlCheck": false,
     "enhance": true,
-    "packNpmRelationList": [],
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
     },
-    "useCompilerPlugins": false
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false
   },
-  "compileType": "miniprogram",
+  "condition": {},
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [],
     "include": []
   },
-  "appid": "wx8b06ea459634aeea",
   "editorSetting": {}
 }

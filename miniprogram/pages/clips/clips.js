@@ -2,16 +2,10 @@
 // 展示所有别着回形针（优先展示）的信件：主题信封 + 金色回形针角标，轻触直达拆信/详情。
 // 回形针的点亮/取下在详情页底部操作栏完成（BR-06），返回本页 onShow 自动刷新。
 
-const THEMES = require('../write/themes.js');
-const { MOCK_LETTERS, DEMO_STATE } = require('../home/mock.js');
+const letterService = require('../../services/letter.js');
+const themeService = require('../../services/theme.js');
 
-// 信封图按信件主题取图（与首页同源）；素材未就绪的主题回落默认主题
-function themeEnvelope(themeId) {
-  const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
-  return theme.envelope || THEMES[0].envelope;
-}
-
-// 信件日期文案：写回的 letters_mock 只有 created_at，按创建时间补出「N月N日」
+// 信件日期文案：按创建时间补出「N月N日」（信件数据由 letter 服务提供）
 function dateTextOf(letter) {
   if (letter.dateText) return letter.dateText;
   const n = new Date(letter.created_at || Date.now());
@@ -34,31 +28,26 @@ Page({
     this.loadClips();
   },
 
-  // TODO: 接入云端数据后替换 mock（Letter.优先展示状态见 PRD 第十节、BR-06）
+  // 数据经 letter 服务获取（与首页信匣同源，仅筛回形针点亮信件 —— PRD 第十节、BR-06）
   loadClips() {
-    // 与首页信匣同源合并：已寄出的信（letters_mock）在前，演示数据按 DEMO_STATE 接入
-    const sent = wx.getStorageSync('letters_mock') || [];
-    let letters = [];
-    if (DEMO_STATE === 'empty') {
-      letters = sent;
-    } else if (DEMO_STATE === 'few') {
-      letters = [...sent, ...MOCK_LETTERS.slice(0, 4)];
-    } else {
-      letters = [...sent, ...MOCK_LETTERS];
-    }
+    Promise.all([letterService.getAll(), themeService.getThemes()]).then(([box, themes]) => {
+      const items = box.list
+        .filter((l) => l.pinned)
+        .map((l, i) => ({
+          id: l.id,
+          name: l.name,
+          dateText: dateTextOf(l),
+          env: themeService.envelopeOf(l.theme_id, themes),
+          // 纸条微倾错落（交替 ±0.5°，手作感）
+          tilt: i % 2 === 0 ? -0.5 : 0.5
+        }));
 
-    const items = letters
-      .filter((l) => l.pinned)
-      .map((l, i) => ({
-        id: l.id,
-        name: l.name,
-        dateText: dateTextOf(l),
-        env: themeEnvelope(l.theme_id),
-        // 纸条微倾错落（交替 ±0.5°，手作感）
-        tilt: i % 2 === 0 ? -0.5 : 0.5
-      }));
-
-    this.setData({ items, hasItems: items.length > 0 });
+      this.setData({ items, hasItems: items.length > 0 });
+    })
+    .catch((err) => {
+      console.error('[clips] 回形针列表加载失败', err);
+      wx.showToast({ title: '纸条暂时取不出来，稍后再来试试', icon: 'none' });
+    });
   },
 
   onTapRow(e) {

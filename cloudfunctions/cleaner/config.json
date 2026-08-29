@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "recycle-clean-daily",
+      "type": "timer",
+      "config": "0 0 3 * * * *"
+    }
+  ]
+}

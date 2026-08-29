@@ -2,12 +2,15 @@
 // 状态：多次拆开（邮戳墙 + 多条回信 + 回形针点亮）/ 首次拆开（1 枚邮戳 0 回信）/ 回信半屏弹层。
 // 进入即播放拆信动画（≤1.2s 可点击跳过），并按 BR-09 自动产生一条重读记录。
 
+const letterService = require('../../services/letter.js');
+const themeService = require('../../services/theme.js');
+const analytics = require('../../services/analytics.js');
+// data 初始默认主题；实际主题在 loadLetter 中按信件 theme_id 经 theme 服务解析
 const THEMES = require('../write/themes.js');
-const { DEMO_LETTERS, DEMO_STATE } = require('./mock.js');
 
-// TODO: 接入真实埋点（事件名见 PRD 第十三节）
+// 埋点统一走 analytics 服务（事件名见 PRD 第十三节）
 function track(event, data) {
-  console.log('[track]', event, data || '');
+  analytics.track(event, data);
 }
 
 function pad2(n) {
@@ -79,57 +82,49 @@ Page({
     }
   },
 
-  // 读取信件：优先 letters_mock 中真实寄出的信（按首页传入 id），否则用演示数据预览状态
+  // 读取信件（经 letter 服务：真实寄出的信优先，否则演示数据预览态）并记录重读。
   // isRefresh：从编辑/分享返回后的内容刷新，不重复上报拆信埋点（BR-09 今日记录本就幂等）
   loadLetter(id, isRefresh) {
-    let letter = null;
-    this.isDemo = true;
-    if (id) {
-      const letters = wx.getStorageSync('letters_mock') || [];
-      const found = letters.find((l) => l.id === id);
-      if (found) {
-        letter = JSON.parse(JSON.stringify(found));
-        this.isDemo = false;
-      }
-    }
-    if (!letter) {
-      letter = JSON.parse(JSON.stringify(DEMO_LETTERS[DEMO_STATE] || DEMO_LETTERS.multi));
-    }
+    Promise.all([letterService.get(id), themeService.getThemes()]).then(([res, themes]) => {
+      const letter = res.letter;
+      this.isDemo = res.isDemo;
 
-    const theme = THEMES.find((t) => t.id === letter.theme_id) || THEMES[0];
-    const now = Date.now();
+      const theme = themes.find((t) => t.id === letter.theme_id) || themes[0];
+      const today = new Date();
 
-    // BR-09：拆信一次即产生一条重读记录（仅日期，用户不可编辑/删除；同日不重复）
-    letter.opens = (letter.opens || []).slice();
-    if (!letter.opens.some((ts) => sameDay(ts, now))) {
-      letter.opens.push(now);
-    }
-    letter.opens.sort((a, b) => a - b);
-    if (!this.isDemo) this.persistLetter(letter);
+      // BR-09：拆信一次即产生一条重读记录（仅日期，用户不可编辑/删除；同日不重复，
+      // 服务内部去重并落库），返回全量邮戳时间戳供邮戳墙渲染
+      letterService.recordOpen(letter).then((opens) => {
+        letter.opens = opens || [];
+        const created = new Date(letter.created_at);
+        const dateText = (created.getMonth() + 1) + '月' + created.getDate() + '日';
+        let editedText = '';
+        if (letter.updated_at && !sameDay(letter.updated_at, letter.created_at)) {
+          const u = new Date(letter.updated_at);
+          editedText = (u.getMonth() + 1) + '月' + u.getDate() + '日';
+        }
 
-    const created = new Date(letter.created_at);
-    const dateText = (created.getMonth() + 1) + '月' + created.getDate() + '日';
-    let editedText = '';
-    if (letter.updated_at && !sameDay(letter.updated_at, letter.created_at)) {
-      const u = new Date(letter.updated_at);
-      editedText = (u.getMonth() + 1) + '月' + u.getDate() + '日';
-    }
-    const today = new Date();
+        if (!isRefresh) track('letter_open', { letter_id: letter.id });
 
-    if (!isRefresh) track('letter_open', { letter_id: letter.id });
-
-    this.setData({
-      letter,
-      theme,
-      themeName: theme.name,
-      dateText,
-      editedText,
-      pinned: !!letter.pinned,
-      openStampText: pad2(today.getMonth() + 1) + '.' + pad2(today.getDate()),
-      todayLongText: today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日'
+        this.setData({
+          letter,
+          theme,
+          themeName: theme.name,
+          dateText,
+          editedText,
+          pinned: !!letter.pinned,
+          openStampText: pad2(today.getMonth() + 1) + '.' + pad2(today.getDate()),
+          todayLongText: today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日'
+        });
+        this.setData(this.buildRecords(letter.opens));
+        this.setData(this.buildReplies(letter.replies || []));
+      })
+      .catch((err) => console.error('[detail] 重读记录上报失败', err));
+    })
+    .catch((err) => {
+      console.error('[detail] 信件读取失败', err);
+      wx.showToast({ title: '这封信暂时取不出来，稍后再来试试', icon: 'none' });
     });
-    this.setData(this.buildRecords(letter.opens));
-    this.setData(this.buildReplies(letter.replies || []));
   },
 
   // 邮戳列表：收起时展示最早 5 枚 + 今天一枚，其余收进「+N 展开」
@@ -221,15 +216,16 @@ Page({
       return;
     }
     const letter = this.data.letter;
-    letter.replies = (letter.replies || []).concat([{ ts: Date.now(), text }]);
-    if (!this.isDemo) this.persistLetter(letter);
-    track('reply_add', { letter_id: letter.id });
+    // 回信经 letter 服务落库（BR-10：日期自动生成不可改），返回更新后的回信数组
+    letterService.addReply(letter, text).then((replies) => {
+      track('reply_add', { letter_id: letter.id });
 
-    this.setData({ letter });
-    this.setData(this.buildReplies(letter.replies));
-    this.setData({ replyOpen: false, replyText: '', keyboardHeight: 0, noteToast: true });
-    // 便签样式轻反馈（PRD 固定文案），2 秒后淡出
-    setTimeout(() => this.setData({ noteToast: false }), 2000);
+      this.setData({ letter });
+      this.setData(this.buildReplies(replies || []));
+      this.setData({ replyOpen: false, replyText: '', keyboardHeight: 0, noteToast: true });
+      // 便签样式轻反馈（PRD 固定文案），2 秒后淡出
+      setTimeout(() => this.setData({ noteToast: false }), 2000);
+    });
   },
 
   // ── 底部操作栏 ──
@@ -255,9 +251,12 @@ Page({
 
   onTogglePin() {
     const letter = this.data.letter;
-    letter.pinned = !this.data.pinned;
-    if (!this.isDemo) this.persistLetter(letter);
-    this.setData({ letter, pinned: letter.pinned });
+    const next = !this.data.pinned;
+    // 回形针只在详情页操作（BR-06），经 letter 服务落库（演示信会先落成真实信）
+    letterService.setPinned(letter, next).then(() => {
+      letter.pinned = next;
+      this.setData({ letter, pinned: next });
+    });
   },
 
   onTapShare() {
@@ -275,26 +274,16 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         track('letter_delete', { letter_id: this.data.letter.id });
-        if (!this.isDemo) {
-          const letters = wx.getStorageSync('letters_mock') || [];
-          wx.setStorageSync('letters_mock', letters.filter((l) => l.id !== this.data.letter.id));
-          // 废纸篓 30 天保留：重读记录与回信随信件原样保留（BR-11）
-          const recycle = wx.getStorageSync('recycle_mock') || [];
-          recycle.push(Object.assign({}, this.data.letter, { deleted_at: Date.now() }));
-          wx.setStorageSync('recycle_mock', recycle);
-        }
-        wx.navigateBack();
+        // 废纸篓 30 天保留：重读记录与回信随信件原样保留（BR-11），经 letter 服务落库
+        // 等云端确认后再返回，失败留在本页提示（旧数据无归属人时服务端会拒绝）
+        letterService
+          .moveToRecycle(this.data.letter)
+          .then(() => wx.navigateBack())
+          .catch((err) => {
+            console.error('[detail] 删除失败', err);
+            wx.showToast({ title: '这封信暂时删不掉，稍后再来试试', icon: 'none' });
+          });
       }
     });
-  },
-
-  // 把演示页的修改同步回本地演示存储（重读记录 / 回信 / 回形针）
-  persistLetter(letter) {
-    const letters = wx.getStorageSync('letters_mock') || [];
-    const index = letters.findIndex((l) => l.id === letter.id);
-    if (index > -1) {
-      letters[index] = letter;
-      wx.setStorageSync('letters_mock', letters);
-    }
   }
 });

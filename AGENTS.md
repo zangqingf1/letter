@@ -16,6 +16,7 @@
 | `心灵信箱小程序需求文档_PRD.md` | 产品需求全量定义：页面需求、数据模型、业务规则 BR-01~15、埋点、验收标准 | 实现任何功能前 |
 | `心灵信箱 · 功能需求文档（页面结构线框汇总版）.md` | 全部页面的结构布局（含屏高占比）与 ASCII 线框状态图，产品-UI-开发对照基准 | 写任何页面前 |
 | `全局设计规范文档.md` | 设计体系：色板、字体阶梯、组件尺寸、图标、Design Tokens | 写任何样式前 |
+| `技术架构文档.md` | 完整开发技术架构：云开发后端选型、集合设计、云函数清单、mock→云端迁移映射、里程碑 | 接入云端/改数据层/后端开发前 |
 | `心灵信箱-低保真原型.html` | 低保真原型（HTML），可参考交互与布局意图 | 需要更直观布局参照时 |
 
 冲突时以 PRD 及其修订为准：**写信流程已从五步合并为两步**（PRD 内含修订说明与全文需同步修改的位置清单，PRD 第 17 节验收标准第 3 条仍写五步是未同步的旧文，以两步为准）。
@@ -81,14 +82,22 @@ Design Tokens（详见 `全局设计规范文档.md` 第五节 CSS 变量）：
 
 ## 工作方式
 
-- 小程序代码位于 `miniprogram/`（用微信开发者工具直接打开该目录，appid 为占位 `touristappid`）。无构建命令与测试，改动后在开发者工具中预览验证。
+- 小程序代码位于 `miniprogram/`，云函数位于 `cloudfunctions/`；**用微信开发者工具打开项目根目录 `D:\vibeCoding\j`**（根目录 project.config.json 已配置 `miniprogramRoot: miniprogram/` + `cloudfunctionRoot: cloudfunctions/`，appid 为 `wx8b06ea459634aeea`）。无构建命令与测试，改动后在开发者工具中预览验证。
+- 数据一律经 `miniprogram/services/` 数据访问层读写（页面禁止直接 `wx.cloud` 调用或直读数据 storage 键）；数据源由 `miniprogram/config/env.js` 的 `USE_CLOUD` 切换：`false` = 本地演示（现状），`true` = 云开发（需先开通云环境、部署 cloudfunctions/ 并填入 CLOUD_ENV）。完整架构见 `技术架构文档.md`。
 
 ### 目录登记（新增页面/目录后必须更新本节）
 
 ```
-miniprogram/
-├── app.json / app.js / app.wxss    # 全局配置、Design Tokens（app.wxss 的 CSS 变量是唯一样式来源）
-├── project.config.json / sitemap.json
+D:\vibeCoding\j\                     # 开发者工具打开此根目录
+├── project.config.json              # 项目主配置（miniprogramRoot + cloudfunctionRoot）
+├── cloudfunctions/                  # 云函数（Node.js，部署到云开发环境后生效；未部署时 USE_CLOUD 必须为 false）
+│   ├── user / letter / today / open / reply / draft / theme / stats / analytics   # 各含 index.js + package.json，action 分发
+│   └── cleaner/                     # 废纸篓 30 天到期清理，config.json 含每日 03:00 定时触发器
+└── miniprogram/
+    ├── app.json / app.js / app.wxss    # 全局配置、Design Tokens（app.wxss 的 CSS 变量是唯一样式来源）；app.js 云模式下 wx.cloud.init + 静默建档
+    ├── config/env.js                   # 数据源切换（USE_CLOUD / CLOUD_ENV / DATA_SOURCE）
+    ├── services/                       # ★ 数据访问层（架构文档 §3）：letter（信件全生命周期+废纸篓+重读+回信）/ draft（两层草稿键）/ user（资料/统计/注销）/ theme / analytics（批量埋点）/ cloud（callFunction 封装）；local 适配器复刻原 storage 行为，cloud 适配器对接 cloudfunctions/
+    ├── project.config.json / sitemap.json
 ├── assets/                         # 图片素材（已压缩；原图在 picture/，勿直接引用原图）
 │   ├── logo.png  name.png          # 品牌邮箱线稿 / 字标（深色图案+透明底）
 │   ├── letter-1.png                # 信件图案（早期占位图，信封展示已改用主题素材，保留兜底）
@@ -97,15 +106,15 @@ miniprogram/
 │   ├── clip.png                    # 金色回形针（透明底实拍图，首页信封网格回形针角标；原图在 picture/回形针.png，勿直接引用）
 │   └── theme/xiaowangzi/           # 小王子主题素材（envelope.jpg 信封 + paper.png 信纸带撕边透明通道；原图在 picture/小王子主题/，勿直接引用）
 └── pages/
-    ├── home/                       # 首页·信匣（Tab1）。三状态：empty/few/normal，由 mock.js 的 DEMO_STATE 切换预览（letters_mock 中已寄出的信始终合并进网格、排最前）；信封图按信件 theme_id 取 write/themes.js 主题素材（素材未就绪回落默认主题，当前小王子信封图）；信件网格 <7 封两列 ±2° 倾斜、≥7 封三列整齐+回形针前置；今日来信按日期种子确定性随机；寄出回传标记 letter_just_arrived（storage，消费即清除）触发新信「落格」动效（480ms 淡入+10px 落定，播完移除标记不重播）
+    ├── home/                       # 首页·信匣（Tab1）。三状态：empty/few/normal，由 mock.js 的 DEMO_STATE 切换预览（letters_mock 中已寄出的信始终合并进网格、排最前，与演示池按 id 去重 + demo_removed_ids 剔除）；信封图按信件 theme_id 取 write/themes.js 主题素材（素材未就绪回落默认主题，当前小王子信封图）；信件网格 <7 封两列 ±2° 倾斜、≥7 封三列整齐+回形针前置；今日来信按日期种子确定性随机；寄出回传标记 letter_just_arrived（storage，消费即清除）触发新信「落格」动效（480ms 淡入+10px 落定，播完移除标记不重播）；草稿横条按真实草稿显示（draft 服务，云端 today 聚合 draftCount），点击直达 pages/write/write 继续写信
     ├── write/                      # 写信两步流程。write.* = 第一步「写下这封信」（整页可滚动信纸，名称/问题/答案均必填，计数 20/200/500 待 PRD 固化，折痕线两端撕纸缺口；自动存草稿 10s/失焦，storage 键 letter_draft_current，退出提示"这封信还没写完。"）；step2.* = 第二步「选信纸并寄出」（信封+信纸实时预览 52% + 全屏预览态 + 主题横滑卡片[缩略图用信封图，含名称+副标题] + 火漆封存寄出；内容经 eventChannel 传入，直接预览本页时回退读草稿；寄出写 letters_mock 并清草稿，授权 TODO）；**编辑态（mode=edit，PRD 5.6）**：详情页进入复用两步流程，第一步预填原信内容（编辑草稿独立存 letter_edit_current 带 letterId，不污染 letter_draft_current；返回时若内容有改动弹窗「这次编辑还没有封存。」确认「取消编辑」丢弃修改回原信阅读态、无改动直接返回，手势返回提示「这次编辑还没有封存，确定离开吗？」），第二步回选原主题、落款「写于 X月X日 · 改于 当天」双时间、主按钮「保存修改并封存」，保存只更新内容/主题/theme_version 并记 updated_at，重读记录与回信静默原样保留，完成幕文案「已重新封存。那些新的思考，也一起安放好了。」，navigateBack(delta 2) 回详情（不写 letter_just_arrived、不播落格动效，getApp()._editSealed 一次性抑制 write onHide 回写过期编辑草稿）；寄出动效 = 火漆按压（按钮缩小+预览信纸轻沉折起 400ms）→ 全屏完成幕（主题信封落定→固定文案「已封存。未来的某一天，它会在这里等你。」，点击任意处跳过，不在信封上盖火漆点）→ 幕布淡出 switchTab 回信匣并写 letter_just_arrived 标记；themes.js = 主题配置（小王子素材就绪为默认，PRD 6 套官方主题 pending 色样占位不可选，assets/theme/xiaowangzi/）
-    ├── detail/                      # 03 · 信件详情 / 拆信阅读 / 回信（三状态）。onLoad 播拆信动画（≤1.2s 可点击跳过：信封浮起+今日重读邮戳→信纸抽出展开→信封淡出）并自动产生今日重读记录（BR-09，同日不重复）；阅读态 = 主信纸卡（宋体标题 + 手写体正文 32rpx·行高 1.8 对横线 + 写于/改于落款）+ 邮戳墙（收起态展示最早 5 枚+今天，其余「+N 展开/收起」）+ 回信便签流（暖黄便签交替微倾，日期自动不可改）+ 虚线框回信引导；回信弹层 = 半屏便签抽屉（固定日期、手写体多行输入、软键盘避让，保存后便签样式 Toast「回信已贴好。这封信越来越厚了。」）；底部毛玻璃操作栏 编辑/回形针(点亮态)/分享/删除（删除确认与 30 天废纸篓为 PRD 原文，写 recycle_mock）；编辑为已实现入口：onTapEdit 携 mode=edit&id 跳 pages/write/write 并经 eventChannel 传入完整信件（演示数据也可预填），onShow 返回后刷新信件内容（isRefresh 不重复上报 letter_open）、演示数据不刷新；分享跳转 pages/share；传 id 时优先读 letters_mock，否则用 mock.js 的 DEMO_STATE 切换 multi（多次拆开）/first（首次拆开）；主题随 theme_id 取 write/themes.js（当前小王子）
-    ├── share/                       # 04 · 分享图 · 明信片预览页（勾选弹层状态一 TODO，默认四项全选，暂无重新勾选入口）。3:4 竖版明信片（onReady 按预览区实测等比缩放，导出规格 1080×1440）：信纸主体按素材比例 896×1200 完整缩放不裁切（品牌区贴于信纸下方、不遮挡），文字留白随信纸尺寸换算；内容 = 名称/当时的问题/想明白的答案/创建时间（重读记录与回信永不入图 BR-15）；品牌区 = 火漆 Logo 环 + 「心灵信箱 · 把答案寄给未来」+ 小程序二维码占位；底部操作 = [💾 保存到相册]/[💬 发给微信好友]（Canvas 导出 TODO，埋点 share_image_save/share_send）；数据同 detail：传 id 优先读 letters_mock，否则 demo
-    ├── recycle/                     # 05 · 废纸篓（两状态）。顶部轻导航「‹ 我的 / 废纸篓」+ 页首说明「放进这里的信，30 天后会自动离开。」；有内容态 = 主题信封图置灰行（filter grayscale，临近 3 天加细虚线描边 + 鼠尾草微亮背景强调）+ 宋体名称 + 剩余天数胶囊（还有 N 天将被处理 / 还有 3 天。再看看它，或者取回来。）+ 左滑露双按钮 [↩️ 取回(陶土色)]/[🗑️ 彻底(深灰)]（跟手拖动、单行展开，彻底删除二次确认「这封信将无法找回，确定吗？」，取回原样恢复写回 letters_mock，满 30 天自动清理）；空状态 = mailbox.png 插画 + 「废纸篓里什么也没有。/那些曾经想通的答案，都还在信匣里守候着你。」；信封图按 theme_id 取主题素材（与首页同源，当前小王子）；数据优先读 recycle_mock（详情页删除写入），为空按 mock.js 的 DEMO_STATE（full/empty）演示
+    ├── detail/                      # 03 · 信件详情 / 拆信阅读 / 回信（三状态）。onLoad 播拆信动画（≤1.2s 可点击跳过：信封浮起+今日重读邮戳→信纸抽出展开→信封淡出）并自动产生今日重读记录（BR-09，同日不重复）；阅读态 = 主信纸卡（宋体标题 + 手写体正文 32rpx·行高 1.8 对横线 + 写于/改于落款）+ 邮戳墙（收起态展示最早 5 枚+今天，其余「+N 展开/收起」）+ 回信便签流（暖黄便签交替微倾，日期自动不可改）+ 虚线框回信引导；回信弹层 = 半屏便签抽屉（固定日期、手写体多行输入、软键盘避让，保存后便签样式 Toast「回信已贴好。这封信越来越厚了。」）；底部毛玻璃操作栏 编辑/回形针(点亮态)/分享/删除（删除确认与 30 天废纸篓为 PRD 原文，写 recycle_mock）；编辑为已实现入口：onTapEdit 携 mode=edit&id 跳 pages/write/write 并经 eventChannel 传入完整信件（演示数据也可预填），onShow 返回后刷新信件内容（isRefresh 不重复上报 letter_open）、演示数据不刷新；分享跳转 pages/share；传 id 时经 letter 服务优先读 letters_mock，否则回落 mock.js 的 DEMO_STATE 切换 multi（多次拆开）/first（首次拆开）演示信（回落时保留请求 id，写操作[删除/回形针/回信]经 ensureReal 落成真实信，正文按名称匹配补全）；主题随 theme_id 取 write/themes.js（当前小王子）
+    ├── share/                       # 04 · 分享图 · 明信片预览页（三状态，功能需求文档 七）：界面1 勾选抽屉（onLoad 默认滑出，PRD 文案「挑你想让朋友看到的部分。」+ 四选项陶土火漆勾号，默认全选，重新打开保留勾选）→ 界面2 全屏预览（重新勾选时明信片微缩淡化）→ 界面3 重新生成。3:4 竖版明信片（onReady 按预览区实测等比缩放，导出规格 1080×1440）：信纸主体按素材比例 896×1200 完整缩放不裁切（品牌区贴于信纸下方、不遮挡），文字留白随信纸尺寸换算；内容四项可勾选（重读记录与回信永不入图 BR-15）；品牌区 = 火漆 Logo 环 + 「心灵信箱 · 把答案寄给未来」+ 小程序二维码占位；底部操作 = 🔄 重新勾选内容 + [💾 保存到相册（相册权限拒绝时引导 openSetting）]/[💬 发给微信好友（wx.showShareImageMenu，低版本 previewImage 兜底）]；离屏 Canvas type=2d（#share-canvas 1080×1440）按预览布局等比绘制导出（含换行截断、圆角裁切、品牌区绘制），埋点 share_image_generate/share_image_save/share_send；生成图不入云端历史（PRD 5.8 存储）；数据经 letter 服务（传 id 优先真实信，否则 demo）
+    ├── recycle/                     # 05 · 废纸篓（两状态）。顶部轻导航「‹ 我的 / 废纸篓」+ 页首说明「放进这里的信，30 天后会自动离开。」；有内容态 = 主题信封图置灰行（filter grayscale，临近 3 天加细虚线描边 + 鼠尾草微亮背景强调）+ 宋体名称 + 剩余天数胶囊（还有 N 天将被处理 / 还有 3 天。再看看它，或者取回来。）+ 左滑露双按钮 [↩️ 取回(陶土色)]/[🗑️ 彻底(深灰)]（跟手拖动、单行展开，彻底删除二次确认「这封信将无法找回，确定吗？」，取回原样恢复写回 letters_mock，满 30 天自动清理）；空状态 = mailbox.png 插画 + 「废纸篓里什么也没有。/那些曾经想通的答案，都还在信匣里守候着你。」；信封图按 theme_id 取主题素材（与首页同源，当前小王子）；数据经 letter 服务读 recycle_mock（详情页删除写入），首次查看且为空时把 recycle/mock.js 的演示数据（full 态）一次性落成真实数据（recycle_demo_seeded 标记，此后取回/彻底删除真实生效、不再回落演示）
     ├── clips/                       # 06 · 回形针优先展示列表（两状态），「我的」页回形针数量行进入。顶部轻导航「‹ 我的 / 回形针优先展示」+ 页首说明「别上回形针的信，会排在信匣最前面。」；有内容态 = 别着回形针的纸条行（彩色主题信封图[点亮语义，不置灰] + 左上角金色 clip.png 角标 + 宋体名称 + 「写于 N月N日」+ 交替 ±0.5° 微倾，轻触直达 pages/detail）；空状态 = mailbox.png 插画 + 「还没有别上回形针的信。/拆开一封信，点亮底部的回形针，它就会排在这里等你。」；回形针点亮/取下只在详情页底部操作栏做（BR-06），本页 onShow 刷新；数据与首页信匣同源合并（letters_mock 优先 + home/mock.js 按 DEMO_STATE），仅筛 pinned
     ├── account/                     # 10 · 账号管理（从「我的」页名片进入）。顶部轻导航「‹ 我的 / 账号管理」+ 页首说明「你的名字与头像，只用于识别这是你的匣子。」；资料区 = 头像按钮（open-type="chooseAvatar" 官方头像填写能力，未设置时昵称首字占位 + 「点击更换」角标）+ 昵称输入框（type="nickname" 官方昵称填写能力，宋体下划线样式）+「在这个匣子里写了 N 天」；资料存本地 storage 键 account_profile，「我的」页名片 onShow 读同源数据（未设置回落 mock 演示）；账号注销 = 页内二次确认弹窗（PRD 固定文案「注销后，匣子里的所有信件、回信和痕迹都会被销毁，无法找回。」，确认「仍要注销」/取消「再想想」，confirmColor 深灰 #6E7570），确认后清除 letters_mock / recycle_mock / letter_draft_current / letter_edit_current / letter_just_arrived / account_profile（handwriting_off 设备偏好保留），Toast 告别文案后 reLaunch 回首页；不做退出登录、不做数据概览（用户确认项）；云端注销接口 TODO
-    └── mine/                       # 我的（Tab2）：品牌区（与首页同款 logo+名称，同位置同尺寸）+ 名片（点击进 pages/account/account 账号管理；资料优先读 storage account_profile，onShow 刷新，未设置回落 mock.js 演示数据）+ 2×2 微倾便签统计 + 回形针/废纸篓数量行（废纸篓入口已接入 pages/recycle；回形针行已接入 pages/clips，数量与 clips 页同口径：letters_mock + 演示数据中的 pinned 数，onShow 实时刷新）+ 功能列表（用户协议/隐私/关于）；mock.js 演示数据，功能项均为 TODO 占位
+    └── mine/                       # 我的（Tab2）：品牌区（与首页同款 logo+名称，同位置同尺寸）+ 名片（点击进 pages/account/account 账号管理；资料经 services/user.js，onShow 刷新，未设置回落 mock.js 演示数据）+ 2×2 微倾便签统计（userService.getStats 聚合：local 演示值，云端 stats 云函数实数）+ 回形针/废纸篓数量行（废纸篓入口已接入 pages/recycle；回形针行已接入 pages/clips，数量经 letter 服务实时刷新）+ 功能列表（关闭手写体无障碍开关[handwriting_off 设备偏好，详情/写信/分享页进入时读取] + 用户协议/隐私/关于）；功能后三项为 TODO 占位
 ```
 
-- 接入真实数据前，首页与我的页分别使用 `pages/home/mock.js`、`pages/mine/mock.js` 演示数据；写信两步流程已接入 `pages/write/`（寄出数据暂写本地 letters_mock），拆信/详情/回信已接入 `pages/detail/`、分享明信片预览已接入 `pages/share/`、废纸篓已接入 `pages/recycle/`（首页信匣与今日来信点击直达详情，详情删除写 recycle_mock，我的页废纸篓行直达废纸篓）、回形针优先展示列表已接入 `pages/clips/`（我的页回形针行直达）、账号管理已接入 `pages/account/`（我的页名片直达，头像昵称本地保存、注销清本地演示数据，云端 TODO）；编辑已接入（详情页 ✏️ → write 两步编辑态，见 write/ 登记）、分享勾选弹层与图片导出等仍为 `TODO` 注释占位。
+- 接入真实数据前，首页与我的页分别使用 `pages/home/mock.js`、`pages/mine/mock.js` 演示数据（演示数据的合并逻辑已收口到 services/letter.js 的 local 适配器，页面无感）；写信两步流程、拆信/详情/回信、分享明信片预览（勾选抽屉 + Canvas 导出已实现）、废纸篓、回形针优先展示列表、账号管理、编辑均已接入 services 层（当前 local 模式行为与原版一致）；首次寄出的账号确认提示已实现（step2 confirmSeal，PRD 建议文案，云模式一次性，标记 user_sealed_once 随注销清除）；头像云存储上传为下一阶段接入点（云模式 saveProfile 仅收 cloud:// fileID）。
 - 本文件保持为未来 agent 的唯一入口；新增页面或目录后同步登记到这里。

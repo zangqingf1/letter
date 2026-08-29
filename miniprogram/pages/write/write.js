@@ -8,17 +8,16 @@ const NAME_MAX = 20;
 const QUESTION_MAX = 200;
 const ANSWER_MAX = 500;
 
-// 草稿保护：每 10 秒或输入框失焦时自动保存（PRD 5.3）
+// 草稿保护：每 10 秒或输入框失焦时自动保存（PRD 5.3），经 draft 服务读写
+// （本地 storage 第一道防线，云端 drafts 集合备份由服务内部扩展，见架构文档 §5.4）
 const AUTOSAVE_INTERVAL = 10 * 1000;
-// TODO: 接入云端后替换为 Draft 实体（PRD 第十节）
-const DRAFT_KEY = 'letter_draft_current';
-// 编辑模式的防丢失草稿使用独立存储键：letter_draft_current 是"新信"草稿（首页草稿横条读取），
-// 编辑已有信件不能与之混用（step2.js 同名常量与此保持一致）
-const EDIT_DRAFT_KEY = 'letter_edit_current';
+const draftService = require('../../services/draft.js');
+const letterService = require('../../services/letter.js');
+const analytics = require('../../services/analytics.js');
 
-// TODO: 接入真实埋点（事件名见 PRD 第十三节）
+// 埋点统一走 analytics 服务（事件名见 PRD 第十三节）
 function track(event, data) {
-  console.log('[track]', event, data || '');
+  analytics.track(event, data);
 }
 
 Page({
@@ -64,6 +63,21 @@ Page({
         answerLen: decodeURIComponent(options.answer || '').length
       });
       this.refreshCanNext();
+    } else {
+      // 无传参进入（首页草稿横条/继续写信）：恢复未写完的草稿（PRD 5.3，取本地与云端较新者
+      // 由 draft 服务内部决定）
+      draftService.get().then((draft) => {
+        if (this.editMode || !draft) return;
+        this.setData({
+          name: draft.name || '',
+          question: draft.question || '',
+          answer: draft.answer || '',
+          questionLen: (draft.question || '').length,
+          answerLen: (draft.answer || '').length
+        });
+        this.refreshCanNext();
+        this.syncAlertBeforeUnload();
+      });
     }
 
     // 编辑过程有内容时，系统手势返回也给出退出提示（自定义返回按钮另有拦截）
@@ -91,8 +105,7 @@ Page({
   },
 
   // ── 编辑态预填（PRD 5.6 / 功能需求文档 六）──
-  // 详情页经事件通道传入完整信件（兼容不在 letters_mock 中的演示数据）；
-  // 直接编译预览本页时按 id 回读 letters_mock 兜底。
+  // 详情页经事件通道传入完整信件；直接编译预览本页时按 id 经 letter 服务回读兜底。
   setupEditPrefill() {
     this._editPrefilled = false;
     const ch = this.getOpenerEventChannel && this.getOpenerEventChannel();
@@ -100,9 +113,10 @@ Page({
       ch.on('letterData', (d) => this.applyEditPrefill(d));
     }
     if (!this.editId) return;
-    const letters = wx.getStorageSync('letters_mock') || [];
-    const found = letters.find((l) => l.id === this.editId);
-    if (found) {
+    letterService.get(this.editId).then((res) => {
+      // isDemo 说明不是真实寄出的信（演示数据），不做编辑预填
+      if (res.isDemo || !res.letter) return;
+      const found = res.letter;
       this.applyEditPrefill({
         editId: found.id,
         name: found.name,
@@ -111,7 +125,8 @@ Page({
         themeId: found.theme_id,
         createdAt: found.created_at
       });
-    }
+    })
+    .catch((err) => console.error('[write] 编辑预填读取失败', err));
   },
 
   applyEditPrefill(d) {
@@ -124,21 +139,22 @@ Page({
     this._original = { name: d.name || '', question: d.question || '', answer: d.answer || '' };
 
     // 有该信未封存的编辑草稿（上次中途退出保存）则以草稿内容优先，防丢失恢复
-    const editDraft = wx.getStorageSync(EDIT_DRAFT_KEY);
-    const hasDraft = editDraft && editDraft.letterId === this.editId &&
-      (editDraft.name || editDraft.question || editDraft.answer);
+    draftService.getEdit().then((editDraft) => {
+      const hasDraft = editDraft && editDraft.letterId === this.editId &&
+        (editDraft.name || editDraft.question || editDraft.answer);
 
-    const name = hasDraft ? editDraft.name : (d.name || '');
-    const question = hasDraft ? editDraft.question : (d.question || '');
-    const answer = hasDraft ? editDraft.answer : (d.answer || '');
-    this.setData({
-      name,
-      question,
-      answer,
-      questionLen: question.length,
-      answerLen: answer.length
+      const name = hasDraft ? editDraft.name : (d.name || '');
+      const question = hasDraft ? editDraft.question : (d.question || '');
+      const answer = hasDraft ? editDraft.answer : (d.answer || '');
+      this.setData({
+        name,
+        question,
+        answer,
+        questionLen: question.length,
+        answerLen: answer.length
+      });
+      this.refreshCanNext();
     });
-    this.refreshCanNext();
   },
 
   // ── 输入 ──
@@ -206,23 +222,13 @@ Page({
   saveDraft(silent) {
     if (!this.hasContent()) return;
     const d = this.data;
+    const content = { name: d.name, question: d.question, answer: d.answer };
     if (this.editMode) {
       // 编辑草稿带信件 id 独立存放；正式保存（保存修改并封存）时由 step2 清除
-      wx.setStorageSync(EDIT_DRAFT_KEY, {
-        letterId: this.editId,
-        name: d.name,
-        question: d.question,
-        answer: d.answer,
-        updatedAt: Date.now()
-      });
+      draftService.saveEdit(this.editId, content);
       return;
     }
-    wx.setStorageSync(DRAFT_KEY, {
-      name: d.name,
-      question: d.question,
-      answer: d.answer,
-      updatedAt: Date.now()
-    });
+    draftService.save(content);
     if (!silent) {
       // 埋点：保存草稿
       track('draft_save');
@@ -232,10 +238,10 @@ Page({
 
   discardDraft() {
     if (this.editMode) {
-      wx.removeStorageSync(EDIT_DRAFT_KEY);
+      draftService.clearEdit();
       return;
     }
-    wx.removeStorageSync(DRAFT_KEY);
+    draftService.clear();
   },
 
   // ── 底部操作 ──
@@ -309,7 +315,7 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         // 取消编辑：丢弃编辑草稿，信件保持原样（重读记录与回信本就未动）
-        wx.removeStorageSync(EDIT_DRAFT_KEY);
+        draftService.clearEdit();
         wx.navigateBack();
       }
     });

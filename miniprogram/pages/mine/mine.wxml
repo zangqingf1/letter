@@ -52,6 +52,10 @@
 
   <!-- 底部功能列表：无硬体分割，浅色信纸下划线分隔，无多余图标 -->
   <view class="menu">
+    <view class="menu-item" hover-class="menu-item-hover">
+      <text class="menu-text">关闭手写体</text>
+      <switch class="hand-switch" checked="{{handwritingOff}}" bindchange="onHandwritingChange" color="#6B8E85" />
+    </view>
     <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapAgreement">
       <text class="menu-text">用户协议</text>
       <text class="menu-arrow">›</text>

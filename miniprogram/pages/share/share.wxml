@@ -1,4 +1,4 @@
-<!-- 04 · 分享图 · 明信片预览（3:4 竖版，沿用当前信件主题材质） -->
+<!-- 04 · 分享图 · 明信片预览（3:4 竖版，沿用当前信件主题材质；重读记录与回信永不入图 BR-15） -->
 <view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
@@ -8,17 +8,17 @@
   </view>
 
   <!-- 明信片预览区：3:4 竖版（最终导出规格 1080×1440），信纸完整等比缩放，品牌区贴于信纸下方不遮挡 -->
-  <view class="stage">
+  <view class="stage {{sheetOpen ? 'stage-dim' : ''}}">
     <view class="postcard" style="{{cardW ? 'width:' + cardW + 'px;height:' + cardH + 'px;' : ''}}">
       <!-- 信纸主体：完整展示当前主题信纸素材（BR-15：分享图默认沿用当前主题） -->
       <view class="pc-paper-wrap">
         <view class="pc-paper" style="{{paperW ? 'width:' + paperW + 'px;height:' + paperH + 'px;' : ''}}">
           <image class="pc-bg" src="{{theme.paper}}" mode="scaleToFill" />
           <view class="pc-content" style="{{paperH ? 'padding:' + padTop + 'px ' + padSide + 'px ' + padBottom + 'px;' : ''}}">
-            <view class="pc-title">{{letter.name}}</view>
-            <view class="pc-hand pc-q">{{letter.question}}</view>
-            <view class="pc-hand pc-a">{{letter.answer}}</view>
-            <view class="pc-date">—— 写于 {{dateText}}</view>
+            <view wx:if="{{sel.name}}" class="pc-title">{{letter.name}}</view>
+            <view wx:if="{{sel.question}}" class="pc-hand pc-q">{{letter.question}}</view>
+            <view wx:if="{{sel.answer}}" class="pc-hand pc-a">{{letter.answer}}</view>
+            <view wx:if="{{sel.date}}" class="pc-date">—— 写于 {{dateText}}</view>
           </view>
         </view>
       </view>
@@ -33,12 +33,45 @@
     </view>
   </view>
 
-  <!-- 底部操作区：双等宽实体按钮（勾选弹层状态一待接入，暂无重新勾选入口） -->
+  <!-- 底部操作区：上层重新勾选链接 + 下层双等宽实体按钮 -->
   <view class="share-foot">
+    <view class="share-reselect" hover-class="share-reselect-hover" bindtap="onOpenSheet">🔄 重新勾选内容</view>
     <view class="share-ops">
       <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSave">💾 保存到相册</view>
       <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSend">💬 发给微信好友</view>
     </view>
   </view>
+
+  <!-- 勾选抽屉（界面1/3）：底部滑出，已勾选项在重新打开时完整保留 -->
+  <view class="sheet-mask {{sheetOpen ? 'show' : ''}}" bindtap="onCloseSheet"></view>
+  <view class="sheet {{sheetOpen ? 'show' : ''}}">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">挑你想让朋友看到的部分。</view>
+    <view class="sheet-opts">
+      <view class="sheet-opt {{sel.name ? 'on' : ''}}" data-key="name" bindtap="onToggleSel">
+        <view class="opt-seal">{{sel.name ? '✓' : ''}}</view>
+        <text class="opt-text">来信名称</text>
+      </view>
+      <view class="sheet-opt {{sel.question ? 'on' : ''}}" data-key="question" bindtap="onToggleSel">
+        <view class="opt-seal">{{sel.question ? '✓' : ''}}</view>
+        <text class="opt-text">当时的问题</text>
+      </view>
+      <view class="sheet-opt {{sel.answer ? 'on' : ''}}" data-key="answer" bindtap="onToggleSel">
+        <view class="opt-seal">{{sel.answer ? '✓' : ''}}</view>
+        <text class="opt-text">想明白的答案</text>
+      </view>
+      <view class="sheet-opt {{sel.date ? 'on' : ''}}" data-key="date" bindtap="onToggleSel">
+        <view class="opt-seal">{{sel.date ? '✓' : ''}}</view>
+        <text class="opt-text">创建时间</text>
+      </view>
+    </view>
+    <view class="sheet-privacy">🔒 重读记录与回信不会出现在分享图中</view>
+    <view class="btn-primary sheet-btn" hover-class="btn-primary-hover" bindtap="onTapGenerate">
+      {{hasGenerated ? '💮 重新生成分享图' : '💮 生成分享图'}}
+    </view>
+  </view>
+
+  <!-- 离屏导出画布（1080×1440，仅用于 Canvas 导出，不参与预览） -->
+  <canvas type="2d" id="share-canvas" class="export-canvas"></canvas>
 
 </view>
