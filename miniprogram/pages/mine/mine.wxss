@@ -38,6 +38,7 @@
 }
 .profile-card .avatar {
   flex: none;
+  position: relative;
   width: 108rpx;
   height: 108rpx;
   border-radius: 50%;
@@ -48,9 +49,14 @@
   align-items: center;
   justify-content: center;
 }
+/* 头像图尺寸显式固定，不随容器布局拉伸变形 */
 .profile-card .avatar-img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 108rpx;
+  height: 108rpx;
+  display: block;
 }
 .profile-card .avatar-char {
   font-family: var(--font-heading);
@@ -195,4 +201,10 @@
   font-size: 36rpx;
   line-height: 1;
   color: var(--color-text-secondary);
+}
+
+/* 关闭手写体开关（无障碍）：右对齐，等比缩小匹配行高 */
+.menu-item .hand-switch {
+  transform: scale(0.8);
+  transform-origin: right center;
 }

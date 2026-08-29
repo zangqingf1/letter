@@ -1,13 +1,9 @@
-const { MOCK_LETTERS, MOCK_DRAFT_COUNT, DEMO_STATE } = require('./mock.js');
-const THEMES = require('../write/themes.js');
+const letterService = require('../../services/letter.js');
+const draftService = require('../../services/draft.js');
+const themeService = require('../../services/theme.js');
 
-// 信封图按信件主题取图（theme_id → 主题信封素材）；素材未就绪的主题回落默认主题（当前小王子）
-function themeEnvelope(themeId) {
-  const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
-  return theme.envelope || THEMES[0].envelope;
-}
-
-// 今日来信：同一天固定同一封（按日期种子确定性随机，次日重摇）
+// 今日来信（local 态）：同一天固定同一封（按日期种子确定性随机，次日重摇）；
+// 云端态由 today 云函数按「用户+日期」确定并返回 todayId（BR-07，见架构文档 §5.2）
 function pickTodayLetter(letters) {
   if (!letters.length) return null;
   const now = new Date();
@@ -30,7 +26,7 @@ function applyTilt(letters, isTidy) {
   });
 }
 
-// 信件日期文案：写回的 letters_mock 只有 created_at，按创建时间补出「N月N日」
+// 信件日期文案：按创建时间补出「N月N日」（信件数据由 letter 服务提供）
 function dateTextOf(letter) {
   if (letter.dateText) return letter.dateText;
   const n = new Date(letter.created_at || Date.now());
@@ -75,42 +71,44 @@ Page({
     }
   },
 
-  // TODO: 接入云端数据后替换 mock（ Letter / Draft 实体见 PRD 第十节）
+  // 信匣数据经 letter 服务获取（真实寄出的信排最前，演示数据按 DEMO_STATE 接入）；
+  // 草稿横条按真实草稿显示（云端 today 聚合返回 draftCount，本地读 draft 服务）
   loadMailbox(arrivingId) {
-    // 已寄出的信（写信流程写入 letters_mock）合并进网格，排最前（新信在上）
-    const sent = (wx.getStorageSync('letters_mock') || []).map((l) => ({ ...l, dateText: dateTextOf(l) }));
-    let letters = [];
-    let draftCount = 0;
-    if (DEMO_STATE === 'empty') {
-      letters = sent;
-    } else if (DEMO_STATE === 'few') {
-      letters = [...sent, ...MOCK_LETTERS.slice(0, 4)];
-    } else {
-      letters = [...sent, ...MOCK_LETTERS];
-      draftCount = MOCK_DRAFT_COUNT;
-    }
+    Promise.all([letterService.getAll(), themeService.getThemes(), draftService.get()]).then(
+      ([box, themes, draft]) => {
+        // 回形针优先展示（BR-06）：只改排序，不改视觉
+        const sorted = [...box.list].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+        const isTidy = sorted.length >= 7;
+        const now = new Date();
 
-    // 回形针优先展示（BR-06）：只改排序，不改视觉
-    letters = [...letters].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-    const isTidy = letters.length >= 7;
-    const now = new Date();
+        const letters = applyTilt(sorted, isTidy).map((l) => ({
+          ...l,
+          dateText: dateTextOf(l),
+          env: themeService.envelopeOf(l.theme_id, themes),
+          // 刚寄出的信：落格动效（淡入 + 10px 落定）
+          arriving: arrivingId && l.id === arrivingId
+        }));
 
-    letters = applyTilt(letters, isTidy).map((l) => ({
-      ...l,
-      env: themeEnvelope(l.theme_id),
-      // 刚寄出的信：落格动效（淡入 + 10px 落定）
-      arriving: arrivingId && l.id === arrivingId
-    }));
+        // 云端已确定今日来信（BR-07 同日固定）时直接命中，否则本地按日期种子随机
+        const todayLetter = box.todayId
+          ? letters.find((l) => l.id === box.todayId) || pickTodayLetter(letters)
+          : pickTodayLetter(letters);
 
-    this.setData({
-      letters,
-      draftCount,
-      hasLetters: letters.length > 0,
-      isTidy,
-      todayLetter: pickTodayLetter(letters),
-      todayStamp: letters.length ? pad2(now.getMonth() + 1) + '.' + pad2(now.getDate()) : '',
-      todayYear: letters.length ? String(now.getFullYear()) : ''
-    });
+        this.setData({
+          letters,
+          draftCount: Math.max(box.draftCount || 0, draft ? 1 : 0),
+          hasLetters: letters.length > 0,
+          isTidy,
+          todayLetter,
+          todayStamp: letters.length ? pad2(now.getMonth() + 1) + '.' + pad2(now.getDate()) : '',
+          todayYear: letters.length ? String(now.getFullYear()) : ''
+        });
+      })
+      .catch((err) => {
+        // 信匣加载失败不再静默空白：报错留痕 + 温和提示（文案语气见设计规范）
+        console.error('[home] 信匣加载失败', err);
+        wx.showToast({ title: '信匣暂时没有打开，稍后再来试试', icon: 'none' });
+      });
   },
 
   onTapTodayLetter() {
@@ -129,8 +127,8 @@ Page({
   },
 
   onTapDrafts() {
-    // TODO: 跳转继续写信
-    wx.showToast({ title: '继续写信开发中', icon: 'none' });
+    // 草稿横条：回写信第一步继续写（write 页自动恢复草稿内容，PRD 5.3）
+    wx.navigateTo({ url: '/pages/write/write' });
   },
 
   onTapWrite() {

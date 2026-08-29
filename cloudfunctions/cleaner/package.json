@@ -1,0 +1,9 @@
+{
+  "name": "cleaner",
+  "version": "1.0.0",
+  "description": "heart-mailbox cloud function: cleaner",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "reply",
+  "version": "1.0.0",
+  "description": "heart-mailbox cloud function: reply",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

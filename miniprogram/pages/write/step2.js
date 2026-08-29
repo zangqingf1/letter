@@ -3,13 +3,18 @@
 // 数据来源：第一步经 eventChannel 传入；直接编译预览本页时回退读取本地草稿。
 
 const THEMES = require('./themes.js');
-const DRAFT_KEY = 'letter_draft_current';
-// 编辑防丢失草稿键（与 write.js 保持一致）；保存修改成功后由此处清除
-const EDIT_DRAFT_KEY = 'letter_edit_current';
+const letterService = require('../../services/letter.js');
+const draftService = require('../../services/draft.js');
+const analytics = require('../../services/analytics.js');
+const { DATA_SOURCE } = require('../../config/env.js');
+const cloud = require('../../services/cloud.js');
 
-// TODO: 接入真实埋点（事件名见 PRD 第十三节；letter_step2_view 替代已删除的 letter_preview）
+// 首次寄出的账号提示标记（仅云模式需要；注销时随用户数据清除，见 services/user.js）
+const SEALED_ONCE_KEY = 'user_sealed_once';
+
+// 埋点统一走 analytics 服务（事件名见 PRD 第十三节；letter_step2_view 替代已删除的 letter_preview）
 function track(event, data) {
-  console.log('[track]', event, data || '');
+  analytics.track(event, data);
 }
 
 function todayText() {
@@ -42,11 +47,11 @@ Page({
         if (d) this.applyLetterData(d);
       });
     }
-    // 兜底：编辑模式按 id 回读 letters_mock（直接编译预览本页时用）
+    // 兜底：编辑模式按 id 经 letter 服务回读（直接编译预览本页时用）
     if (options && options.mode === 'edit' && options.id) {
-      const letters = wx.getStorageSync('letters_mock') || [];
-      const found = letters.find((l) => l.id === options.id);
-      if (found) {
+      letterService.get(options.id).then((res) => {
+        if (res.isDemo || !res.letter) return;
+        const found = res.letter;
         this.applyLetterData({
           editMode: true,
           editId: found.id,
@@ -56,15 +61,17 @@ Page({
           themeId: found.theme_id,
           createdAt: found.created_at
         });
-      }
+      })
+      .catch((err) => console.error('[step2] 编辑回读失败', err));
     } else if (!(options && options.mode === 'edit')) {
       // 兜底：开发者工具直接预览本页时读取草稿（编辑模式不得读"新信"草稿）
-      const draft = wx.getStorageSync(DRAFT_KEY);
-      if (draft && (draft.name || draft.question || draft.answer)) {
-        this.setData({
-          letter: { name: draft.name || '', question: draft.question || '', answer: draft.answer || '' }
-        });
-      }
+      draftService.get().then((draft) => {
+        if (draft) {
+          this.setData({
+            letter: { name: draft.name || '', question: draft.question || '', answer: draft.answer || '' }
+          });
+        }
+      });
     }
 
     // 埋点：进入第二步
@@ -160,29 +167,64 @@ Page({
     // 埋点：寄出信件（核心转化）
     track('letter_save');
 
-    // 信封素材留给首页信匣展示（保存后的信封图），此处仅用信纸预览
-    // TODO: 接入云端 Letter 实体（含 theme_id + theme_version）；MVP 先写本地演示存储
-    const theme = d.currentTheme;
-    const newLetterId = 'l' + Date.now();
-    const letters = wx.getStorageSync('letters_mock') || [];
-    letters.push({
-      id: newLetterId,
-      name: d.letter.name,
-      question: d.letter.question,
-      answer: d.letter.answer,
-      theme_id: theme.id,
-      theme_version: theme.version,
-      pinned: false,
-      created_at: Date.now()
+    // 未封存过信的账号在寄出时提示一次（PRD 第六节：授权固定在寄出时触发；
+    // 云开发下身份为静默 openid，此处为确认提示，确认后当前内容自动保留不重填）
+    this.confirmSeal()
+      .then((ok) => {
+        if (!ok) return;
+        // 寄出经 letter 服务落库（含 theme_id + theme_version，PRD 第十节 Letter）；
+        // 失败显式提示重试，绝不静默丢弃（防数据丢失，架构文档 §11）
+        letterService
+          .create({
+            name: d.letter.name,
+            question: d.letter.question,
+            answer: d.letter.answer,
+            theme_id: d.currentTheme.id,
+            theme_version: d.currentTheme.version
+          })
+          .then((newLetterId) => {
+            // 信已寄出，草稿完成使命
+            draftService.clear();
+            this.startSealFx(newLetterId);
+          })
+          .catch(() => {
+            wx.showToast({ title: '寄出没有成功，再试一次吧', icon: 'none' });
+          });
+      });
+  },
+
+  // 首次寄出确认（PRD 建议文案：封存这封信需要一个账号，好让未来的你一定找得到它。）
+  confirmSeal() {
+    return new Promise((resolve) => {
+      if (DATA_SOURCE !== 'cloud' || wx.getStorageSync(SEALED_ONCE_KEY)) {
+        resolve(true);
+        return;
+      }
+      wx.showModal({
+        title: '封存这封信需要一个账号',
+        content: '好让未来的你一定找得到它。这封信会先为你留好，不会丢。',
+        confirmText: '封存寄出',
+        cancelText: '再想想',
+        confirmColor: '#6B8E85',
+        success: (res) => {
+          if (!res.confirm) {
+            resolve(false);
+            return;
+          }
+          wx.setStorageSync(SEALED_ONCE_KEY, true);
+          // 静默确保云端档案存在（openid 免额外授权），失败不阻塞寄出
+          cloud.call('user', 'ensure', {}).catch(() => {});
+          resolve(true);
+        },
+        fail: () => resolve(false)
+      });
     });
-    wx.setStorageSync('letters_mock', letters);
+  },
 
-    // 信已寄出，草稿完成使命
-    wx.removeStorageSync(DRAFT_KEY);
-
-    // 寄出动效时间轴（纸张物理感，全程可点击跳过）：
-    // 火漆按压 300ms（预览信纸轻沉折起）→ 完成幕：信封落定 → 固定文案 ≈1s → 幕布淡出 → 回首页
-    this._newLetterId = newLetterId;
+  // 寄出动效时间轴（纸张物理感，全程可点击跳过）：
+  // 火漆按压 300ms（预览信纸轻沉折起）→ 完成幕：信封落定 → 固定文案 ≈1s → 幕布淡出 → 回首页
+  startSealFx(newLetterId) {
+    this._newLetterId = newLetterId || '';
     this._leaving = false;
     this.setData({ sealing: true });
     this._fxTimer1 = setTimeout(() => this.setData({ fx: true }), 300);
@@ -193,33 +235,31 @@ Page({
   sealEdit() {
     const d = this.data;
     const theme = d.currentTheme;
-    const letters = wx.getStorageSync('letters_mock') || [];
-    const index = letters.findIndex((l) => l.id === d.editId);
-    if (index > -1) {
-      letters[index] = Object.assign({}, letters[index], {
-        name: d.letter.name,
-        question: d.letter.question,
-        answer: d.letter.answer,
-        theme_id: theme.id,
-        theme_version: theme.version,
-        updated_at: Date.now()
-      });
-      wx.setStorageSync('letters_mock', letters);
-    } else {
-      // TODO: 演示数据（未写入 letters_mock）暂不持久化编辑结果
-    }
 
     // 埋点：寄出/保存信件（核心转化，编辑走同一转化口径）
     track('letter_save', { letter_id: d.editId, mode: 'edit' });
 
-    // 编辑草稿完成使命；标记一次性抑制，避免返回详情途中 write 页 onHide 又把过期草稿写回
-    wx.removeStorageSync(EDIT_DRAFT_KEY);
-    getApp()._editSealed = true;
-
-    this._leaving = false;
-    this.setData({ sealing: true });
-    this._fxTimer1 = setTimeout(() => this.setData({ fx: true }), 300);
-    this._fxTimer2 = setTimeout(() => this.leaveSeal(), 1350);
+    letterService
+      .update(d.editId, {
+        name: d.letter.name,
+        question: d.letter.question,
+        answer: d.letter.answer,
+        theme_id: theme.id,
+        theme_version: theme.version
+      })
+      .then((saved) => {
+        // 演示数据（不在信匣存储中）不持久化，仅完成动效返回
+        // 编辑草稿完成使命；标记一次性抑制，避免返回详情途中 write 页 onHide 又把过期草稿写回
+        draftService.clearEdit();
+        getApp()._editSealed = true;
+        this.startSealFx('');
+        if (!saved) {
+          console.log('[step2] 编辑结果未持久化（演示数据）');
+        }
+      })
+      .catch(() => {
+        wx.showToast({ title: '保存没有成功，再试一次吧', icon: 'none' });
+      });
   },
 
   // 完成幕任意处点击跳过（所有动画可跳过）

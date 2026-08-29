@@ -173,6 +173,16 @@
   flex: none;
   padding: 0 40rpx calc(20rpx + env(safe-area-inset-bottom));
 }
+/* 重新勾选链接（界面2 上层辅助操作） */
+.share-reselect {
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  padding: 14rpx 0 18rpx;
+}
+.share-reselect-hover {
+  opacity: 0.6;
+}
 .share-ops {
   display: flex;
   gap: 24rpx;
@@ -180,4 +190,119 @@
 .share-btn {
   flex: 1;
   font-size: 30rpx;
+}
+
+/* ── 勾选抽屉（界面1/3）：底部滑出，暖米白纸质抽屉 ── */
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(46, 51, 48, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 320ms ease;
+  z-index: 20;
+}
+.sheet-mask.show {
+  opacity: 1;
+  visibility: visible;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  /* 顶角 24px 圆角 + 36×4px 把手（设计规范第三节抽屉规格） */
+  border-radius: 48rpx 48rpx 0 0;
+  background: var(--color-base-light);
+  box-shadow: 0 -8rpx 32rpx rgba(80, 100, 90, 0.16);
+  padding: 16rpx 48rpx calc(36rpx + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform 360ms ease;
+}
+.sheet.show {
+  transform: translateY(0);
+}
+.sheet-handle {
+  width: 72rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: var(--color-disabled);
+  margin: 0 auto 24rpx;
+}
+.sheet-title {
+  font-family: var(--font-heading);
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+.sheet-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.sheet-opt {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: var(--color-base-surface);
+  border: 2rpx solid transparent;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.sheet-opt.on {
+  background: #F0EDE2;
+  border-color: var(--color-accent-secondary);
+}
+/* 陶土色火漆小印章勾号 */
+.opt-seal {
+  flex: none;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  border: 3rpx solid var(--color-disabled);
+  background: transparent;
+  color: #FFFFFF;
+  font-size: 26rpx;
+  line-height: 40rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+.sheet-opt.on .opt-seal {
+  background: var(--color-accent-secondary);
+  border-color: var(--color-accent-secondary);
+}
+.opt-text {
+  font-size: 30rpx;
+  color: var(--color-text-primary);
+}
+.sheet-privacy {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 32rpx 0 24rpx;
+}
+.sheet-btn {
+  font-size: 32rpx;
+}
+
+/* 预览微缩淡化（界面3：抽屉滑出时明信片后退让位） */
+.stage {
+  transition: opacity 320ms ease, transform 320ms ease;
+}
+.stage-dim {
+  opacity: 0.35;
+  transform: scale(0.94);
+}
+
+/* ── 离屏导出画布（1080×1440，不参与预览） ── */
+.export-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1080px;
+  height: 1440px;
 }
