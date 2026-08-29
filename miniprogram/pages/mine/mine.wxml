@@ -1,0 +1,69 @@
+<!-- 09 · 我的（Tab 2）：个人名片 + 2×2 便签统计 + 数量行 + 功能列表 -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部品牌区：与首页信匣一致的 logo + 名称（位置大小不变） -->
+  <view class="home-head">
+    <image class="logo" src="/assets/logo.png" mode="aspectFit" />
+    <image class="brand-name" src="/assets/name.png" mode="aspectFit" />
+  </view>
+
+  <!-- 顶部用户资料区：贴在最顶部的「个人名片信封」，点击进入账号管理 -->
+  <view class="profile-card" hover-class="profile-card-hover" bindtap="onTapAccount">
+    <view class="avatar">
+      <image wx:if="{{user.avatar}}" class="avatar-img" src="{{user.avatar}}" mode="aspectFill" />
+      <text wx:else class="avatar-char">{{avatarChar}}</text>
+    </view>
+    <view class="profile-info">
+      <view class="nickname">{{user.nickname}}</view>
+      <view class="wrote-days">在这个匣子里写了 <text class="days-num">{{user.wroteDays}}</text> 天</view>
+    </view>
+    <text class="profile-arrow">›</text>
+  </view>
+
+  <!-- 2×2 手作便签统计区 -->
+  <view class="section-label">统计概览</view>
+  <view class="notes">
+    <view
+      class="note"
+      wx:for="{{notes}}"
+      wx:key="name"
+      style="transform: rotate({{item.tilt}}deg);"
+    >
+      <view class="note-name">{{item.name}}</view>
+      <view class="note-line"></view>
+      <view class="note-num"><text class="note-value">{{item.value}}</text> {{item.unit}}</view>
+    </view>
+  </view>
+
+  <!-- 回形针与废纸篓数量行：别着回形针的纸条 -->
+  <view class="count-bar">
+    <view class="count-item" hover-class="count-item-hover" bindtap="onTapPaperclip">
+      <text class="count-emoji">📎</text>
+      <text class="count-text">回形针优先展示</text>
+      <text class="count-num">({{pinnedCount}})</text>
+    </view>
+    <view class="count-divider"></view>
+    <view class="count-item" hover-class="count-item-hover" bindtap="onTapRecycle">
+      <text class="count-emoji">🗑️</text>
+      <text class="count-text">废纸篓</text>
+      <text class="count-num">({{recycleCount}})</text>
+    </view>
+  </view>
+
+  <!-- 底部功能列表：无硬体分割，浅色信纸下划线分隔，无多余图标 -->
+  <view class="menu">
+    <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapAgreement">
+      <text class="menu-text">用户协议</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapPrivacy">
+      <text class="menu-text">隐私政策</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapAbout">
+      <text class="menu-text">关于心灵信箱</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+</view>

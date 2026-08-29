@@ -1,0 +1,183 @@
+/* 04 · 分享图 · 明信片预览 */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航 ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+/* ── 明信片预览区（3:4 竖版，最终导出规格 1080×1440） ── */
+.stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 40rpx;
+}
+.postcard {
+  position: relative;
+  /* 默认 630×840rpx（3:4），onReady 按预览区实测等比缩放 */
+  width: 630rpx;
+  height: 840rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 12rpx 36rpx rgba(80, 100, 90, 0.18);
+  display: flex;
+  flex-direction: column;
+  background: #EDE9DC;
+}
+/* 信纸主体：居中完整展示，不被品牌区遮挡 */
+.pc-paper-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pc-paper {
+  position: relative;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 6rpx 20rpx rgba(80, 100, 90, 0.14);
+}
+/* 主题信纸铺满信纸主体（尺寸由 JS 按素材比例计算，整纸完整可见） */
+.pc-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.pc-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  box-sizing: border-box;
+  /* 上避开信纸头部插画、下避开火漆封印、左右对齐横线区：由 JS 按信纸实际尺寸换算 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pc-title {
+  font-family: var(--font-heading);
+  font-size: 34rpx;
+  font-weight: 700;
+  text-align: center;
+  color: #5A4F3E;
+  margin-bottom: 8rpx;
+}
+.pc-hand {
+  font-family: var(--font-hand);
+  font-size: 28rpx;
+  line-height: 1.85;
+  letter-spacing: 0.5rpx;
+  color: #4A4438;
+}
+.pc-q {
+  margin-top: 16rpx;
+}
+.pc-a {
+  margin-top: 32rpx;
+}
+.pc-date {
+  margin-top: auto;
+  font-size: 22rpx;
+  color: #9A9284;
+  text-align: right;
+}
+/* 无障碍：关闭手写体开关生效时回落到系统字体（与全局设置一致） */
+.hand-off .pc-hand {
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+}
+
+/* ── 品牌区：贴在信纸下方（不遮挡信纸），火漆 Logo + 品牌文案 + 二维码占位 ── */
+.pc-brand {
+  position: relative;
+  flex: none;
+  z-index: 2;
+  height: 88rpx;
+  background: var(--color-accent-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 0 110rpx 0 32rpx;
+  box-sizing: border-box;
+}
+.pc-logo {
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(255, 255, 255, 0.9);
+  flex: none;
+}
+.pc-slogan {
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+}
+/* 小程序二维码占位（接入真实小程序码后替换） */
+.pc-qr {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 62rpx;
+  height: 62rpx;
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  padding: 5rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+}
+.pc-qr-cell {
+  width: 14rpx;
+  height: 14rpx;
+  background: #2E3330;
+  border-radius: 2rpx;
+}
+
+/* ── 底部操作区 ── */
+.share-foot {
+  flex: none;
+  padding: 0 40rpx calc(20rpx + env(safe-area-inset-bottom));
+}
+.share-ops {
+  display: flex;
+  gap: 24rpx;
+}
+.share-btn {
+  flex: 1;
+  font-size: 30rpx;
+}

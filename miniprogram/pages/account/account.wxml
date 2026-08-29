@@ -1,0 +1,45 @@
+<!-- 10 · 账号管理（从「我的」页名片进入）：资料区（微信头像昵称填写能力）+ 账号注销 -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 我的 + 居中标题 -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">账号管理</view>
+  </view>
+  <view class="page-note">你的名字与头像，只用于识别这是你的匣子。</view>
+
+  <!-- 资料区：头像（open-type="chooseAvatar"）+ 昵称（type="nickname" 输入框） -->
+  <view class="profile-card">
+    <view class="avatar-wrap">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="avatar-btn-hover">
+        <image wx:if="{{profile.avatar}}" class="avatar-img" src="{{profile.avatar}}" mode="aspectFill" />
+        <text wx:else class="avatar-char">{{avatarChar}}</text>
+      </button>
+      <view class="avatar-tip">点击更换</view>
+    </view>
+    <view class="profile-info">
+      <input
+        class="nickname-input"
+        type="nickname"
+        value="{{profile.nickname}}"
+        placeholder="填写昵称"
+        placeholder-class="nickname-placeholder"
+        maxlength="16"
+        bindblur="onNicknameBlur"
+        bindconfirm="onNicknameBlur"
+      />
+      <view class="wrote-days">在这个匣子里写了 <text class="days-num">{{wroteDays}}</text> 天</view>
+    </view>
+  </view>
+  <view class="profile-hint">头像与昵称保存在你的设备上，只有你自己看得见。</view>
+
+  <!-- 账号操作区 -->
+  <view class="section-label">账号</view>
+  <view class="menu">
+    <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapDeactivate">
+      <text class="menu-text">账号注销</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+</view>

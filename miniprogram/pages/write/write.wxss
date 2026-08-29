@@ -1,0 +1,224 @@
+/* 02 · 写信第一步「写下这封信」 */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航（7% 屏高）：返回 + 步骤条 ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+/* 步骤条绝对居中，宋体极轻量 */
+.steps {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-family: var(--font-heading);
+  font-size: 24rpx;
+}
+.steps .step {
+  color: var(--color-text-secondary);
+}
+.steps .step.on {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  position: relative;
+}
+.steps .step.on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -12rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--color-accent-primary);
+}
+.steps .step-sep {
+  color: var(--color-text-secondary);
+  font-size: 22rpx;
+}
+
+/* ── 信纸容器（滚动主体） ── */
+.paper-scroll {
+  flex: 1;
+  min-height: 0;
+}
+.paper {
+  margin: 16rpx 32rpx 40rpx;
+  background: #FBF6EA;
+  border-radius: 20rpx;
+  padding: 36rpx 36rpx 44rpx;
+  box-shadow: var(--shadow-warm-sm);
+}
+
+/* 信纸头线（陶土色）+ 信件名称 */
+.headline {
+  border-top: 8rpx solid #C58A6A;
+  margin: 0 auto 28rpx;
+  padding-top: 24rpx;
+  text-align: center;
+}
+.title-input {
+  font-family: var(--font-heading);
+  font-size: 38rpx;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-text-primary);
+  height: 56rpx;
+  line-height: 56rpx;
+}
+.title-ph {
+  color: #B4AA96;
+  font-weight: 400;
+  font-size: 32rpx;
+}
+
+/* 印制引导语（居中，两侧短横线） */
+.field-label {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 4rpx;
+  margin: 24rpx 0 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+}
+.field-label::before,
+.field-label::after {
+  content: "";
+  height: 1rpx;
+  background: var(--line);
+  flex: 0 0 48rpx;
+}
+
+/* 手写体输入区（32rpx / 行高 1.8 = 57.6rpx，与信纸横线 28.8px 对齐） */
+.hand-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-hand);
+  font-size: 32rpx;
+  line-height: 57.6rpx;
+  letter-spacing: 1rpx;
+  color: #4A4438;
+  padding: 0;
+  min-height: 174rpx; /* 问题区至少 3 行 */
+  /* 信纸横线：每行 57.6rpx 一条浅陶土色细线 */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 57.4rpx,
+    rgba(150, 140, 110, 0.24) 57.4rpx,
+    rgba(150, 140, 110, 0.24) 57.6rpx
+  );
+  background-attachment: local;
+}
+.hand-answer {
+  min-height: 232rpx; /* 答案区至少 4 行 */
+}
+/* 无障碍：关闭手写体开关生效时回落到系统字体 */
+.hand-off {
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+}
+
+/* 字数计数：各输入区右下角轻淡显示 */
+.count {
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  text-align: right;
+  margin-top: 12rpx;
+}
+
+/* 物理折痕分隔线（虚线 + 微弱形变） */
+/* 行容器左右外扩到信纸边缘，使三角形缺口贴住纸边 */
+.fold-row {
+  position: relative;
+  margin: 36rpx -36rpx;
+}
+/* 页面底色小三角形叠在纸边，底边贴纸边、尖端向内，形成缺失的撕纸缺口 */
+.notch {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+.notch-l {
+  left: 0;
+  border-width: 20rpx 0 20rpx 26rpx;
+  border-color: transparent transparent transparent var(--color-base-light);
+}
+.notch-r {
+  right: 0;
+  border-width: 20rpx 26rpx 20rpx 0;
+  border-color: transparent var(--color-base-light) transparent transparent;
+}
+.fold {
+  height: 4rpx;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-text-secondary) 0 16rpx,
+    transparent 16rpx 32rpx
+  );
+  opacity: 0.3;
+  margin: 0 36rpx;
+  border-radius: 4rpx;
+}
+
+/* ── 底部固定操作栏（毛玻璃底板） ── */
+.btn-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: rgba(244, 243, 238, 0.9);
+  backdrop-filter: blur(16rpx);
+  border-top: 1rpx solid var(--line);
+}
+.btn-sec {
+  height: 80rpx;
+  padding: 0 32rpx;
+  border-radius: 24rpx;
+  background: var(--color-base-surface);
+  border: 1rpx solid var(--color-disabled);
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: var(--color-text-primary);
+}
+.btn-sec-hover {
+  opacity: 0.7;
+}
+.btn-next {
+  flex: 1;
+}
+/* 状态一：名称/问题/答案未填完整时主按钮置灰不可点 */
+.btn-next-disabled {
+  background: #B7C2BE;
+  color: rgba(244, 243, 238, 0.9);
+  box-shadow: 0 8rpx 20rpx rgba(183, 194, 190, 0.3);
+}

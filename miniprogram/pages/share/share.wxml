@@ -1,0 +1,44 @@
+<!-- 04 · 分享图 · 明信片预览（3:4 竖版，沿用当前信件主题材质） -->
+<view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 返回</view>
+    <view class="nav-title">预览分享明信片</view>
+  </view>
+
+  <!-- 明信片预览区：3:4 竖版（最终导出规格 1080×1440），信纸完整等比缩放，品牌区贴于信纸下方不遮挡 -->
+  <view class="stage">
+    <view class="postcard" style="{{cardW ? 'width:' + cardW + 'px;height:' + cardH + 'px;' : ''}}">
+      <!-- 信纸主体：完整展示当前主题信纸素材（BR-15：分享图默认沿用当前主题） -->
+      <view class="pc-paper-wrap">
+        <view class="pc-paper" style="{{paperW ? 'width:' + paperW + 'px;height:' + paperH + 'px;' : ''}}">
+          <image class="pc-bg" src="{{theme.paper}}" mode="scaleToFill" />
+          <view class="pc-content" style="{{paperH ? 'padding:' + padTop + 'px ' + padSide + 'px ' + padBottom + 'px;' : ''}}">
+            <view class="pc-title">{{letter.name}}</view>
+            <view class="pc-hand pc-q">{{letter.question}}</view>
+            <view class="pc-hand pc-a">{{letter.answer}}</view>
+            <view class="pc-date">—— 写于 {{dateText}}</view>
+          </view>
+        </view>
+      </view>
+      <!-- 品牌区：火漆 Logo + 品牌文案 + 小程序二维码占位（位于信纸下方，不遮挡信纸） -->
+      <view class="pc-brand" style="{{brandH ? 'height:' + brandH + 'px;' : ''}}">
+        <view class="pc-logo" style="{{brandH ? 'width:' + brandH * 0.34 + 'px;height:' + brandH * 0.34 + 'px;' : ''}}"></view>
+        <text class="pc-slogan" style="{{brandH ? 'font-size:' + brandH * 0.23 + 'px;' : ''}}">心灵信箱 · 把答案寄给未来</text>
+        <view class="pc-qr" style="{{brandH ? 'width:' + brandH * 0.7 + 'px;height:' + brandH * 0.7 + 'px;' : ''}}">
+          <view wx:for="{{qrCells}}" wx:key="*this" class="pc-qr-cell"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作区：双等宽实体按钮（勾选弹层状态一待接入，暂无重新勾选入口） -->
+  <view class="share-foot">
+    <view class="share-ops">
+      <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSave">💾 保存到相册</view>
+      <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSend">💬 发给微信好友</view>
+    </view>
+  </view>
+
+</view>

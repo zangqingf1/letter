@@ -1,0 +1,173 @@
+/* 10 · 账号管理：资料区（头像昵称填写能力）+ 账号注销 */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+}
+
+/* ── 顶部轻导航：‹ 我的 + 居中标题（与废纸篓页同款） ── */
+.nav {
+  position: relative;
+  flex: none;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+/* 页首轻量说明 */
+.page-note {
+  margin: 8rpx 32rpx 20rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 2rpx;
+}
+
+/* ── 资料区：与「我的」页个人名片同款信封卡 ── */
+.profile-card {
+  margin: 12rpx 32rpx 0;
+  background: var(--color-base-surface);
+  border-radius: 36rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  box-shadow: var(--shadow-warm-sm);
+}
+/* 圆形头像由外层 view 保证（button 自带块级默认样式容易把尺寸拉变形） */
+.avatar-wrap {
+  flex: none;
+  position: relative;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: var(--color-base-light);
+  border: 2rpx solid var(--line);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+/* 按钮只做点击热区：透明、铺满圆形，去除微信 button 默认边框与内边距 */
+.avatar-btn {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.avatar-btn::after {
+  border: none; /* 去除微信 button 默认边框 */
+}
+.avatar-btn-hover {
+  opacity: 0.85;
+}
+.avatar-btn .avatar-img {
+  width: 100%;
+  height: 100%;
+}
+.avatar-btn .avatar-char {
+  font-family: var(--font-heading);
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+/* 轻提示贴在头像下沿，不遮脸 */
+.avatar-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4rpx 0;
+  font-size: 16rpx;
+  text-align: center;
+  color: var(--color-base-light);
+  background: rgba(46, 51, 48, 0.45);
+}
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+/* 昵称输入框：宋体名牌，无边框，像在名片上写字 */
+.nickname-input {
+  width: 100%;
+  height: 64rpx;
+  font-family: var(--font-heading);
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 2rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.nickname-placeholder {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+.wrote-days {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.wrote-days .days-num {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+}
+.profile-hint {
+  margin: 16rpx 44rpx 0;
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+}
+
+/* ── 区块小标签 + 操作列表（与「我的」页同款） ── */
+.section-label {
+  margin: 48rpx 40rpx 0;
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 4rpx;
+}
+.menu {
+  margin: 20rpx 32rpx 0;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 34rpx 8rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.menu-item-hover {
+  opacity: 0.7;
+}
+/* 注销入口用深灰（非纯黑），与废纸篓「彻底删除」同语义 */
+.menu-item .menu-text {
+  font-size: 28rpx;
+  color: #6E7570;
+}
+.menu-item .menu-arrow {
+  font-size: 36rpx;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}

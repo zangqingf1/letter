@@ -1,0 +1,89 @@
+<!-- 01 · 首页 · 信匣（三个状态：空态 / 1–6 封随机倾斜 / ≥7 封整齐网格） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部品牌区：logo + 名称 -->
+  <view class="home-head">
+    <image class="logo" src="/assets/logo.png" mode="aspectFit" />
+    <image class="brand-name" src="/assets/name.png" mode="aspectFit" />
+  </view>
+
+  <!-- 今日来信 -->
+  <view class="today {{hasLetters ? '' : 'today-empty'}}" bindtap="onTapTodayLetter">
+    <view class="t-label">今日来信</view>
+    <block wx:if="{{todayLetter}}">
+      <view class="t-row">
+        <view class="t-text">今天有一封来自 <text class="em">{{todayLetter.dateText}}</text> 的信，是过去的你想对你说的话。</view>
+        <view class="t-img-wrap">
+          <view class="t-img">
+            <image class="t-img-src" src="{{todayLetter.env}}" mode="aspectFill" />
+          </view>
+          <view class="stamp">
+            <view class="stamp-waves">
+              <view class="wave"></view>
+              <view class="wave"></view>
+              <view class="wave"></view>
+            </view>
+            <view class="stamp-seal">
+              <text class="stamp-brand">心灵信箱</text>
+              <text class="stamp-date">{{todayStamp}}</text>
+              <text class="stamp-year">{{todayYear}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="t-text t-text-center">还没有信寄给你。</view>
+      <view class="t-text t-text-center em">写下的第一个答案，会在未来的某天等你。</view>
+    </block>
+  </view>
+
+  <!-- 草稿横条（条件触发） -->
+  <view wx:if="{{draftCount > 0 && hasLetters}}" class="draft-bar" bindtap="onTapDrafts">
+    <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，继续写 →
+  </view>
+
+  <!-- 状态一：空状态（0 封） -->
+  <block wx:if="{{!hasLetters}}">
+    <view class="empty-illust">
+      <image class="empty-mailbox" src="/assets/mailbox.png" mode="aspectFit" />
+    </view>
+    <view class="empty-txt">
+      匣子还空着。第一个写下来的答案，
+    </view>
+    <view class="empty-txt">会在未来某天，<text class="em">恰好接住那时的你。</text></view>
+    <view class="center-cta">
+      <view class="btn-primary" hover-class="btn-primary-hover" bindtap="onTapWrite">✍️ 写第一封信</view>
+    </view>
+  </block>
+
+  <!-- 状态二 / 状态三：信匣网格 -->
+  <view wx:else class="desk">
+    <view class="letters {{isTidy ? 'letters-tidy' : 'letters-few'}}">
+      <view
+        class="letter-card {{item.arriving ? 'arrive' : ''}}"
+        wx:for="{{letters}}"
+        wx:key="id"
+        style="transform: rotate({{item.tilt}}deg);"
+        data-id="{{item.id}}"
+        hover-class="letter-card-hover"
+        bindtap="onTapLetter"
+      >
+        <view class="env-wrap">
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
+          <view wx:if="{{item.pinned}}" class="clip-wrap">
+            <image class="clip" src="/assets/clip.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view class="env-name">{{item.name}}</view>
+      </view>
+    </view>
+    <view wx:if="{{isTidy}}" class="desk-hint">— 轻触卡片即可拆开 —</view>
+  </view>
+
+  <!-- 右下角悬浮写信入口（手绘信箱，空态时隐藏，入口由"写第一封信"按钮承担） -->
+  <view wx:if="{{hasLetters}}" class="float-write" hover-class="float-write-hover" bindtap="onTapWrite">
+    <image class="float-mailbox" src="/assets/mailbox.png" mode="aspectFit" />
+  </view>
+
+</view>

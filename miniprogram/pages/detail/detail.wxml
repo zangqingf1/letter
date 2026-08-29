@@ -1,0 +1,124 @@
+<!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层） -->
+<view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：返回信匣 + 当前主题名称标签（标签紧随其后靠左） -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 信匣</view>
+    <view class="nav-tag">{{themeName}}</view>
+  </view>
+
+  <!-- 可滚动主容器：主信纸 → 重读记录（邮戳墙） → 回信便签 -->
+  <scroll-view class="body" scroll-y>
+    <view class="body-inner">
+
+      <!-- 主信纸区：当前主题信纸为底（小王子素材），宋体标题 + 手写体两小节 + 写于/改于落款 -->
+      <view class="detail-paper">
+        <image class="dp-bg" src="{{theme.paper}}" mode="scaleToFill" />
+        <view class="dp-content">
+          <view class="lp-title">{{letter.name}}</view>
+          <view class="sec-tag">【当时的问题】</view>
+          <view class="sec-body">{{letter.question}}</view>
+          <view class="sec-tag">【想明白的事】</view>
+          <view class="sec-body">{{letter.answer}}</view>
+          <view class="lp-sign">—— 写于 {{dateText}}{{editedText ? ' · 改于 ' + editedText : ''}}</view>
+        </view>
+      </view>
+
+      <!-- 重读记录（邮戳墙）：系统自动产生，不可编辑/删除单条（BR-09） -->
+      <view class="sect">
+        <view class="ph-h">📌 重读记录 <text class="ph-sub">{{openCount}} 次</text></view>
+        <view class="postmarks">
+          <view wx:for="{{stamps}}" wx:key="ts" class="postmark {{item.today ? 'today' : ''}}">
+            <text class="pm-date">{{item.date}}</text>
+            <text wx:if="{{item.label}}" class="pm-label">{{item.label}}</text>
+          </view>
+          <view wx:if="{{moreChip}}" class="postmark more" bindtap="onToggleStamps">
+            <text class="pm-date">+{{moreChip.count}}</text>
+            <text class="pm-label">{{stampsExpanded ? '收起' : '展开'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 回信便签区：贴在桌面上的便签卡片流（日期自动生成不可改） -->
+      <view class="sect">
+        <view class="ph-h">✎ 回信 <text class="ph-sub">{{replyCount}} 封</text></view>
+        <view wx:for="{{replies}}" wx:key="ts" class="reply-note {{index % 2 === 0 ? 'r1' : 'r2'}}">
+          <view class="rd">📅 {{item.dateText}}</view>
+          <view class="rb">{{item.text}}</view>
+        </view>
+      </view>
+
+      <!-- 回信引导入口（陶土色虚线框触发块） -->
+      <view class="reply-cta" hover-class="reply-cta-hover" bindtap="onOpenReply">
+        ✍️ 又用到这封信？写下这次的感觉 →
+      </view>
+
+      <view class="body-space"></view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部悬浮操作栏（毛玻璃独立底板）：编辑 / 回形针 / 分享 / 删除 -->
+  <view class="detail-ops">
+    <view class="op" hover-class="op-hover" bindtap="onTapEdit">
+      <view class="oi">✏️</view><view class="ol">编辑</view>
+    </view>
+    <view class="op {{pinned ? 'on' : ''}}" hover-class="op-hover" bindtap="onTogglePin">
+      <view class="oi">📎</view><view class="ol">回形针</view>
+    </view>
+    <view class="op" hover-class="op-hover" bindtap="onTapShare">
+      <view class="oi">📤</view><view class="ol">分享</view>
+    </view>
+    <view class="op" hover-class="op-hover" bindtap="onTapDelete">
+      <view class="oi">🗑</view><view class="ol">删除</view>
+    </view>
+  </view>
+
+</view>
+
+<!-- 阶段一：拆信动画（约 1.2s，点击任意处跳过）：
+     信封微浮起 → 信纸从信封中抽出并展开 → 信封淡出移出屏幕 -->
+<view wx:if="{{opening}}" class="unseal" bindtap="onSkipOpen">
+  <view class="us-stage">
+    <view class="us-paper">
+      <image class="us-paper-img" src="{{theme.paper}}" mode="widthFix" />
+    </view>
+    <view class="us-env">
+      <image class="us-env-img" src="{{theme.envelope}}" mode="widthFix" />
+      <view class="us-env-name">{{letter.name}}</view>
+      <view class="us-stamp">
+        <text class="us-stamp-date">{{openStampText}}</text>
+        <text class="us-stamp-label">重读邮戳</text>
+      </view>
+    </view>
+  </view>
+  <view class="us-hint">轻触任意处跳过</view>
+</view>
+
+<!-- 回信弹层：半屏便签抽屉（40% 遮罩，日期固定不可改，手写体多行输入） -->
+<view wx:if="{{replyOpen}}" class="overlay" bindtap="onCloseReply">
+  <view class="drawer {{handwritingOff ? 'hand-off' : ''}}" catchtap="noop"
+        style="padding-bottom: calc({{keyboardHeight}}px + 28rpx + env(safe-area-inset-bottom));">
+    <view class="handle"></view>
+    <view class="drawer-date">📅 今天 · {{todayLongText}}</view>
+    <view class="reply-editor">
+      <textarea
+        class="reply-input"
+        value="{{replyText}}"
+        placeholder="这一次用起来，感觉怎么样？"
+        placeholder-class="reply-ph"
+        maxlength="300"
+        auto-focus
+        adjust-position="{{false}}"
+        bindinput="onReplyInput"
+        bindkeyboardheightchange="onKeyboard"
+        bindblur="onKeyboardBlur"
+        cursor-spacing="20"
+      />
+    </view>
+    <view class="btn-primary reply-save" hover-class="btn-primary-hover" bindtap="onSaveReply">✍️ 贴上这封回信</view>
+    <view class="drawer-collapse" bindtap="onCloseReply">收 起</view>
+  </view>
+</view>
+
+<!-- 保存成功反馈：便签样式轻 Toast（中上方浮现 2 秒，不挡操作） -->
+<view wx:if="{{noteToast}}" class="note-toast">📌 回信已贴好。这封信越来越厚了。</view>

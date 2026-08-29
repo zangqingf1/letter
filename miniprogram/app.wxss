@@ -1,0 +1,40 @@
+/* 全局 Design Tokens（晚霭风致 Dusty Sage & Soft Dusk） */
+page {
+  --color-base-light: #F4F3EE;
+  --color-base-surface: #E9E8E1;
+  --color-text-primary: #2E3330;
+  --color-text-secondary: #7D8580;
+  --color-accent-primary: #6B8E85;
+  --color-accent-secondary: #C4A482;
+  --color-disabled: #CFD3CE;
+  --line: rgba(125, 133, 128, 0.16);
+  --shadow-warm-sm: 0 8rpx 24rpx rgba(80, 100, 90, 0.10);
+  --font-heading: 'Noto Serif SC', 'Songti SC', 'STKaiti', 'KaiTi', serif;
+  --font-ui: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-hand: 'Kaiti SC', 'STKaiti', 'KaiTi', cursive;
+
+  background: var(--color-base-light);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+/* 通用主按钮（火漆印章意象） */
+.btn-primary {
+  height: 96rpx;
+  border-radius: 52rpx;
+  background: var(--color-accent-primary);
+  color: var(--color-base-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  box-shadow: 0 8rpx 28rpx rgba(107, 142, 133, 0.28);
+}
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
+}

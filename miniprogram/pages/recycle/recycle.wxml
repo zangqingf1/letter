@@ -1,0 +1,51 @@
+<!-- 05 · 废纸篓（两个状态：有内容态[普通弃置/临近删除强调/左滑操作] / 空状态） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 我的 + 居中标题 -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">废纸篓</view>
+  </view>
+  <view class="page-note">放进这里的信，30 天后会自动离开。</view>
+
+  <!-- 状态一：有内容态 -->
+  <block wx:if="{{hasItems}}">
+    <view class="rc-list">
+      <view class="rc-item" wx:for="{{items}}" wx:key="id">
+        <!-- 左滑露出的操作区：陶土色取回 + 深灰彻底删除 -->
+        <view class="rc-actions">
+          <view class="rc-btn restore" hover-class="rc-btn-hover" catchtap="onRestore" data-index="{{index}}">↩️ 取回</view>
+          <view class="rc-btn remove" hover-class="rc-btn-hover" catchtap="onPermanent" data-index="{{index}}">🗑️ 彻底</view>
+        </view>
+        <!-- 信件行：灰度敞口信封 + 宋体名称 + 剩余天数（临近 3 天强调态） -->
+        <view
+          class="rc-row {{item.warn ? 'warn' : ''}} {{dragging ? 'dragging' : ''}}"
+          style="transform: translateX({{item.offset}}px);"
+          data-index="{{index}}"
+          bindtouchstart="onRowTouchStart"
+          bindtouchmove="onRowTouchMove"
+          bindtouchend="onRowTouchEnd"
+          bindtap="onTapRow"
+        >
+          <image class="env-grey" src="{{item.env}}" mode="aspectFill" />
+          <view class="rc-info">
+            <view class="rc-name">{{item.name}}</view>
+            <view class="rc-days">{{item.daysText}}</view>
+          </view>
+          <view class="rc-pill">{{item.pill}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="list-hint">— 左滑信纸卡片，可以取回或彻底删除 —</view>
+  </block>
+
+  <!-- 状态二：空状态（手绘插画 + 治愈系品牌文案） -->
+  <block wx:else>
+    <view class="empty-illust">
+      <image class="empty-box" src="/assets/mailbox.png" mode="aspectFit" />
+    </view>
+    <view class="empty-txt">废纸篓里什么也没有。</view>
+    <view class="empty-txt">那些曾经想通的答案，<text class="em">都还在信匣里守候着你。</text></view>
+  </block>
+
+</view>
