@@ -4,6 +4,7 @@
 
 const THEMES = require('./themes.js');
 const PAPERS = require('./papers.js');
+const { buildView, longDate } = require('./paper-view.js');
 const letterService = require('../../services/letter.js');
 const draftService = require('../../services/draft.js');
 const themeService = require('../../services/theme.js');
@@ -19,20 +20,10 @@ function track(event, data) {
   analytics.track(event, data);
 }
 
-function todayText() {
-  const n = new Date();
-  return n.getFullYear() + '年' + (n.getMonth() + 1) + '月' + n.getDate() + '日';
-}
-
-// 航空笺邮戳用短日期（8.30 式）
-function postmarkText() {
-  const n = new Date();
-  return (n.getMonth() + 1) + '.' + n.getDate();
-}
-
 Page({
   data: {
     statusBarHeight: 20,
+    handwritingOff: false, // 无障碍开关：关闭手写体（与详情/分享同口径，此前预览未接）
     themes: THEMES,
     papers: PAPERS,
     currentIndex: 0,
@@ -40,8 +31,8 @@ Page({
     currentPaperIndex: 0,
     currentPaper: PAPERS[0],
     letter: { name: '', question: '', answer: '' },
-    dateText: todayText(),
-    postmarkText: postmarkText(),
+    // 信纸渲染数据（共享模板 paper.wxml 只认 view 字段，与详情/分享同构）
+    view: buildView({ name: '', question: '', answer: '' }, { created: new Date() }),
     editMode: false,
     editId: '',
     sealing: false
@@ -49,7 +40,10 @@ Page({
 
   onLoad(options) {
     const win = wx.getWindowInfo();
-    this.setData({ statusBarHeight: win.statusBarHeight || 20 });
+    this.setData({
+      statusBarHeight: win.statusBarHeight || 20,
+      handwritingOff: wx.getStorageSync('handwriting_off') === true
+    });
 
     // 第一步经事件通道传入信件内容（避免长文走 URL）；编辑模式额外带信件 id / 原主题 / 创建时间
     const ch = this.getOpenerEventChannel && this.getOpenerEventChannel();
@@ -80,8 +74,10 @@ Page({
       draftService.list().then((drafts) => {
         if (drafts.length) {
           const draft = drafts[0];
-          this.setData({
-            letter: { name: draft.name || '', question: draft.question || '', answer: draft.answer || '' }
+          this.applyLetterData({
+            name: draft.name || '',
+            question: draft.question || '',
+            answer: draft.answer || ''
           });
         }
       });
@@ -100,13 +96,14 @@ Page({
     track('letter_step2_view');
   },
 
-  // 应用第一步传入的信件内容；编辑态回选原主题并生成「写于 · 改于」双落款
+  // 应用第一步传入的信件内容；编辑态回选原主题与原信纸版式
   applyLetterData(d) {
     // 第一封信对应的草稿 id：寄出成功后精确清除该草稿（其余草稿不受影响）
     this._draftId = d.draftId || '';
-    const update = {
-      letter: { name: d.name || '', question: d.question || '', answer: d.answer || '' }
-    };
+    const letter = { name: d.name || '', question: d.question || '', answer: d.answer || '' };
+    const update = { letter };
+    let created = new Date();
+    const dateText = longDate(created);
     if (d.editMode) {
       update.editMode = true;
       update.editId = d.editId || '';
@@ -117,17 +114,18 @@ Page({
           update.currentTheme = this.data.themes[index];
         }
       }
-      // 编辑态回选原信纸版式（未知 id 由 selectPaper 回落素笺）
+      // 编辑态回选原信纸版式（未知 id 由 selectPaper 回落第一套）
       if (d.paperId) {
         const pIndex = this.data.papers.findIndex((p) => p.id === d.paperId);
         this.selectPaper(pIndex > -1 ? pIndex : 0, false);
       }
       if (d.createdAt) {
-        // 双落款：写于（创建日期，保留不变 PRD 5.6）· 改于（当前系统时间实时生成）
-        const c = new Date(d.createdAt);
-        update.dateText = (c.getMonth() + 1) + '月' + c.getDate() + '日 · 改于 ' + todayText();
+        // 落款：写于（创建日期，保留不变）
+        created = new Date(d.createdAt);
       }
     }
+    // 信纸渲染数据（三端同构：票面日期/编号/首字下沉等全部由此派生）
+    update.view = buildView(letter, { created: created, dateText: dateText });
     this.setData(update);
   },
 

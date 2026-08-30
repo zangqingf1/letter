@@ -1,4 +1,5 @@
-<!-- 04 · 分享图 · 明信片预览（配色信纸 + 信纸版式 + 底部小程序条，与导出图同构；名称/问题/答案/创建时间固定全入图，重读记录与回信永不入图 BR-15） -->
+<!-- 04 · 分享图 · 明信片预览（信纸自持版式 + 底部小程序条，与导出图同构；名称/问题/答案/写信日期固定全入图，重读记录与回信永不入图 BR-15） -->
+<import src="../../styles/paper.wxml" />
 <view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
@@ -7,58 +8,11 @@
     <view class="nav-title">预览分享明信片</view>
   </view>
 
-  <!-- 明信片预览区：配色信纸（方案B：底色 + 纯排版，高度随内容自适应，长信可滚动预览）+ 底部小程序条，与导出图同构 -->
+  <!-- 明信片预览区：信纸自持版式（号外/蓝图/票根/标语/几何/黑胶，与写信预览/详情阅读完全同构；
+       高度随内容自适应，长信可滚动预览）+ 底部小程序条，与导出图同构 -->
   <view class="stage">
     <view class="postcard">
-
-      <!-- 航空笺：斜纹边框包裹整纸，内容在内层底色卡 -->
-      <view wx:if="{{paper.id === 'airmail'}}" class="pc-paper paper-airmail">
-        <view class="pc-air-inner" style="background: {{theme.palette.base}};">
-          <view class="pc-air-top">
-            <view class="pc-air-label">
-              <text>心灵信箱</text>
-              <text class="pc-air-en">PAR AVION</text>
-            </view>
-            <view class="pc-air-stamp">
-              <view class="pc-stamp-mini" style="color: {{theme.palette.title}};">信</view>
-              <view class="pc-stamp-name" style="color: {{theme.palette.tag}};">{{theme.name}}</view>
-              <view class="pc-postmark"><view class="pc-pm-date">{{stampText}}</view></view>
-            </view>
-          </view>
-          <view class="pc-content">
-            <template is="pc-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-          </view>
-        </view>
-      </view>
-
-      <!-- 笔记本：踩线横格 + 陶土边线 + 装订孔 -->
-      <view wx:elif="{{paper.id === 'notebook'}}" class="pc-paper paper-notebook" style="background: {{theme.palette.base}};">
-        <view class="pc-marginline"></view>
-        <view class="pc-holes"><view></view><view></view><view></view></view>
-        <view class="pc-content">
-          <template is="pc-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-        </view>
-      </view>
-
-      <!-- 织纹笺：布纹底 + 双线内框 + 四角陶土饰 -->
-      <view wx:elif="{{paper.id === 'weave'}}" class="pc-paper paper-weave" style="background: {{theme.palette.base}};">
-        <view class="pc-corner c-tl"></view>
-        <view class="pc-corner c-tr"></view>
-        <view class="pc-corner c-bl"></view>
-        <view class="pc-corner c-br"></view>
-        <view class="pc-weave-frame">
-          <view class="pc-content">
-            <template is="pc-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-          </view>
-        </view>
-      </view>
-
-      <!-- 素笺（默认） -->
-      <view wx:else class="pc-paper paper-su" style="background: {{theme.palette.base}};">
-        <view class="pc-content">
-          <template is="pc-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-        </view>
-      </view>
+      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
 
       <!-- 底部小程序条：火漆 Logo + 品牌文案 + 小程序码 -->
       <view class="pc-brand">
@@ -83,12 +37,3 @@
   <canvas type="2d" id="share-canvas" class="export-canvas"></canvas>
 
 </view>
-
-<!-- 明信片内容模板：四个版式分支共用（名称/问题/答案/写于，BR-15 固定全展示） -->
-<template name="pc-letter-content">
-  <view class="pc-headline"></view>
-  <view class="pc-title" style="color: {{theme.palette.title}};">{{letter.name}}</view>
-  <view class="pc-hand pc-q" style="color: {{theme.palette.text}};">{{letter.question}}</view>
-  <view class="pc-hand pc-a" style="color: {{theme.palette.text}};">{{letter.answer}}</view>
-  <view class="pc-date">—— 写于 {{dateText}}</view>
-</template>

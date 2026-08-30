@@ -1,0 +1,227 @@
+<!-- 信纸共享模板（三端同构的唯一标记来源）
+     引用方：pages/write/step2.wxml（选主题预览）/ pages/detail/detail.wxml（拆信后阅读）/
+             pages/share/share.wxml（分享明信片预览）。
+     data 约定：v = paper-view.js buildView 产出；paper = papers.js 某项；
+                handOff = handwriting_off 开关；mode = 可选的动效类（step2 翻页）。
+     版式与配色完全固定（纸色自持），不读取主题 palette；十个 wx:if 分支与
+     styles/paper.wxss 的 pl-x* / share.js drawXxxStyle 一一对应，改版式请三处同步。 -->
+<template name="paper-letter">
+  <view class="pl {{mode}} {{handOff ? 'hand-off' : ''}}">
+
+    <!-- 号外头版：报纸头版 + 首字下沉 -->
+    <view wx:if="{{paper.id === 'extra'}}" class="pl-paper pl-extra">
+      <view class="plx-rule-h"></view>
+      <view class="plx-rule-t"></view>
+      <view class="plx-mast">心灵信箱<text class="plx-extra">号外</text></view>
+      <view class="plx-dateline">
+        <text>私人信件 · 仅供本人重读</text>
+        <text>写于 {{v.dateLong}}</text>
+      </view>
+      <view class="plx-rule-h"></view>
+      <view class="plx-rule-t plx-rule-gap"></view>
+      <view class="plx-name">{{v.name}}</view>
+      <view class="plx-q">{{v.question}}</view>
+      <view class="plx-answer"><text class="plx-drop">{{v.dropChar}}</text><text>{{v.answerRest}}</text></view>
+      <view class="plx-end">答 毕</view>
+      <view class="plx-rule-h"></view>
+    </view>
+
+    <!-- 工程蓝图：白线网格 + 裁切角标 + 标题栏 -->
+    <view wx:elif="{{paper.id === 'blueprint'}}" class="pl-paper pl-bp">
+      <view class="plb-c plb-c1"></view>
+      <view class="plb-c plb-c2"></view>
+      <view class="plb-c plb-c3"></view>
+      <view class="plb-c plb-c4"></view>
+      <view class="plb-eyebrow"><text>MENTAL MAILBOX</text><text>DWG. {{v.dwgNo}}</text></view>
+      <view class="plb-name">{{v.name}}</view>
+      <view class="plb-underline"></view>
+      <view class="plb-box plb-q">
+        <view class="plb-lbl">问 / Q</view>
+        <view class="plb-qtxt">{{v.question}}</view>
+      </view>
+      <view class="plb-box plb-a">
+        <view class="plb-lbl">答 / A</view>
+        <view class="plb-atxt">{{v.answer}}</view>
+      </view>
+      <view class="plb-tblock">
+        <view class="plb-trow"><view class="plb-tk">封存日期</view><view class="plb-tv">{{v.dotDate}}</view></view>
+        <view class="plb-trow"><view class="plb-tk">比例</view><view class="plb-tv">1 : 1 原文</view></view>
+        <view class="plb-trow"><view class="plb-tk">状态</view><view class="plb-tv">已封存</view></view>
+      </view>
+    </view>
+
+    <!-- 存根票根：右侧日期存根 + 条码编号 -->
+    <view wx:elif="{{paper.id === 'ticket'}}" class="pl-paper pl-tk">
+      <view class="plt-stub">
+        <view class="plt-rivet"></view>
+        <view class="plt-stub-date">
+          <view class="plt-sd-l">写于</view>
+          <view class="plt-sd-d">{{v.stampText}}</view>
+          <view class="plt-sd-l">{{v.yearText}}</view>
+        </view>
+        <view class="plt-note">
+          <text wx:for="{{v.stubChars}}" wx:key="*this" class="plt-note-ch">{{item}}</text>
+        </view>
+        <view class="plt-rivet"></view>
+      </view>
+      <view class="plt-main">
+        <view class="plt-brand">心灵信箱 · 重读券</view>
+        <view class="plt-serial">{{v.serial}}</view>
+        <view class="plt-name">{{v.name}}</view>
+        <view class="plt-cap">问</view>
+        <view class="plt-q">{{v.question}}</view>
+        <view class="plt-hr"></view>
+        <view class="plt-cap">答</view>
+        <view class="plt-a">{{v.answer}}</view>
+        <view class="plt-barcode"></view>
+        <view class="plt-under">2026 MENTAL MAILBOX</view>
+        <view class="plt-foot">写于 {{v.dateLong}} · 已封存</view>
+      </view>
+    </view>
+
+    <!-- 大字标语：描边水印 + 斜贴标语条 + 方章 -->
+    <view wx:elif="{{paper.id === 'poster'}}" class="pl-paper pl-po">
+      <view class="plp-wm">信</view>
+      <view class="plp-kicker">写给未来的一封信</view>
+      <view class="plp-name">{{v.name}}</view>
+      <view class="plp-banner">答案已封存 · {{v.dotDate}}</view>
+      <view class="plp-cap">问</view>
+      <view class="plp-q">{{v.question}}</view>
+      <view class="plp-cap">答</view>
+      <view class="plp-a">{{v.answer}}</view>
+      <view class="plp-sealzone">
+        <view class="plp-seal-date">写于 {{v.dotDate}}</view>
+        <view class="plp-seal"><text>心</text><text>灵</text><text>信</text><text>箱</text></view>
+      </view>
+    </view>
+
+    <!-- 包豪斯几何：出血几何群 + 色块标注 -->
+    <view wx:elif="{{paper.id === 'bauhaus'}}" class="pl-paper pl-bh">
+      <view class="plh-circle"></view>
+      <view class="plh-tri"></view>
+      <view class="plh-bar"></view>
+      <view class="plh-dot"></view>
+      <view class="plh-name">{{v.name}}</view>
+      <view class="plh-hr"></view>
+      <view class="plh-row">
+        <view class="plh-chip plh-chip-q">问</view>
+        <view class="plh-q">{{v.question}}</view>
+      </view>
+      <view class="plh-row">
+        <view class="plh-chip plh-chip-a">答</view>
+        <view class="plh-a">{{v.answer}}</view>
+      </view>
+      <view class="plh-dateblock">写于 {{v.dateLong}}</view>
+    </view>
+
+    <!-- 素问笺：右上斜盖邮戳 + 问/答朱印对帖 -->
+    <view wx:elif="{{paper.id === 'suwen'}}" class="pl-paper pl-suwen">
+      <view class="pls-postmark">
+        <text class="pls-pm1">写 于</text>
+        <text class="pls-pm2">{{v.stampText}}</text>
+        <text class="pls-pm3">{{v.yearText}}</text>
+      </view>
+      <view class="pls-name">{{v.name}}</view>
+      <view class="pls-rule"></view>
+      <view class="pls-row">
+        <view class="pls-seal pls-seal-q">问</view>
+        <view class="pls-q">{{v.question}}</view>
+      </view>
+      <view class="pls-row">
+        <view class="pls-seal pls-seal-a">答</view>
+        <view class="pls-a">{{v.answer}}</view>
+      </view>
+    </view>
+
+    <!-- 留白志：宋体大标题 + 短线 + 页脚 -->
+    <view wx:elif="{{paper.id === 'liubai'}}" class="pl-paper pl-liubai">
+      <view class="pll-name">{{v.name}}</view>
+      <view class="pll-name-rule"></view>
+      <view class="pll-q">
+        <view class="pll-cap">问</view>
+        <view class="pll-txt pll-qt">{{v.question}}</view>
+      </view>
+      <view class="pll-a">
+        <view class="pll-cap">答</view>
+        <view class="pll-txt">{{v.answer}}</view>
+      </view>
+      <view class="pll-footer">
+        <text>心灵信箱</text>
+        <text class="pll-date">写于 {{v.dateLong}}</text>
+      </view>
+    </view>
+
+    <!-- 墨夜笺：金线夹字报头 + 暗夜金细线 -->
+    <view wx:elif="{{paper.id === 'moye'}}" class="pl-paper pl-moye">
+      <view class="plm-toprule"><text>心灵信箱</text></view>
+      <view class="plm-name">{{v.name}}</view>
+      <view class="plm-q">
+        <view class="plm-cap">问</view>
+        <view class="plm-txt plm-qt">{{v.question}}</view>
+      </view>
+      <view class="plm-a">
+        <view class="plm-cap">答</view>
+        <view class="plm-txt">{{v.answer}}</view>
+      </view>
+      <view class="plm-date">— 写于 {{v.dateLong}} —</view>
+    </view>
+
+    <!-- 航空笺：全幅斜纹画框 + PAR AVION 签条 + 邮票邮戳 -->
+    <view wx:elif="{{paper.id === 'airmail2'}}" class="pl-paper pl-airmail">
+      <view class="pla-sheet">
+        <view class="pla-head">
+          <view class="pla-avion">
+            <text class="pla-avion-en">PAR AVION</text>
+            <text class="pla-avion-cn">航空邮件</text>
+          </view>
+          <view class="pla-stampbox">
+            <view class="pla-stamp">
+              <view class="pla-frame">
+                <text class="pla-stamp-v">{{v.stampText}}</text>
+                <text class="pla-stamp-l">{{v.yearText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="pla-route">BY MENTAL MAILBOX · 寄给未来</view>
+        <view class="pla-name">{{v.name}}</view>
+        <view class="pla-q">
+          <view class="pla-cap">问</view>
+          <view class="pla-txt pla-qt">{{v.question}}</view>
+        </view>
+        <view class="pla-hr-dash"></view>
+        <view class="pla-a">
+          <view class="pla-cap">答</view>
+          <view class="pla-txt">{{v.answer}}</view>
+        </view>
+        <view class="pla-foot">
+          <text class="pla-via">VIA AIR MAIL</text>
+          <text class="pla-date">写于 {{v.dateLong}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 黑胶唱片：盘芯印日期 -->
+    <view wx:else class="pl-paper pl-vinyl">
+      <view class="plv-disc">
+        <view class="plv-label">
+          <text class="plv-l1">心灵信箱</text>
+          <text class="plv-l2">{{v.stampText}}</text>
+          <text class="plv-l3">{{v.yearText}}</text>
+          <view class="plv-hole"></view>
+        </view>
+      </view>
+      <view class="plv-track">A1 · {{v.serialNo}}</view>
+      <view class="plv-name">{{v.name}}</view>
+      <view class="plv-cap">问</view>
+      <view class="plv-q">{{v.question}}</view>
+      <view class="plv-cap">答</view>
+      <view class="plv-a">{{v.answer}}</view>
+      <view class="plv-foot">
+        <text class="plv-side">SIDE A · MENTAL MAILBOX</text>
+        <text class="plv-date">录于 {{v.dateLong}}</text>
+      </view>
+    </view>
+
+  </view>
+</template>

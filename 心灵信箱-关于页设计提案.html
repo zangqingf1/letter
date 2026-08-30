@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心灵信箱 · 关于页设计提案</title>
+<style>
+  :root {
+    --base-light: #F4F3EE;
+    --base-surface: #E9E8E1;
+    --text-primary: #2E3330;
+    --text-secondary: #7D8580;
+    --accent-primary: #6B8E85;
+    --accent-secondary: #C4A482;
+    --line: rgba(125, 133, 128, 0.16);
+    --shadow-warm: 0 8px 24px rgba(80, 100, 90, 0.10);
+    --font-heading: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+    --font-hand: 'Kaiti SC', 'STKaiti', 'KaiTi', 'FZKai-Z03S', serif;
+    --font-ui: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #DEDCD2;
+    font-family: var(--font-ui);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    min-height: 100vh;
+  }
+  .phone {
+    width: 414px;
+    max-width: 100%;
+    background: var(--base-light);
+    border-radius: 36px;
+    box-shadow: 0 24px 64px rgba(60, 75, 68, 0.28), 0 0 0 10px #23261F, 0 0 0 12px #3a3e36;
+    overflow: hidden;
+  }
+  .page { padding-bottom: 64px; }
+
+  /* ============ 顶部状态栏 + 导航 ============ */
+  .statusbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px 6px;
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+  }
+  .nav {
+    position: relative;
+    height: 48px;
+    display: flex; align-items: center;
+    padding: 0 20px;
+  }
+  .nav-back {
+    font-size: 15px; color: var(--text-secondary);
+    display: flex; align-items: center; gap: 2px;
+  }
+  .nav-back .chev { font-size: 20px; line-height: 1; margin-top: -2px; }
+  .nav-title {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-heading);
+    font-size: 17px; font-weight: 700; letter-spacing: 2px;
+  }
+
+  /* ============ Hero ============ */
+  .hero {
+    text-align: center;
+    padding: 34px 36px 20px;
+  }
+  .hero-logo {
+    width: 88px; height: 88px;
+    margin: 0 auto 14px;
+    border-radius: 26px;
+    background: var(--base-surface);
+    box-shadow: var(--shadow-warm);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .hero-logo img { width: 72px; height: 72px; object-fit: contain; }
+  .hero-name {
+    font-family: var(--font-heading);
+    font-size: 30px; font-weight: 700; letter-spacing: 6px;
+    margin-bottom: 10px;
+  }
+  .hero-slogan {
+    display: inline-block;
+    font-family: var(--font-hand);
+    font-size: 16px; letter-spacing: 4px;
+    color: var(--accent-primary);
+    padding: 6px 18px;
+    border-top: 1px solid var(--accent-primary);
+    border-bottom: 1px solid var(--accent-primary);
+    margin-bottom: 22px;
+  }
+  .hero-copy {
+    font-size: 14.5px; line-height: 2.1;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .hero-copy em {
+    font-style: normal; color: var(--text-primary);
+    font-family: var(--font-hand);
+  }
+
+  .divider-words {
+    display: flex; align-items: center; gap: 14px;
+    margin: 30px 40px 6px;
+    color: var(--text-secondary);
+  }
+  .divider-words::before, .divider-words::after {
+    content: ''; flex: 1; height: 1px; background: var(--line);
+  }
+  .divider-words span { font-family: var(--font-hand); font-size: 13px; letter-spacing: 6px; white-space: nowrap; }
+
+  /* ============ 章节通用 ============ */
+  .chapter { padding: 34px 32px 0; }
+  .chapter-num {
+    font-family: var(--font-heading);
+    font-size: 12px; letter-spacing: 3px;
+    color: var(--accent-secondary);
+    margin-bottom: 8px;
+  }
+  .chapter-title {
+    font-family: var(--font-heading);
+    font-size: 21px; font-weight: 700; letter-spacing: 3px;
+    margin-bottom: 14px;
+  }
+  .chapter-copy {
+    font-size: 14.5px; line-height: 2.15;
+    color: var(--text-secondary);
+  }
+  .chapter-copy em {
+    font-style: normal; color: var(--text-primary);
+    font-family: var(--font-hand); font-size: 15.5px;
+  }
+  .illus-wrap { display: flex; justify-content: center; margin-bottom: 22px; }
+
+  /* ============ 插画一：迷你信纸 ============ */
+  .letter {
+    position: relative;
+    width: 250px;
+    background: #FBFAF5;
+    border-radius: 6px;
+    box-shadow: 0 12px 28px rgba(80, 100, 90, 0.16);
+    padding: 26px 24px 22px 40px;
+    transform: rotate(-1.6deg);
+  }
+  .letter::before { /* 红色栏线 */
+    content: ''; position: absolute; left: 30px; top: 0; bottom: 0;
+    width: 1px; background: rgba(196, 164, 130, 0.55);
+  }
+  .letter .lines { position: relative; }
+  .letter .row {
+    height: 26px;
+    background: repeating-linear-gradient(
+      to bottom, transparent 0, transparent 24px,
+      rgba(125, 133, 128, 0.28) 24px, rgba(125, 133, 128, 0.28) 25px);
+    font-family: var(--font-hand);
+    font-size: 15px; line-height: 25px;
+    color: #4A504C; white-space: nowrap; overflow: hidden;
+  }
+  .letter .q { color: var(--accent-primary); }
+  .letter .dots { color: rgba(125, 133, 128, 0.45); letter-spacing: 2px; }
+  .tape {
+    position: absolute; width: 74px; height: 22px;
+    background: rgba(107, 142, 133, 0.30);
+    transform: rotate(-4deg);
+    top: -10px; left: 50%; margin-left: -37px;
+  }
+  .tape.t2 { top: auto; bottom: -8px; left: -14px; margin: 0; transform: rotate(38deg); width: 58px; }
+
+  /* ============ 插画二：信封与火漆 ============ */
+  .envelope-scene { position: relative; width: 260px; height: 190px; }
+  .envelope {
+    position: absolute; inset: 24px 10px 6px;
+    background: linear-gradient(175deg, #EFEEE7, #E5E4DC);
+    border-radius: 6px;
+    box-shadow: 0 14px 30px rgba(80, 100, 90, 0.18);
+  }
+  .envelope .flap {
+    position: absolute; top: 0; left: 0; right: 0; height: 96px;
+    background: linear-gradient(180deg, #E2E1D8, #DAD9CF);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-radius: 6px 6px 0 0;
+    box-shadow: inset 0 -1px 0 rgba(125,133,128,0.25);
+  }
+  .envelope .addr {
+    position: absolute; left: 18px; bottom: 14px;
+    font-family: var(--font-hand); font-size: 12px;
+    color: var(--text-secondary); letter-spacing: 2px; line-height: 1.9;
+  }
+  .envelope .addr b { display: block; font-size: 15px; color: var(--text-primary); font-weight: normal; }
+  .stamp-mini {
+    position: absolute; right: 22px; top: 84px;
+    width: 44px; height: 52px;
+    border: 5px dotted rgba(107, 142, 133, 0.55);
+    background: #FBFAF5;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-heading); font-size: 18px; color: var(--accent-primary);
+  }
+  .wax {
+    position: absolute; left: 50%; top: 96px; transform: translateX(-50%);
+    width: 62px; height: 62px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #C97B60, #A9553F 58%, #7E3B2A);
+    box-shadow: 0 6px 14px rgba(126, 59, 42, 0.35), inset 0 2px 4px rgba(255,255,255,0.28);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wax::after {
+    content: '信';
+    font-family: var(--font-heading);
+    font-size: 24px; color: rgba(255, 244, 230, 0.85);
+    text-shadow: 0 1px 1px rgba(90, 40, 28, 0.6);
+  }
+  .wax::before {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 50%; border: 1.5px solid rgba(255, 244, 230, 0.4);
+  }
+
+  /* ============ 插画三：邮戳 ============ */
+  .postmark-scene { position: relative; width: 260px; height: 180px; }
+  .postmark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg); }
+  .cancel-line { position: absolute; left: 0; right: 0; height: 3px; background: rgba(107, 142, 133, 0.5); border-radius: 2px; }
+  .cancel-line.c1 { top: 42px; transform: rotate(-2deg); }
+  .cancel-line.c2 { top: 92px; transform: rotate(-1deg); }
+  .cancel-line.c3 { top: 142px; transform: rotate(-3deg); }
+  .envelope-flat {
+    position: absolute; right: 4px; bottom: 4px;
+    width: 130px; height: 86px;
+    background: var(--base-surface);
+    border-radius: 4px;
+    box-shadow: 0 8px 18px rgba(80, 100, 90, 0.14);
+    transform: rotate(4deg);
+  }
+  .envelope-flat::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40px;
+    background: rgba(125, 133, 128, 0.14);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
+  /* ============ 第四节：三张便签 ============ */
+  .notes { display: flex; flex-direction: column; gap: 18px; margin-bottom: 4px; }
+  .note {
+    position: relative;
+    background: #FBFAF5;
+    border-radius: 14px;
+    box-shadow: var(--shadow-warm);
+    padding: 20px 22px 18px;
+    font-family: var(--font-hand);
+    font-size: 15.5px; line-height: 1.9;
+    color: #4A504C;
+  }
+  .note:nth-child(1) { transform: rotate(-0.8deg); }
+  .note:nth-child(2) { transform: rotate(0.6deg); margin-left: 14px; }
+  .note:nth-child(3) { transform: rotate(-0.4deg); margin-right: 14px; }
+  .note b { color: var(--accent-primary); font-weight: normal; }
+  .note .pin {
+    position: absolute; top: -8px; left: 50%; margin-left: -7px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #D9BB98, #C4A482 60%, #A5825F);
+    box-shadow: 0 3px 5px rgba(80, 100, 90, 0.3);
+  }
+
+  /* ============ 底部 ============ */
+  .perfo {
+    margin: 44px 32px 0;
+    height: 14px;
+    background: radial-gradient(circle at 8px 7px, var(--base-light) 4px, transparent 4.5px);
+    background-size: 16px 14px;
+    background-color: rgba(125, 133, 128, 0.22);
+  }
+  .footer { text-align: center; padding: 34px 32px 10px; }
+  .footer-seal {
+    width: 54px; height: 54px; margin: 0 auto 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #C97B60, #A9553F 58%, #7E3B2A);
+    box-shadow: 0 6px 14px rgba(126, 59, 42, 0.3), inset 0 2px 4px rgba(255,255,255,0.28);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-heading); font-size: 20px; color: rgba(255,244,230,0.88);
+  }
+  .footer-name {
+    font-family: var(--font-heading);
+    font-size: 20px; font-weight: 700; letter-spacing: 5px;
+    margin-bottom: 8px;
+  }
+  .footer-slogan {
+    font-family: var(--font-hand);
+    font-size: 14.5px; letter-spacing: 3px;
+    color: var(--text-secondary);
+  }
+  .footer-line {
+    margin-top: 18px;
+    font-size: 11px; letter-spacing: 1px;
+    color: rgba(125, 133, 128, 0.55);
+  }
+
+  /* 淡入动画 */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .hero, .chapter, .footer { animation: rise 0.7s ease both; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="page">
+
+    <!-- 状态栏 + 自定义导航 -->
+    <div class="statusbar"><span>9:41</span><span>●●●●● 📶 🔋</span></div>
+    <div class="nav">
+      <span class="nav-back"><span class="chev">‹</span> 我的</span>
+      <span class="nav-title">关于心灵信箱</span>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-logo"><img src="miniprogram/assets/logo.png" alt="logo" onerror="this.parentNode.textContent='❀'"></div>
+      <div class="hero-name">心灵信箱</div>
+      <div><span class="hero-slogan">把答案寄给未来</span></div>
+      <p class="hero-copy">
+        生活中总有这样的时刻——<br>
+        一些问题忽然想明白了，<em>想找人说说，又无处可说。</em><br>
+        不如写下来，寄给未来的自己。
+      </p>
+    </div>
+
+    <div class="divider-words"><span>一 封 信 的 旅 程</span></div>
+
+    <!-- 第一节：写 -->
+    <div class="chapter">
+      <div class="chapter-num">壹 · 写下</div>
+      <div class="chapter-title">把想明白的事，写成信</div>
+      <div class="illus-wrap">
+        <div class="letter">
+          <span class="tape"></span><span class="tape t2"></span>
+          <div class="lines">
+            <div class="row q">问：我为什么总不敢开始？</div>
+            <div class="row">答：因为怕写得不好。可是——</div>
+            <div class="row">先写下来，才有机会写好。</div>
+            <div class="row dots">……</div>
+            <div class="row dots" style="text-align:right;font-size:13px">写于 2026 年 8 月 30 日</div>
+          </div>
+        </div>
+      </div>
+      <p class="chapter-copy">
+        当下想明白的问题与答案，<em>原原本本写下来。</em><br>
+        不必修饰，不必给谁看——这里没有模板，没有评判，你的每一句话都会被原样收进信里。
+      </p>
+    </div>
+
+    <!-- 第二节：封 -->
+    <div class="chapter">
+      <div class="chapter-num">贰 · 封存</div>
+      <div class="chapter-title">选一款信纸，落一枚火漆</div>
+      <div class="illus-wrap">
+        <div class="envelope-scene">
+          <div class="envelope">
+            <div class="flap"></div>
+            <div class="addr">致：未来的你<b>见字如面</b></div>
+            <div class="stamp-mini">❀</div>
+          </div>
+          <div class="wax"></div>
+        </div>
+      </div>
+      <p class="chapter-copy">
+        十款手作信纸版式，从号外头版到航空笺，各有各的脾气；再配上信封与一枚火漆。<br>
+        轻轻按下<em>「封存寄出」</em>，它便落进你的信匣，安静地开始等待。
+      </p>
+    </div>
+
+    <!-- 第三节：拆 -->
+    <div class="chapter">
+      <div class="chapter-num">叁 · 重逢</div>
+      <div class="chapter-title">未来的某一天，拆开它</div>
+      <div class="illus-wrap">
+        <div class="postmark-scene">
+          <div class="envelope-flat"></div>
+          <div class="cancel-line c1"></div>
+          <div class="cancel-line c2"></div>
+          <div class="cancel-line c3"></div>
+          <svg class="postmark" width="150" height="150" viewBox="0 0 150 150">
+            <defs>
+              <path id="ringTop" d="M 75 75 m -56 0 a 56 56 0 1 1 112 0" />
+            </defs>
+            <circle cx="75" cy="75" r="70" fill="none" stroke="#6B8E85" stroke-width="2.5" opacity="0.75"/>
+            <circle cx="75" cy="75" r="42" fill="none" stroke="#6B8E85" stroke-width="1.5" opacity="0.6"/>
+            <text fill="#6B8E85" font-size="10" letter-spacing="1.5" opacity="0.8" font-family="Kaiti SC, KaiTi, serif">
+              <textPath href="#ringTop" startOffset="18%">心灵信箱 · FUTURE POST</textPath>
+            </text>
+            <text x="75" y="70" text-anchor="middle" fill="#2E3330" font-size="15" font-family="Kaiti SC, KaiTi, serif" opacity="0.85">拆信有喜</text>
+            <text x="75" y="92" text-anchor="middle" fill="#6B8E85" font-size="13" font-family="Kaiti SC, KaiTi, serif" letter-spacing="1" opacity="0.8">2026.08.30</text>
+          </svg>
+        </div>
+      </div>
+      <p class="chapter-copy">
+        信匣每天会为你挑选一封「今日来信」。也许是上周的你，也许是几年前的你。<br>
+        重读一遍当年的答案，若还想说点什么，<em>就写一封回信贴上去</em>——信会越来越厚，像年轮，也像回声。
+      </p>
+    </div>
+
+    <!-- 第四节：只属于你 -->
+    <div class="chapter">
+      <div class="chapter-num">肆 · 安放</div>
+      <div class="chapter-title">一个只属于你的地方</div>
+      <div class="notes">
+        <div class="note"><span class="pin"></span>这里没有广场，没有围观与点赞。<br>每一封信，都<b>只寄给你一个人</b>。</div>
+        <div class="note"><span class="pin"></span>你不写一个多余的字，<br>我们也不<b>改动一个字</b>。</div>
+        <div class="note"><span class="pin"></span>信一旦写下，就永远属于你。<br>想留就留，想撕就撕。</div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="perfo"></div>
+    <div class="footer">
+      <div class="footer-seal">信</div>
+      <div class="footer-name">心灵信箱</div>
+      <div class="footer-slogan">把答案寄给未来</div>
+      <div class="footer-line">SEE YOU WHEN YOU GET THERE</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

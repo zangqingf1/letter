@@ -9,6 +9,8 @@ const analytics = require('../../services/analytics.js');
 const THEMES = require('../write/themes.js');
 // data 初始默认信纸版式；实际版式在 loadLetter 中按信件 paper_id 经 theme 服务解析
 const PAPERS = require('../write/papers.js');
+// 信纸渲染数据（共享模板 paper.wxml 只认 view 字段，与写信预览/分享图同构）
+const { buildView, longDate } = require('../write/paper-view.js');
 
 // 埋点统一走 analytics 服务（事件名见 PRD 第十三节）
 function track(event, data) {
@@ -34,10 +36,8 @@ Page({
     handwritingOff: false, // 无障碍开关：关闭手写体（全局设置）
     letter: { name: '', question: '', answer: '' },
     theme: THEMES[0],
-    themeName: THEMES[0].name,
     paper: PAPERS[0],
-    dateText: '',
-    editedText: '',
+    view: buildView({ name: '', question: '', answer: '' }, { created: new Date() }),
     openCount: 0,
     stamps: [],
     moreChip: null,
@@ -93,7 +93,7 @@ Page({
       this.isDemo = res.isDemo;
 
       const theme = themes.find((t) => t.id === letter.theme_id) || themes[0];
-      // 信纸版式解析（未知/缺失 paper_id 回落素笺，老信件视觉零跳变）
+      // 信纸版式解析（未知/缺失 paper_id 回落列表第一套）
       const paper = themeService.paperOf(letter.paper_id, papers);
       const today = new Date();
 
@@ -102,12 +102,10 @@ Page({
       letterService.recordOpen(letter).then((opens) => {
         letter.opens = opens || [];
         const created = new Date(letter.created_at);
-        const dateText = (created.getMonth() + 1) + '月' + created.getDate() + '日';
-        let editedText = '';
-        if (letter.updated_at && !sameDay(letter.updated_at, letter.created_at)) {
-          const u = new Date(letter.updated_at);
-          editedText = (u.getMonth() + 1) + '月' + u.getDate() + '日';
-        }
+        // 落款长日期（三端同口径）：写于
+        const dateText = longDate(created);
+        // 信纸渲染数据（票面日期/编号/首字下沉等由此派生，与预览/分享一致）
+        const view = buildView(letter, { created: created, dateText: dateText });
 
         if (!isRefresh) track('letter_open', { letter_id: letter.id });
 
@@ -115,10 +113,8 @@ Page({
         this.setData({
           letter,
           theme,
-          themeName: theme.name,
           paper,
-          dateText,
-          editedText,
+          view,
           pinned: !!letter.pinned,
           openStampText: pad2(today.getMonth() + 1) + '.' + pad2(today.getDate()),
           todayLongText: today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日',
@@ -146,7 +142,8 @@ Page({
         ts,
         date: pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()),
         today: isToday,
-        label: isToday ? '今天' : ''
+        // 戳痕成行版式：每枚邮戳都带印文（旧戳「重读」、今日戳「今天」）
+        label: isToday ? '今天' : '重读'
       };
     });
     let stamps = all;
@@ -164,11 +161,14 @@ Page({
     const list = replies
       .slice()
       .sort((a, b) => a.ts - b.ts)
-      .map((r) => {
+      .map((r, i) => {
         const d = new Date(r.ts);
         return {
           ts: r.ts,
           dateText: d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()),
+          // 戳痕成行版式：便签头部 mono 编目「R-01 · 06.18」
+          no: 'R-' + pad2(i + 1),
+          dateShort: pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()),
           text: r.text
         };
       });

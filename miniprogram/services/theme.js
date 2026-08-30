@@ -70,14 +70,24 @@ function envelopeThumbOf(themeId, themes) {
 }
 
 // ── 信纸版式（主题只绑信封与配色，版式独立选择）──
-// 第一版版式为本地静态配置（write/papers.js）；后续云化与 themes 集合同路（M4）。
+// 云端 papers 集合由 Web 后台维护（admin 云函数），theme 云函数 papers action 下发；
+// 云端为空/失败/本地模式一律回落本地静态配置，保证离线可用。
 // 归一化兜底：字段缺失的项剔除，保证页面拿到的版式都可用于渲染。
 function normalizePapers(list) {
   return (list || []).filter((p) => p && p.id && p.name);
 }
 
 function getPapers() {
-  // 与 getThemes 同返回形态（Promise），云端接入后此处替换为 cloud.call('theme', 'papers')
+  if (DATA_SOURCE === 'cloud') {
+    return cloud
+      .call('theme', 'papers', {})
+      .then((r) => {
+        const list = (r && r.papers) || [];
+        if (list.length) return normalizePapers(list);
+        return normalizePapers(LOCAL_PAPERS);
+      })
+      .catch(() => normalizePapers(LOCAL_PAPERS));
+  }
   return Promise.resolve(normalizePapers(LOCAL_PAPERS));
 }
 

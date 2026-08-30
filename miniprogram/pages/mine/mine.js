@@ -90,7 +90,6 @@ Page({
   },
 
   onTapAbout() {
-    // TODO: 关于心灵信箱（品牌文案：心灵信箱 · 把答案寄给未来）
-    wx.showToast({ title: '关于页开发中', icon: 'none' });
+    wx.navigateTo({ url: '/pages/about/about' });
   }
 });

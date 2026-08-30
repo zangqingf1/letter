@@ -54,7 +54,7 @@ exports.main = async (event) => {
             answer,
             theme_id: theme_id || '',
             theme_version: theme_version || 1,
-            paper_id: paper_id || 'su',
+            paper_id: paper_id || 'liubai',
             paper_version: paper_version || 1,
             pinned: false,
             status: 'active',
@@ -81,7 +81,7 @@ exports.main = async (event) => {
             answer,
             theme_id: theme_id || doc.data.theme_id,
             theme_version: theme_version || doc.data.theme_version,
-            paper_id: paper_id || doc.data.paper_id || 'su',
+            paper_id: paper_id || doc.data.paper_id || 'liubai',
             paper_version: paper_version || doc.data.paper_version || 1,
             updated_at: new Date()
           }

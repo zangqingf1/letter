@@ -3,555 +3,449 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>心灵信箱 · 信纸样式提案（6 套通用版式）</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<title>心灵信箱 · 信纸版式提案（6 套）</title>
 <style>
-/* ============================================================
-   心灵信箱 · 信纸样式提案（6 套）
-   方案B：信纸 = palette 底色 + 纯排版，无任何纸张图片素材。
-   通用性约定：
-   · 所有装饰色仅来自主题四色变量（--p-base/title/text/tag）的
-     透明度派生（color-mix），换主题不换装饰逻辑；
-   · 仅两处固定锚点色：陶土 #C58A6A（信纸头线，与写信页同源）、
-     鼠尾草 #6B8E85（选中态），不随主题变化；
-   · 无纯黑、无冷灰阴影（统一 rgba(80,100,90,…) 暖阴影）。
-   ============================================================ */
-:root{
-  /* 主题四色（由切换器 JS 动态覆写，默认小王子 v2） */
-  --p-base:#F9F3E4;
-  --p-title:#5A4F3E;
-  --p-text:#4A4438;
-  --p-tag:#9A9284;
-  --p-desk:#EDE9DC;
+  /* ============ 提案页本身（非信纸样式） ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E7E3DA;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #3B372F;
+    padding: 48px 20px 96px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
 
-  /* 固定锚点色（设计规范） */
-  --terra:#C58A6A;          /* 陶土 · 信纸头线 */
-  --sage:#6B8E85;           /* 鼠尾草 · 选中态 */
-  --wood:#C4A482;           /* 风化木暖黄 */
+  header.page { text-align: center; margin-bottom: 56px; }
+  header.page .kicker {
+    font-size: 12px; letter-spacing: 6px; color: #8B8578; margin-bottom: 14px;
+  }
+  header.page h1 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 30px; font-weight: 600; letter-spacing: 2px; color: #2E2B25;
+  }
+  header.page .sub {
+    margin-top: 16px; font-size: 13.5px; line-height: 1.9; color: #6E695E; max-width: 520px; margin-left: auto; margin-right: auto;
+  }
+  header.page .rules {
+    margin-top: 18px; display: inline-block; text-align: left;
+    font-size: 12.5px; line-height: 2; color: #6E695E;
+    border-top: 1px solid #C9C3B5; border-bottom: 1px solid #C9C3B5;
+    padding: 10px 4px;
+  }
 
-  /* 页面底 */
-  --page:#F4F3EE;
-  --ink:#2E3330;
-  --ink-2:#7D8580;
-  --shadow:0 10px 28px rgba(80,100,90,.16), 0 2px 6px rgba(80,100,90,.08);
+  section.sample { margin-bottom: 72px; }
+  .meta { margin-bottom: 18px; }
+  .meta .no {
+    font-family: Georgia, serif; font-size: 13px; color: #A29B8A; letter-spacing: 2px;
+  }
+  .meta h2 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 21px; font-weight: 600; color: #2E2B25; letter-spacing: 1.5px;
+    margin-top: 4px; display: flex; align-items: baseline; gap: 12px;
+  }
+  .meta h2 .tagline { font-family: "PingFang SC","Microsoft YaHei",sans-serif; font-size: 13px; font-weight: 400; color: #8B8578; letter-spacing: 0; }
+  .meta ul { list-style: none; margin-top: 8px; }
+  .meta ul li {
+    font-size: 12.5px; color: #75705F; line-height: 1.9;
+    padding-left: 14px; position: relative;
+  }
+  .meta ul li::before { content: "·"; position: absolute; left: 2px; color: #A29B8A; }
 
-  --font-serif:"Noto Serif SC","Songti SC","SimSun",serif;
-  --font-hand:"LXGW WenKai","Kaiti SC","KaiTi","楷体","STKaiti",serif;
-  --font-ui:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:var(--page);
-  color:var(--ink);
-  font-family:var(--font-ui);
-  padding:48px 24px 96px;
-}
-.wrap{max-width:880px;margin:0 auto}
+  /* ============ 信纸通用基底 ============ */
+  .paper {
+    width: 100%; max-width: 680px; margin: 0 auto;
+    min-height: 560px;
+    box-shadow: 0 1px 2px rgba(40,35,25,.10), 0 12px 32px rgba(40,35,25,.14);
+    position: relative;
+    padding: 56px 52px 48px;
+    overflow: hidden;
+  }
+  @media (max-width: 560px) { .paper { padding: 40px 26px 36px; min-height: 480px; } }
 
-/* ── 页头 ── */
-.masthead{text-align:center;margin-bottom:36px}
-.masthead .brand{font-family:var(--font-serif);font-size:30px;font-weight:700;letter-spacing:2px}
-.masthead .sub{color:var(--ink-2);font-size:13px;margin-top:10px;letter-spacing:1px}
-.masthead .rule{
-  width:64px;height:3px;background:var(--terra);margin:18px auto 0;border-radius:2px;
-}
+  .f-kai  { font-family: "Kaiti SC","STKaiti","KaiTi","DFKai-SB",serif; }
+  .f-song { font-family: "Songti SC","SimSun",serif; }
+  .f-fang { font-family: "FangSong","STFangsong","FangSong_GB2312","SimSun",serif; }
+  .f-hei  { font-family: "PingFang SC","Microsoft YaHei",sans-serif; }
 
-/* ── 主题切换器 ── */
-.switcher{
-  position:sticky;top:0;z-index:50;
-  background:rgba(244,243,238,.92);backdrop-filter:blur(8px);
-  border:1px solid rgba(125,133,128,.22);border-radius:16px;
-  padding:14px 18px;margin-bottom:52px;
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;
-  box-shadow:0 4px 14px rgba(80,100,90,.08);
-}
-.switcher .lab{font-size:12px;color:var(--ink-2);letter-spacing:1px}
-.sw{
-  display:inline-flex;align-items:center;gap:7px;
-  border:2px solid transparent;border-radius:999px;
-  background:#fff;padding:5px 12px 5px 7px;cursor:pointer;
-  font-size:12px;color:var(--ink);font-family:var(--font-ui);
-  transition:border-color .2s, transform .15s;
-}
-.sw:hover{transform:translateY(-1px)}
-.sw.on{border-color:var(--sage);font-weight:600}
-.sw .dot{width:18px;height:18px;border-radius:50%;border:1px solid rgba(125,133,128,.35)}
-.switcher .note{width:100%;text-align:center;font-size:11px;color:var(--ink-2);margin-top:2px}
+  /* ================================================================
+     样式 01 · 素问笺 —— 问/答朱印对帖
+     纸色自持：象牙纸 + 墨色 + 一枚朱砂印。日期做成右上角斜盖邮戳。
+     ================================================================ */
+  .p1 { background: #FAF7F0; color: #3B372F; }
+  .p1 .postmark {
+    position: absolute; top: 30px; right: 34px;
+    width: 78px; height: 78px; border-radius: 50%;
+    border: 1.5px dashed #A63B2A;
+    color: #A63B2A; transform: rotate(-9deg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; opacity: .85;
+  }
+  .p1 .postmark .t1 { font-size: 10px; letter-spacing: 3px; }
+  .p1 .postmark .t2 { font-family: Georgia, serif; font-size: 15px; letter-spacing: 1px; }
+  .p1 .postmark .t3 { font-size: 9px; letter-spacing: 2px; }
+  .p1 .name { font-size: 25px; letter-spacing: 3px; color: #2E2B25; padding-right: 90px; }
+  .p1 .rule { height: 1px; background: #D8D2C2; margin: 22px 0 30px; }
+  .p1 .row { display: flex; gap: 14px; margin-bottom: 30px; }
+  .p1 .seal {
+    flex: none; width: 22px; height: 22px; margin-top: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; border-radius: 3px;
+  }
+  .p1 .row.q .seal { border: 1.5px solid #A63B2A; color: #A63B2A; }
+  .p1 .row.a .seal { background: #A63B2A; color: #FAF7F0; }
+  .p1 .row .txt { font-size: 15.5px; line-height: 2.0; }
+  .p1 .row.q .txt { color: #6B6557; font-size: 15px; }
+  .p1 .row.a .txt { color: #3B372F; }
 
-/* ── 设计分区 ── */
-.design{margin-bottom:72px}
-.design-head{margin-bottom:18px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.design-head h2{font-family:var(--font-serif);font-size:20px;font-weight:700}
-.design-head .idx{
-  font-family:var(--font-serif);font-size:13px;color:#fff;background:var(--sage);
-  border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
-  flex:none;transform:translateY(3px);
-}
-.design-head p{font-size:13px;color:var(--ink-2);width:100%;line-height:1.7}
-.chips{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:6px}
-.chips span{
-  font-size:11px;color:var(--ink);background:rgba(125,133,128,.12);
-  border:1px solid rgba(125,133,128,.25);border-radius:999px;padding:3px 10px;
-}
+  /* ================================================================
+     样式 02 · 方格稿纸 —— 绿格稿纸 · 空两格起笔
+     仿宋字落在 28px 格线上，段首空两格，日期落款用汉字纪年。
+     ================================================================ */
+  .p2 {
+    background: #F7FAF2; color: #33453A;
+    border: 2px solid #7E9B7E;
+    box-shadow: 0 0 0 6px #F7FAF2, 0 0 0 7px #B9CDB4, 0 14px 32px rgba(40,50,35,.16);
+    padding: 44px 44px 40px;
+    background-image:
+      repeating-linear-gradient(to bottom, transparent 0 27px, rgba(110,146,110,.38) 27px 28px),
+      repeating-linear-gradient(to right,  transparent 0 27px, rgba(110,146,110,.38) 27px 28px);
+    background-position: 22px 22px;
+  }
+  .p2 .inner { padding-left: 22px; } /* 让文字与格线对齐（背景自 22px 起） */
+  .p2 .name { font-family: "Songti SC","SimSun",serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; color: #2B3D31; line-height: 56px; }
+  .p2 .txt { font-size: 17px; line-height: 28px; }
+  .p2 .q { color: #5B705F; margin-top: 28px; }
+  .p2 .q b, .p2 .a b { font-weight: 700; }
+  .p2 .a { margin-top: 28px; color: #33453A; }
+  .p2 .q p, .p2 .a p { text-indent: 2em; }
+  .p2 .date {
+    margin-top: 34px; text-align: right; font-size: 16px; letter-spacing: 2px; color: #4E6354;
+  }
+  @media (max-width: 560px) { .p2 { padding: 34px 22px 30px; } .p2 .inner { padding-left: 20px; } .p2 .name { line-height: 56px; font-size: 19px; } }
 
-/* ── 桌面与纸张通用 ── */
-.stage{
-  background:var(--p-desk);
-  border-radius:20px;
-  padding:44px 24px;
-  display:flex;justify-content:center;
-  transition:background .35s;
-}
-.paper{
-  width:600px;max-width:100%;
-  background:var(--p-base);
-  color:var(--p-text);
-  box-shadow:var(--shadow);
-  transition:background .35s;
-}
-.p-name{font-family:var(--font-serif);font-weight:700;color:var(--p-title)}
-.p-body{font-family:var(--font-hand);color:var(--p-text)}
-.p-q{font-family:var(--font-hand);color:var(--p-text)}
-.p-date{font-family:var(--font-ui);color:var(--p-tag)}
+  /* ================================================================
+     样式 03 · 牛皮签 —— 牛皮纸包裹 + 打字机 + 红色钢印
+     名称装进双线标签框，日期藏在斜盖的圆形钢印里。
+     ================================================================ */
+  .p3 {
+    background: linear-gradient(160deg, #CBA981 0%, #C2A075 55%, #B8946A 100%);
+    color: #46382A;
+  }
+  .p3::after { /* 纸面暗角，制造牛皮厚度 */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 42%, transparent 58%, rgba(90,66,40,.18) 100%);
+  }
+  .p3 .inner { position: relative; z-index: 1; }
+  .p3 .tag {
+    display: inline-block; border: 2px solid #46382A; outline: 1px solid #46382A; outline-offset: 3px;
+    padding: 9px 18px; font-size: 19px; letter-spacing: 3px; color: #3D2F21; font-weight: 700;
+  }
+  .p3 .lbl { font-size: 12px; letter-spacing: 5px; color: #6E573E; margin-bottom: 8px; }
+  .p3 .txt { font-size: 15px; line-height: 2.0; }
+  .p3 .q { color: #5A4832; margin-top: 30px; }
+  .p3 .a { margin-top: 30px; color: #46382A; }
+  .p3 .q .lbl b, .p3 .a .lbl b { color: #93402C; font-weight: 700; }
+  .p3 .dash { border: none; border-top: 1.5px dashed rgba(70,56,42,.45); margin: 26px 0 0; }
+  .p3 .stamp {
+    position: absolute; right: 6px; bottom: 10px;
+    width: 104px; height: 104px; border-radius: 50%;
+    border: 2px solid #93402C; box-shadow: inset 0 0 0 3px transparent, inset 0 0 0 4px #93402C;
+    color: #93402C; transform: rotate(8deg); opacity: .8;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  .p3 .stamp .s1 { font-size: 10px; letter-spacing: 4px; text-indent: 4px; }
+  .p3 .stamp .s2 { font-family: "Courier New", Consolas, monospace; font-size: 16px; letter-spacing: 1px; font-weight: 700; }
+  .p3 .stamp .s3 { font-size: 9px; letter-spacing: 2px; }
+  .p3 .bottom-space { height: 70px; } /* 给右下角钢印让位 */
+  @media (max-width: 560px) { .p3 .stamp { width: 88px; height: 88px; right: 2px; bottom: 4px; } }
 
-/* ============================================================
-   01 素笺 · 经典双线头（现版精修）
-   ============================================================ */
-.d1{padding:42px 52px 34px}
-.d1 .head-rule{position:relative;border-top:3px solid var(--terra);margin-bottom:3px}
-.d1 .head-rule::before{content:"";display:block;border-top:1px solid var(--terra);margin-top:4px;opacity:.55}
-.d1 .head-rule::after{
-  content:"◆";position:absolute;left:50%;top:-9px;transform:translateX(-50%);
-  color:var(--terra);font-size:10px;background:var(--p-base);padding:0 8px;line-height:1;
-  transition:background .35s;
-}
-.d1 .p-name{text-align:center;font-size:21px;letter-spacing:3px;margin:22px 0 6px}
-.d1 .p-tag{text-align:center;font-family:var(--font-ui);font-size:11px;color:var(--p-tag);letter-spacing:4px;margin-bottom:24px}
-.d1 .p-q{font-size:15px;line-height:1.8;margin-bottom:14px;padding-left:16px;border-left:2px solid color-mix(in srgb,var(--p-tag) 45%,transparent)}
-.d1 .p-body{font-size:16px;line-height:1.8}
-.d1 .foot{
-  margin-top:30px;border-top:1px solid color-mix(in srgb,var(--p-tag) 32%,transparent);
-  padding-top:12px;display:flex;justify-content:space-between;align-items:center;
-}
-.d1 .foot .theme{font-size:11px;color:var(--p-tag);letter-spacing:2px}
-.d1 .foot .p-date{font-size:12px;letter-spacing:1px}
+  /* ================================================================
+     样式 04 · 留白志 —— 编辑部极简
+     纯白 + 宋体大标题 + 微型标注，一根短线与页脚线承担全部装饰。
+     ================================================================ */
+  .p4 { background: #FEFEFC; color: #23211D; }
+  .p4 .name { font-family: "Songti SC","SimSun",serif; font-size: 30px; font-weight: 600; letter-spacing: 2px; line-height: 1.5; color: #1D1B17; }
+  .p4 .name-rule { width: 36px; height: 3px; background: #1D1B17; margin: 26px 0 44px; }
+  .p4 .cap {
+    font-size: 11px; letter-spacing: 8px; color: #B3AC9C; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .p4 .cap::after { content: ""; flex: 1; height: 1px; background: #ECE8DE; }
+  .p4 .txt { font-size: 15.5px; line-height: 2.1; }
+  .p4 .q { color: #8A8478; margin-bottom: 40px; }
+  .p4 .a { color: #33302A; }
+  .p4 .footer {
+    margin-top: 52px; padding-top: 16px; border-top: 1px solid #ECE8DE;
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: #A29B8A; letter-spacing: 1px;
+  }
+  .p4 .footer .d { color: #6E695E; }
 
-/* ============================================================
-   02 航空笺 · 斜纹边框 + 邮票邮戳
-   ============================================================ */
-.d2{padding:9px}
-.d2 .frame{
-  background:
-    repeating-linear-gradient(-45deg,
-      color-mix(in srgb,var(--terra) 34%,transparent) 0 14px,
-      transparent 14px 26px,
-      color-mix(in srgb,var(--p-tag) 34%,transparent) 26px 40px,
-      transparent 40px 52px);
-  padding:7px;
-}
-.d2 .inner{background:var(--p-base);padding:26px 34px 30px;transition:background .35s}
-.d2 .toprow{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px}
-.d2 .paravion{
-  border:1.5px solid color-mix(in srgb,var(--p-tag) 55%,transparent);
-  color:var(--p-tag);font-size:10px;letter-spacing:3px;
-  padding:5px 10px;border-radius:3px;line-height:1.7;text-align:center;
-}
-.d2 .paravion b{display:block;font-family:var(--font-serif);font-size:13px;letter-spacing:2px;color:var(--p-title)}
-.d2 .stampbox{
-  position:relative;width:86px;height:100px;flex:none;
-  border:1.5px dashed color-mix(in srgb,var(--p-tag) 60%,transparent);
-  background:color-mix(in srgb,var(--p-base) 70%,#fff 0%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-}
-.d2 .stampbox .mini{
-  width:30px;height:38px;background:color-mix(in srgb,var(--terra) 30%,transparent);
-  border-radius:2px;display:flex;align-items:center;justify-content:center;
-  color:var(--p-title);font-family:var(--font-serif);font-size:15px;font-weight:700;
-}
-.d2 .stampbox .nm{font-size:9px;color:var(--p-tag);letter-spacing:1px}
-.d2 .postmark{
-  position:absolute;right:-26px;top:26px;width:74px;height:74px;color:var(--p-tag);
-  transform:rotate(-12deg);opacity:.85;pointer-events:none;
-}
-.d2 .p-name{font-size:19px;letter-spacing:2px;margin-bottom:16px}
-.d2 .p-q{font-size:15px;line-height:1.8;margin-bottom:12px}
-.d2 .p-q::before{content:"问 / ";font-family:var(--font-ui);font-size:11px;color:var(--p-tag);letter-spacing:2px}
-.d2 .p-body{font-size:16px;line-height:1.8}
-.d2 .p-body::before{content:"答 / ";font-family:var(--font-ui);font-size:11px;color:var(--p-tag);letter-spacing:2px}
-.d2 .foot{display:flex;justify-content:flex-end;margin-top:24px}
-.d2 .p-date{
-  font-size:12px;border:1px solid color-mix(in srgb,var(--p-tag) 45%,transparent);
-  border-radius:999px;padding:4px 14px;transform:rotate(2deg);
-}
+  /* ================================================================
+     样式 05 · 明信片 —— 邮票里装日期，邮戳斜盖其上
+     名称即卡面标题，问题/答案用一条撕票虚线分隔。
+     ================================================================ */
+  .p5 { background: #FBFBF6; color: #3B382F; }
+  .p5 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .p5 .name { font-family: "Songti SC","SimSun",serif; font-size: 24px; font-weight: 700; letter-spacing: 2px; color: #2C2A24; line-height: 1.55; padding-top: 8px; }
+  .p5 .stampbox { position: relative; flex: none; width: 96px; }
+  .p5 .stamp {
+    width: 82px; height: 96px; margin-left: auto;
+    border: 1px solid #C9C3B2; background: #F2EFE4;
+    padding: 7px;
+  }
+  .p5 .stamp .inner {
+    height: 100%; border: 1.5px solid #9C7B4F;
+    background: linear-gradient(150deg, #E7DFC9, #D9CDAF);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: #7A5E38;
+  }
+  .p5 .stamp .v { font-family: Georgia, serif; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .p5 .stamp .l { font-size: 9px; letter-spacing: 3px; text-indent: 3px; }
+  .p5 .cancel { /* 邮戳：斜盖在邮票左下角 */
+    position: absolute; left: -18px; bottom: -12px;
+    width: 74px; height: 74px; border-radius: 50%;
+    border: 1.5px solid #8F897A; color: #8F897A; opacity: .8;
+    transform: rotate(-12deg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 9px; letter-spacing: 2px; background: rgba(251,251,246,.35);
+  }
+  .p5 .cancel b { font-size: 11px; letter-spacing: 1px; }
+  .p5 .micro { margin-top: 10px; text-align: right; font-size: 10px; letter-spacing: 3px; color: #B3AC9C; }
+  .p5 .perf { border: none; border-top: 2px dashed #DDD8C8; margin: 34px 0 30px; }
+  .p5 .cap { font-size: 12px; letter-spacing: 4px; color: #A29B8A; margin-bottom: 10px; }
+  .p5 .txt { font-size: 15.5px; line-height: 2.05; }
+  .p5 .q { color: #7C7669; }
+  .p5 .a { color: #33302A; }
+  .p5 .foot { margin-top: 44px; display: flex; justify-content: space-between; align-items: baseline; }
+  .p5 .foot .brand { font-size: 11px; letter-spacing: 3px; color: #B3AC9C; }
+  .p5 .foot .d { font-size: 13px; color: #6E695E; letter-spacing: 1px; }
 
-/* ============================================================
-   03 笔记本 · 踩线横格 + 装订孔
-   ============================================================ */
-.d3{position:relative;padding:38px 46px 30px 76px}
-.d3 .margin-line{
-  position:absolute;left:52px;top:0;bottom:0;width:1.5px;
-  background:color-mix(in srgb,var(--terra) 55%,transparent);
-}
-.d3 .holes{position:absolute;left:14px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-evenly}
-.d3 .holes i{
-  width:16px;height:16px;border-radius:50%;display:block;
-  background:var(--p-desk);
-  box-shadow:inset 0 1px 2px rgba(80,100,90,.25);
-  transition:background .35s;
-}
-.d3 .p-name{font-size:20px;letter-spacing:2px;margin-bottom:4px;display:inline-block;
-  border-bottom:1px solid color-mix(in srgb,var(--p-tag) 40%,transparent);padding-bottom:6px}
-.d3 .p-tag{font-family:var(--font-ui);font-size:11px;color:var(--p-tag);letter-spacing:3px;margin:14px 0 18px}
-.d3 .p-q{font-size:15px;line-height:1.8;margin-bottom:6px}
-.d3 .p-body{
-  font-size:16px;line-height:1.8;
-  background-image:repeating-linear-gradient(to bottom,
-    transparent 0 25px,
-    color-mix(in srgb,var(--p-tag) 26%,transparent) 25px 26px,
-    transparent 26px 28.8px);
-  background-origin:content-box;
-}
-.d3 .foot{margin-top:26px;display:flex;justify-content:space-between;align-items:center}
-.d3 .foot .theme{font-size:11px;color:var(--p-tag);letter-spacing:2px}
-.d3 .foot .p-date{font-size:12px;letter-spacing:1px}
-
-/* ============================================================
-   04 织纹笺 · 布纹 + 隔线双框 + 角饰
-   ============================================================ */
-.d4{
-  padding:34px 44px 30px;
-  background-image:
-    repeating-linear-gradient(0deg, color-mix(in srgb,var(--p-text) 3%,transparent) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(90deg, color-mix(in srgb,var(--p-text) 3%,transparent) 0 1px, transparent 1px 5px);
-}
-.d4 .frame{
-  position:relative;border:1px solid color-mix(in srgb,var(--p-tag) 38%,transparent);
-  padding:30px 34px 24px;
-}
-.d4 .frame::after{
-  content:"";position:absolute;inset:5px;pointer-events:none;
-  border:1px solid color-mix(in srgb,var(--p-tag) 20%,transparent);
-}
-.d4 .corner{position:absolute;width:12px;height:12px;color:var(--terra)}
-.d4 .corner svg{display:block;width:100%;height:100%}
-.d4 .c-tl{top:-6px;left:-6px}
-.d4 .c-tr{top:-6px;right:-6px;transform:rotate(90deg)}
-.d4 .c-br{bottom:-6px;right:-6px;transform:rotate(180deg)}
-.d4 .c-bl{bottom:-6px;left:-6px;transform:rotate(270deg)}
-.d4 .p-name{text-align:center;font-size:20px;letter-spacing:4px;margin-bottom:6px}
-.d4 .divide{
-  display:flex;align-items:center;gap:10px;margin:16px 0 20px;
-  color:color-mix(in srgb,var(--p-tag) 60%,transparent);
-}
-.d4 .divide::before,.d4 .divide::after{content:"";flex:1;border-top:1px solid currentColor}
-.d4 .divide i{font-style:normal;font-size:10px;letter-spacing:3px;color:var(--p-tag);font-family:var(--font-ui)}
-.d4 .p-q{font-size:15px;line-height:1.8;margin-bottom:14px}
-.d4 .p-q em{font-style:normal;font-family:var(--font-ui);font-size:10px;color:var(--p-tag);
-  border:1px solid color-mix(in srgb,var(--p-tag) 45%,transparent);border-radius:3px;padding:1px 6px;margin-right:8px;letter-spacing:2px}
-.d4 .p-body{font-size:16px;line-height:1.8}
-.d4 .p-body em{font-style:normal;font-family:var(--font-ui);font-size:10px;color:var(--p-tag);
-  border:1px solid color-mix(in srgb,var(--p-tag) 45%,transparent);border-radius:3px;padding:1px 6px;margin-right:8px;letter-spacing:2px}
-.d4 .foot{margin-top:22px;text-align:center}
-.d4 .foot .p-date{font-size:12px;letter-spacing:2px}
-.d4 .foot .p-date::before{content:"—— ";opacity:.5}
-.d4 .foot .p-date::after{content:" ——";opacity:.5}
-
-/* ============================================================
-   05 花笺 · 植物角饰
-   ============================================================ */
-.d5{position:relative;padding:44px 52px 36px;border-radius:8px;overflow:hidden}
-.d5 .sprig{position:absolute;color:var(--p-tag);opacity:.5;pointer-events:none}
-.d5 .s-tl{top:-14px;left:-10px;width:150px;transform:scaleX(-1)}
-.d5 .s-br{bottom:-14px;right:-10px;width:150px;transform:scaleY(-1) scaleX(-1)}
-.d5 .s-tr{top:-14px;right:-10px;width:110px;opacity:.3;transform:scale(-1,-1)}
-.d5 .s-bl{bottom:-14px;left:-10px;width:110px;opacity:.3;transform:scaleY(-1)}
-.d5 .bloom{
-  text-align:center;color:var(--terra);font-size:15px;line-height:1;margin-bottom:14px;
-  display:flex;align-items:center;justify-content:center;gap:12px;
-}
-.d5 .bloom::before,.d5 .bloom::after{
-  content:"";width:44px;border-top:1px solid color-mix(in srgb,var(--p-tag) 45%,transparent);
-}
-.d5 .p-name{text-align:center;font-size:21px;letter-spacing:3px;margin-bottom:22px}
-.d5 .p-q{font-size:15px;line-height:1.8;margin-bottom:14px;text-align:center;
-  color:color-mix(in srgb,var(--p-text) 82%,var(--p-tag))}
-.d5 .p-q::before{content:"「";color:var(--terra)}
-.d5 .p-q::after{content:"」";color:var(--terra)}
-.d5 .p-body{font-size:16px;line-height:1.8}
-.d5 .foot{margin-top:26px;text-align:center}
-.d5 .foot .p-date{font-size:12px;letter-spacing:2px}
-.d5 .foot .fl{color:var(--p-tag);font-size:10px;margin-top:8px;letter-spacing:6px}
-
-/* ============================================================
-   06 封缄笺 · 和纸胶带 + 问答复分区 + 火漆印
-   ============================================================ */
-.d6{position:relative;padding:52px 48px 34px}
-.d6 .tape{
-  position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-2.5deg);
-  width:132px;height:30px;
-  background:color-mix(in srgb,var(--wood) 42%,transparent);
-  border-left:2px dashed rgba(255,255,255,.55);
-  border-right:2px dashed rgba(255,255,255,.55);
-  box-shadow:0 1px 3px rgba(80,100,90,.12);
-}
-.d6 .p-name{font-size:20px;letter-spacing:2px;padding-left:14px;position:relative;margin-bottom:18px}
-.d6 .p-name::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:4px;background:var(--terra);border-radius:2px}
-.d6 .block{position:relative;padding:2px 0 14px 40px;margin-bottom:8px}
-.d6 .block + .block{border-top:1px dashed color-mix(in srgb,var(--p-tag) 40%,transparent);padding-top:18px}
-.d6 .badge{
-  position:absolute;left:0;top:2px;width:26px;height:26px;border-radius:50%;
-  border:1.5px solid color-mix(in srgb,var(--p-tag) 55%,transparent);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-serif);font-size:13px;font-weight:700;color:var(--p-tag);
-}
-.d6 .p-q{font-size:15px;line-height:1.8}
-.d6 .p-body{font-size:16px;line-height:1.8}
-.d6 .foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px}
-.d6 .foot .p-date{font-size:12px;letter-spacing:1px}
-.d6 .foot .theme{font-size:11px;color:var(--p-tag);letter-spacing:2px}
-.d6 .seal{
-  width:52px;height:52px;flex:none;border-radius:6px;
-  background:var(--terra);color:#fff;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-serif);font-size:24px;font-weight:700;
-  transform:rotate(-4deg);
-  box-shadow:0 2px 6px rgba(80,100,90,.25), inset 0 0 0 2.5px rgba(255,255,255,.35), inset 0 0 0 5px var(--terra);
-}
-
-/* ── 页脚说明 ── */
-.footnote{
-  border-top:1px solid rgba(125,133,128,.25);padding-top:24px;
-  font-size:12px;color:var(--ink-2);line-height:2;
-}
-.footnote b{color:var(--ink)}
+  /* ================================================================
+     样式 06 · 墨夜笺 —— 暗夜纸 + 暖金细线
+     深墨蓝纸面自持配色，暖金只做线条不做大色块，适合夜间重读。
+     ================================================================ */
+  .p6 {
+    background: radial-gradient(ellipse at 50% 20%, #2A2F3A 0%, #22262E 60%, #1D2027 100%);
+    color: #DDD6C6;
+    box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 14px 36px rgba(0,0,0,.35);
+  }
+  .p6 .toprule {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 30px;
+    color: #C6A870;
+  }
+  .p6 .toprule::before, .p6 .toprule::after { content: ""; flex: 1; height: 1px; background: rgba(198,168,112,.45); }
+  .p6 .toprule span { font-size: 10px; letter-spacing: 6px; text-indent: 6px; }
+  .p6 .name { font-size: 26px; letter-spacing: 3px; color: #F0E9D8; text-align: center; }
+  .p6 .q { margin-top: 38px; }
+  .p6 .cap { font-size: 11px; letter-spacing: 5px; color: #C6A870; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .p6 .cap::after { content: ""; flex: 1; height: 1px; background: rgba(198,168,112,.28); }
+  .p6 .txt { font-size: 15.5px; line-height: 2.1; }
+  .p6 .q .txt { color: #B4AD9D; }
+  .p6 .a { margin-top: 36px; }
+  .p6 .a .txt { color: #DDD6C6; }
+  .p6 .date { margin-top: 46px; text-align: center; font-size: 12.5px; letter-spacing: 3px; color: #C6A870; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- 页头 -->
-  <div class="masthead">
-    <div class="brand">心灵信箱 · 信纸样式提案</div>
-    <div class="sub">六套通用版式 · 纯排版实现（无纸张图片）· 装饰色全部由主题四色派生</div>
-    <div class="rule"></div>
-  </div>
-
-  <!-- 主题切换器 -->
-  <div class="switcher" id="switcher">
-    <span class="lab">切换主题预览：</span>
-    <span class="note">装饰元素只取主题 palette（底色/标题/正文/辅色）的透明度派生 + 固定陶土头线色，任意主题底色下均成立。点色卡即可整页换色验证。</span>
-  </div>
-
-  <!-- ═══════════ 01 素笺 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">壹</span><h2>素笺 · 经典双线头</h2>
-      <p>现版「陶土头线」的精修款，最稳妥的气质。双线信纸头加中心菱形饰，宋体居中标题、辅色字距标签，底部细线托住落款。适合作为默认信纸。</p>
-      <div class="chips"><span>陶土双线头</span><span>中心菱形饰</span><span>居中宋体标题</span><span>辅色字距 tag</span><span>底部细线落款</span></div>
+  <header class="page">
+    <div class="kicker">心 灵 信 箱 · 版 式 提 案</div>
+    <h1>信纸样式 · 六 套</h1>
+    <p class="sub">六套均为「纸色自持」的中性版式：只用纸色与墨色完成表达，不取用任何主题色——切换主题、换信封之后，同一张信纸依然成立。</p>
+    <div class="rules">
+      版面固定四项：信件名称 / 问题 / 答案 / 写信日期<br>
+      六套均渲染同一封示例信，便于横向对比<br>
+      装饰全部由纯样式实现（渐变 / 边框 / 虚线），可同步复刻进 WXSS 与分享 Canvas<br>
+      长文行为：答案区随内容增高、纸内滚动，六套版式均不限制答案长度
     </div>
-    <div class="stage"><div class="paper d1">
-      <div class="head-rule"></div>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="p-tag">心灵信箱 · 第 4 封</div>
-      <div class="p-q">我真的想清楚自己要什么了吗？</div>
-      <div class="p-body">我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。</div>
-      <div class="foot">
-        <span class="theme">小王子 · V2</span>
-        <span class="p-date">写于 8月30日</span>
+  </header>
+
+  <!-- ============ 01 素问笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 01</div>
+      <h2>素问笺 <span class="tagline">问与答，各盖一枚朱印</span></h2>
+      <ul>
+        <li>「问」空心印、「答」实心印领起两段，一眼分清问题与答案</li>
+        <li>日期做成右上角斜盖的虚线邮戳，弱化成「收讫」感</li>
+        <li>象牙纸 + 墨色 + 一点朱砂，最接近老信纸的气质，适合做默认款</li>
+      </ul>
+    </div>
+    <div class="paper p1">
+      <div class="postmark f-hei">
+        <span class="t1">写 于</span>
+        <span class="t2">08.30</span>
+        <span class="t3">2026</span>
       </div>
-    </div></div>
+      <div class="name f-kai">关于失眠，我想明白的事</div>
+      <div class="rule"></div>
+      <div class="row q">
+        <div class="seal f-song">问</div>
+        <div class="txt f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      </div>
+      <div class="row a">
+        <div class="seal f-song">答</div>
+        <div class="txt f-kai">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      </div>
+    </div>
   </section>
 
-  <!-- ═══════════ 02 航空笺 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">贰</span><h2>航空笺 · 斜纹边框 + 邮票邮戳</h2>
-      <p>最有「寄信」仪式感的一款：斜纹航空边框（辅色与陶土交替）、右上邮票框内嵌主题名、圆环邮戳压角，「问 / 答」引导词排版。与产品「封存寄出」的叙事最贴合。</p>
-      <div class="chips"><span>航空斜纹边框</span><span>邮票框 + 主题名</span><span>SVG 圆环邮戳</span><span>问 / 答引导词</span><span>胶囊日期戳</span></div>
+  <!-- ============ 02 方格稿纸 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 02</div>
+      <h2>方格稿纸 <span class="tagline">空两格，像认真写过的作文纸</span></h2>
+      <ul>
+        <li>绿色 28px 方格铺满纸面，仿宋体字行落在格线上</li>
+        <li>问题与答案都「空两格」起笔，是最有手写感的仪式</li>
+        <li>日期落款右下，用汉字纪年「二〇二六年八月三十日」</li>
+      </ul>
     </div>
-    <div class="stage"><div class="paper d2"><div class="frame"><div class="inner">
-      <div class="toprow">
-        <div class="paravion"><b>心灵信箱</b>PAR AVION · 把答案寄给未来</div>
+    <div class="paper p2">
+      <div class="inner">
+        <div class="name">关于失眠，我想明白的事</div>
+        <div class="txt q f-fang">
+          <p><b>问：</b>最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</p>
+        </div>
+        <div class="txt a f-fang">
+          <p><b>答：</b>焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</p>
+        </div>
+        <div class="date f-fang">写于二〇二六年八月三十日</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 牛皮签 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 03</div>
+      <h2>牛皮签 <span class="tagline">把信当作一件郑重打包的包裹</span></h2>
+      <ul>
+        <li>牛皮纸底 + 打字机字距，名称装进双线描边的「货物标签」</li>
+        <li>问 / 答用红棕色小标引出，之间以包裹缝线虚线分隔</li>
+        <li>日期藏在右下角斜盖的红色圆形钢印里，是全套唯一的「重油墨」时刻</li>
+      </ul>
+    </div>
+    <div class="paper p3">
+      <div class="inner f-hei">
+        <div class="tag">关于失眠，我想明白的事</div>
+        <div class="q">
+          <div class="lbl"><b>问 / QUESTION</b></div>
+          <div class="txt">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <hr class="dash">
+        <div class="a">
+          <div class="lbl"><b>答 / ANSWER</b></div>
+          <div class="txt">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="bottom-space"></div>
+        <div class="stamp f-hei">
+          <span class="s1">心灵信箱</span>
+          <span class="s2">08.30</span>
+          <span class="s3">2026 · 写于今日</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 留白志 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 04</div>
+      <h2>留白志 <span class="tagline">一根短线承担全部装饰</span></h2>
+      <ul>
+        <li>近纯白纸面，宋体大标题 + 标题下一根 36px 短线，是全版式唯一的强调</li>
+        <li>「问 / 答」退成字距拉开的小标注，问题用退灰、答案用深墨区分主次</li>
+        <li>日期落在页脚线上，左右分列「心灵信箱」与日期，安静收尾</li>
+      </ul>
+    </div>
+    <div class="paper p4">
+      <div class="name f-song">关于失眠，我想明白的事</div>
+      <div class="name-rule"></div>
+      <div class="q">
+        <div class="cap f-hei">问</div>
+        <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      </div>
+      <div class="a">
+        <div class="cap f-hei">答</div>
+        <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      </div>
+      <div class="footer f-hei">
+        <span>心灵信箱</span>
+        <span class="d">写于 2026 年 8 月 30 日</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 明信片 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 05</div>
+      <h2>明信片 <span class="tagline">日期印在邮票里，邮戳斜盖其上</span></h2>
+      <ul>
+        <li>右上邮票框内直接印写信日期（年 + 月·日），邮戳压角盖销</li>
+        <li>名称是卡面标题，问题与答案之间用撕票虚线分隔，左右通透</li>
+        <li>底部一行「心灵信箱 · 寄给未来」小字，与小程序品牌文案同源</li>
+      </ul>
+    </div>
+    <div class="paper p5">
+      <div class="head">
+        <div class="name f-song">关于失眠，我想明白的事</div>
         <div class="stampbox">
-          <div class="mini">信</div>
-          <div class="nm">小王子</div>
-          <svg class="postmark" viewBox="0 0 100 100">
-            <defs><path id="cir" d="M50,50 m-33,0 a33,33 0 1,1 66,0 a33,33 0 1,1 -66,0"/></defs>
-            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2"/>
-            <circle cx="50" cy="50" r="26" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <text font-size="9.5" letter-spacing="2.5" fill="currentColor" font-family="serif"><textPath href="#cir">心灵信箱 · XINLING MAILBOX · </textPath></text>
-            <text x="50" y="55" text-anchor="middle" font-size="13" fill="currentColor" font-family="serif">8.30</text>
-          </svg>
+          <div class="stamp f-hei">
+            <div class="inner">
+              <span class="v">08.30</span>
+              <span class="l">2026</span>
+            </div>
+          </div>
+          <div class="cancel f-hei"><b>心灵信箱</b><span>已封存</span></div>
+          <div class="micro">寄给未来</div>
         </div>
       </div>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="p-q">我真的想清楚自己要什么了吗？</div>
-      <div class="p-body">我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。</div>
-      <div class="foot"><span class="p-date">写于 8月30日</span></div>
-    </div></div></div></div>
-  </section>
-
-  <!-- ═══════════ 03 笔记本 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">叁</span><h2>笔记本 · 踩线横格 + 装订孔</h2>
-      <p>手写感最强的一款：正文严格踩 28.8px 横格线（16px·1.8，与小程序规格一致）、陶土色边线、三枚装订孔透出桌面底色。日常、亲切，像真的在本子上写。</p>
-      <div class="chips"><span>正文踩线横格</span><span>陶土左边线</span><span>装订穿孔</span><span>标题下划线</span><span>页脚左右落款</span></div>
+      <hr class="perf">
+      <div class="q">
+        <div class="cap f-hei">问</div>
+        <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      </div>
+      <div class="a" style="margin-top: 30px;">
+        <div class="cap f-hei">答</div>
+        <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      </div>
+      <div class="foot f-hei">
+        <span class="brand">心灵信箱 · 寄给未来</span>
+        <span class="d">写于 2026 年 8 月 30 日</span>
+      </div>
     </div>
-    <div class="stage"><div class="paper d3">
-      <div class="margin-line"></div>
-      <div class="holes"><i></i><i></i><i></i></div>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="p-tag">心灵信箱 · 第 4 封</div>
-      <div class="p-q">我真的想清楚自己要什么了吗？</div>
-      <div class="p-body">我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。等到再拆开这封信的时候，希望我已经走在了自己选的路上。</div>
-      <div class="foot">
-        <span class="theme">小王子 · V2</span>
-        <span class="p-date">写于 8月30日</span>
-      </div>
-    </div></div>
   </section>
 
-  <!-- ═══════════ 04 织纹笺 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">肆</span><h2>织纹笺 · 布纹底 + 隔线双框 + 角饰</h2>
-      <p>对应「棉麻」气质的高级款：布纹十字织纹打底（正文色 3% 派生，任何底色都成立），外框内隔线双层框，四角陶土花饰，问/答用辅色小标签分区，落款居中。</p>
-      <div class="chips"><span>十字布纹底</span><span>双线内框</span><span>四角花饰</span><span>问/答标签块</span><span>居中破折落款</span></div>
+  <!-- ============ 06 墨夜笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 06</div>
+      <h2>墨夜笺 <span class="tagline">深夜重读时的一张暗纸</span></h2>
+      <ul>
+        <li>深墨蓝暗纸自持配色，不取主题色；暖金只做细线与落款，不做大色块</li>
+        <li>名称居中楷体，上下各一根金线收束，夜里读信像点了一盏小灯</li>
+        <li>日期以金色小字居中收尾，是六套中最「安静」的一版</li>
+      </ul>
     </div>
-    <div class="stage"><div class="paper d4"><div class="frame">
-      <span class="corner c-tl"><svg viewBox="0 0 12 12"><path d="M1,11 L1,4 Q1,1 4,1 L11,1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="4" r="1.4" fill="currentColor"/></svg></span>
-      <span class="corner c-tr"><svg viewBox="0 0 12 12"><path d="M1,11 L1,4 Q1,1 4,1 L11,1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="4" r="1.4" fill="currentColor"/></svg></span>
-      <span class="corner c-br"><svg viewBox="0 0 12 12"><path d="M1,11 L1,4 Q1,1 4,1 L11,1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="4" r="1.4" fill="currentColor"/></svg></span>
-      <span class="corner c-bl"><svg viewBox="0 0 12 12"><path d="M1,11 L1,4 Q1,1 4,1 L11,1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="4" r="1.4" fill="currentColor"/></svg></span>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="divide"><i>心 灵 信 箱</i></div>
-      <div class="p-q"><em>问</em>我真的想清楚自己要什么了吗？</div>
-      <div class="p-body"><em>答</em>我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。</div>
-      <div class="foot"><span class="p-date">写于 8月30日</span></div>
-    </div></div></div>
-  </section>
-
-  <!-- ═══════════ 05 花笺 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">伍</span><h2>花笺 · 植物角饰</h2>
-      <p>对应「花笺」的柔美款：四角植物枝叶纹（辅色 50%/30% 两级透明度，纸内淡入不抢正文），顶部陶土小花分隔，问题句用「」引号居中呈现，圆角纸边。温柔但不甜腻。</p>
-      <div class="chips"><span>四角枝叶纹 SVG</span><span>陶土花心分隔</span><span>「」居中问题</span><span>圆角纸边</span><span>底部花式页脚</span></div>
+    <div class="paper p6">
+      <div class="toprule f-hei"><span>心 灵 信 箱</span></div>
+      <div class="name f-kai">关于失眠，我想明白的事</div>
+      <div class="q">
+        <div class="cap f-hei">问</div>
+        <div class="txt f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      </div>
+      <div class="a">
+        <div class="cap f-hei">答</div>
+        <div class="txt f-kai">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      </div>
+      <div class="date f-hei">— 写于 2026 年 8 月 30 日 —</div>
     </div>
-    <div class="stage"><div class="paper d5">
-      <svg class="sprig s-tl" viewBox="0 0 150 150">
-        <path d="M10,140 C45,110 80,75 140,10" fill="none" stroke="currentColor" stroke-width="2"/>
-        <ellipse cx="52" cy="98" rx="14" ry="5.5" fill="currentColor" transform="rotate(-40 52 98)"/>
-        <ellipse cx="82" cy="64" rx="14" ry="5.5" fill="currentColor" transform="rotate(-42 82 64)"/>
-        <ellipse cx="110" cy="34" rx="13" ry="5" fill="currentColor" transform="rotate(-44 110 34)"/>
-        <ellipse cx="66" cy="112" rx="12" ry="5" fill="currentColor" transform="rotate(40 66 112)"/>
-        <ellipse cx="96" cy="78" rx="12" ry="5" fill="currentColor" transform="rotate(42 96 78)"/>
-        <circle cx="140" cy="12" r="4" fill="currentColor"/>
-      </svg>
-      <svg class="sprig s-br" viewBox="0 0 150 150">
-        <path d="M10,140 C45,110 80,75 140,10" fill="none" stroke="currentColor" stroke-width="2"/>
-        <ellipse cx="52" cy="98" rx="14" ry="5.5" fill="currentColor" transform="rotate(-40 52 98)"/>
-        <ellipse cx="82" cy="64" rx="14" ry="5.5" fill="currentColor" transform="rotate(-42 82 64)"/>
-        <ellipse cx="110" cy="34" rx="13" ry="5" fill="currentColor" transform="rotate(-44 110 34)"/>
-        <ellipse cx="66" cy="112" rx="12" ry="5" fill="currentColor" transform="rotate(40 66 112)"/>
-        <ellipse cx="96" cy="78" rx="12" ry="5" fill="currentColor" transform="rotate(42 96 78)"/>
-        <circle cx="140" cy="12" r="4" fill="currentColor"/>
-      </svg>
-      <svg class="sprig s-tr" viewBox="0 0 150 150">
-        <path d="M10,140 C45,110 80,75 140,10" fill="none" stroke="currentColor" stroke-width="2"/>
-        <ellipse cx="52" cy="98" rx="14" ry="5.5" fill="currentColor" transform="rotate(-40 52 98)"/>
-        <ellipse cx="82" cy="64" rx="14" ry="5.5" fill="currentColor" transform="rotate(-42 82 64)"/>
-        <ellipse cx="110" cy="34" rx="13" ry="5" fill="currentColor" transform="rotate(-44 110 34)"/>
-      </svg>
-      <svg class="sprig s-bl" viewBox="0 0 150 150">
-        <path d="M10,140 C45,110 80,75 140,10" fill="none" stroke="currentColor" stroke-width="2"/>
-        <ellipse cx="52" cy="98" rx="14" ry="5.5" fill="currentColor" transform="rotate(-40 52 98)"/>
-        <ellipse cx="82" cy="64" rx="14" ry="5.5" fill="currentColor" transform="rotate(-42 82 64)"/>
-        <ellipse cx="110" cy="34" rx="13" ry="5" fill="currentColor" transform="rotate(-44 110 34)"/>
-      </svg>
-      <div class="bloom">✿</div>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="p-q">我真的想清楚自己要什么了吗？</div>
-      <div class="p-body">我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。</div>
-      <div class="foot">
-        <div class="p-date">写于 8月30日</div>
-        <div class="fl">· 心 灵 信 箱 ·</div>
-      </div>
-    </div></div>
   </section>
-
-  <!-- ═══════════ 06 封缄笺 ═══════════ -->
-  <section class="design">
-    <div class="design-head">
-      <span class="idx">陆</span><h2>封缄笺 · 和纸胶带 + 问答复分区 + 火漆印</h2>
-      <p>最有「手账收藏」感的一款：顶部和纸胶带（风化木半透明）、陶土竖条引导标题、问/答圆形字牌 + 虚线分区，右下角旋转「封」字火漆印呼应寄出按钮。情绪价值拉满。</p>
-      <div class="chips"><span>和纸胶带</span><span>陶土竖条标题</span><span>问/答圆牌 + 虚线分区</span><span>「封」字火漆印</span><span>左右分置落款</span></div>
-    </div>
-    <div class="stage"><div class="paper d6">
-      <div class="tape"></div>
-      <div class="p-name p-name">关于要不要换一份工作</div>
-      <div class="block">
-        <span class="badge">问</span>
-        <div class="p-q">我真的想清楚自己要什么了吗？</div>
-      </div>
-      <div class="block">
-        <span class="badge">答</span>
-        <div class="p-body">我想要的不是一份更轻松的工作，而是一件让我晚上想起来不会叹气的事。慢一点没有关系，方向对了就好。把日子过得像一封慢慢写的信，不必急着寄出。</div>
-      </div>
-      <div class="foot">
-        <div>
-          <div class="p-date">写于 8月30日</div>
-          <div class="theme" style="margin-top:6px">小王子 · V2</div>
-        </div>
-        <div class="seal">封</div>
-      </div>
-    </div></div>
-  </section>
-
-  <!-- 页脚 -->
-  <div class="footnote">
-    <b>通用性实现说明</b>（对应小程序 WXSS 迁移）：<br>
-    1. 六套版式的装饰色一律由主题 palette 四色做透明度派生生成，切换主题只换 4 个变量，装饰逻辑零改动；小程序端可将 color-mix 预计算为 rgba 写入主题归一化结果（theme 服务已统一收口 palette）。<br>
-    2. 固定锚点色仅两处：陶土 #C58A6A（信纸头线，与写信第一步 headline 同源）、鼠尾草/风化木（选中态与胶带）。<br>
-    3. 全部为纯 CSS + 内联 SVG（postmark / 枝叶 / 角饰），无任何位图素材，符合方案B「信纸 = 配色 + 排版」，不增加包体。<br>
-    4. 正文规格保持 16px(32rpx) · 行高 1.8，与详情 / 预览 / 分享导出一致；横格线 28.8px 与设计规范踩线对齐规则相同。
-  </div>
 
 </div>
-
-<script>
-/* 官方主题（与 pages/write/themes.js 同源） */
-var THEMES = [
-  { id:'xiaowangzi', name:'小王子',  base:'#F9F3E4', title:'#5A4F3E', text:'#4A4438', tag:'#9A9284', desk:'#EDE9DC' },
-  { id:'chenyu',     name:'晨光',    base:'#F3EADB', title:'#5A4F3E', text:'#4A4438', tag:'#9A9284', desk:'#EFE6D3' },
-  { id:'yuye',       name:'雨夜',    base:'#DDE2E6', title:'#4C5560', text:'#3E4750', tag:'#8A939C', desk:'#D4DADF' },
-  { id:'niupizhi',   name:'牛皮纸',  base:'#E7D9BC', title:'#6B5636', text:'#57462C', tag:'#9C8B6C', desk:'#DCD0B2' },
-  { id:'mianma',     name:'棉麻',    base:'#EBE7DA', title:'#5C594C', text:'#4C4A40', tag:'#98948A', desk:'#E0DCCB' },
-  { id:'huajian',    name:'花笺',    base:'#F1DFDB', title:'#6E514C', text:'#5C443F', tag:'#AB8B85', desk:'#E8D3CE' },
-  { id:'kafeizi',    name:'咖啡渍',  base:'#E4D8BE', title:'#66543A', text:'#52442C', tag:'#9D8F73', desk:'#D8CBB0' }
-];
-
-var switcher = document.getElementById('switcher');
-var noteEl = switcher.querySelector('.note');
-
-THEMES.forEach(function(t, i){
-  var btn = document.createElement('button');
-  btn.className = 'sw' + (i === 0 ? ' on' : '');
-  btn.innerHTML = '<span class="dot" style="background:' + t.base + '"></span>' + t.name;
-  btn.addEventListener('click', function(){
-    var r = document.documentElement.style;
-    r.setProperty('--p-base', t.base);
-    r.setProperty('--p-title', t.title);
-    r.setProperty('--p-text', t.text);
-    r.setProperty('--p-tag', t.tag);
-    r.setProperty('--p-desk', t.desk);
-    switcher.querySelectorAll('.sw').forEach(function(b){ b.classList.remove('on'); });
-    btn.classList.add('on');
-  });
-  switcher.insertBefore(btn, noteEl);
-});
-</script>
 </body>
 </html>

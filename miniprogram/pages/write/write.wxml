@@ -7,7 +7,7 @@
     <view class="steps">
       <text class="step on">写内容</text>
       <text class="step-sep">·</text>
-      <text class="step">选择主题</text>
+      <text class="step">选主题</text>
     </view>
   </view>
 
@@ -15,8 +15,12 @@
   <scroll-view class="paper-scroll" scroll-y>
     <view class="paper">
 
-      <!-- 信纸头线 + 信件名称（标题行输入） -->
+      <!-- 信纸头线 + 信件名称 + 日期行 + 角落虚线小邮戳（素笺正席信头） -->
       <view class="headline">
+        <view class="head-stamp" aria-hidden="true">
+          <text class="stamp-name">心灵信箱</text>
+          <text class="stamp-date">{{headDateStamp}}</text>
+        </view>
         <input
           class="title-input"
           placeholder="给这封信起个名字…"
@@ -25,10 +29,11 @@
           value="{{name}}"
           bindinput="onNameInput"
         />
+        <view class="head-date">写于 {{headDateCn}}</view>
       </view>
 
-      <!-- 当时的问题：印制引导语 + 信纸横线手写区 -->
-      <view class="field-label">未来的你，会需要这个答案。</view>
+      <!-- 当时的问题：编号引导语 + 信纸横线手写区 -->
+      <view class="field-label"><text class="label-no">其一</text><text>遇到了什么问题？</text></view>
       <textarea
         class="hand-input hand-question {{handwritingOff ? 'hand-off' : ''}}"
         value="{{question}}"
@@ -47,7 +52,7 @@
       </view>
 
       <!-- 想明白的答案：纵深更长的手写区 -->
-      <view class="field-label">你是怎么想通的？把当时想明白的话留下来。</view>
+      <view class="field-label"><text class="label-no">其二</text><text>你可以怎么做？</text></view>
       <textarea
         class="hand-input hand-answer {{handwritingOff ? 'hand-off' : ''}}"
         value="{{answer}}"
@@ -60,9 +65,12 @@
 
     </view>
 
-    <!-- 草稿陈列区：没写完的信（点击卡片载入续写；删除为彻底删除，不进废纸篓） -->
+    <!-- 草稿便签夹：没写完的信（鼠尾草虚线托盘 + 回形针白卡；点击载入续写，撕毁为彻底删除不进废纸篓） -->
     <view wx:if="{{drafts.length}}" class="draft-shelf">
-      <view class="draft-shelf-title">没写完的信</view>
+      <view class="draft-shelf-title">
+        <text>没写完的信</text>
+        <text class="draft-shelf-num">{{drafts.length}}</text>
+      </view>
       <view
         wx:for="{{drafts}}"
         wx:key="id"
@@ -71,6 +79,7 @@
         data-id="{{item.id}}"
         bindtap="onTapDraftItem"
       >
+        <view class="draft-card-clip" aria-hidden="true"></view>
         <view class="draft-card-main">
           <view class="draft-card-name">{{item.name}}</view>
           <view class="draft-card-snip">{{item.snippet}}</view>
@@ -82,7 +91,7 @@
             hover-class="draft-card-del-hover"
             data-id="{{item.id}}"
             catchtap="onTapDraftDelete"
-          >删除</view>
+          >撕毁</view>
         </view>
       </view>
       <view class="draft-shelf-note">点击继续写，封存寄出后草稿就会离开这里。</view>
@@ -96,7 +105,7 @@
       class="btn-primary btn-next {{canNext ? '' : 'btn-next-disabled'}}"
       hover-class="{{canNext ? 'btn-primary-hover' : 'none'}}"
       bindtap="onTapNext"
-    >选择主题 →</view>
+    >选主题</view>
   </view>
 
 </view>

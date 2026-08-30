@@ -1,0 +1,514 @@
+/* 11 · 关于心灵信箱：静态品牌页（长卷式图文，插画全部由 WXSS 手绘） */
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-base-light);
+  padding-bottom: calc(100rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 顶部轻导航（与账号管理页同款） ── */
+.nav {
+  position: relative;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+}
+.nav-back {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  padding: 8rpx 0;
+}
+.nav-back-hover {
+  opacity: 0.6;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 60rpx 64rpx 36rpx;
+}
+.hero-logo {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 47rpx;
+  background: var(--color-base-surface);
+  box-shadow: var(--shadow-warm-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.hero-logo-img {
+  width: 130rpx;
+  height: 130rpx;
+}
+.hero-logo-fallback {
+  font-size: 64rpx;
+  color: var(--color-accent-primary);
+}
+.hero-name {
+  font-family: var(--font-heading);
+  font-size: 54rpx;
+  font-weight: 700;
+  letter-spacing: 11rpx;
+  margin-bottom: 18rpx;
+  color: var(--color-text-primary);
+}
+.hero-slogan-wrap {
+  margin-bottom: 40rpx;
+}
+.hero-slogan {
+  display: inline-block;
+  font-family: var(--font-hand);
+  font-size: 29rpx;
+  letter-spacing: 7rpx;
+  color: var(--color-accent-primary);
+  padding: 11rpx 33rpx;
+  border-top: 1rpx solid var(--color-accent-primary);
+  border-bottom: 1rpx solid var(--color-accent-primary);
+}
+.hero-copy {
+  font-size: 26rpx;
+  line-height: 2.1;
+  color: var(--color-text-secondary);
+}
+.em {
+  font-style: normal;
+  color: var(--color-text-primary);
+  font-family: var(--font-hand);
+}
+
+/* ── 分隔题字 ── */
+.divider-words {
+  display: flex;
+  align-items: center;
+  gap: 25rpx;
+  margin: 54rpx 72rpx 10rpx;
+  color: var(--color-text-secondary);
+}
+.divider-words::before,
+.divider-words::after {
+  content: '';
+  flex: 1;
+  height: 1rpx;
+  background: var(--line);
+}
+.divider-words text {
+  font-family: var(--font-hand);
+  font-size: 24rpx;
+  letter-spacing: 11rpx;
+  white-space: nowrap;
+}
+
+/* ── 章节通用 ── */
+.chapter {
+  padding: 60rpx 58rpx 0;
+}
+.chapter-num {
+  font-family: var(--font-heading);
+  font-size: 22rpx;
+  letter-spacing: 5rpx;
+  color: var(--color-accent-secondary);
+  margin-bottom: 14rpx;
+}
+.chapter-title {
+  font-family: var(--font-heading);
+  font-size: 38rpx;
+  font-weight: 700;
+  letter-spacing: 5rpx;
+  margin-bottom: 25rpx;
+  color: var(--color-text-primary);
+}
+.chapter-copy {
+  font-size: 26rpx;
+  line-height: 2.15;
+  color: var(--color-text-secondary);
+}
+.illus-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40rpx;
+}
+
+/* ── 插画一：迷你信纸 ── */
+.letter {
+  position: relative;
+  width: 453rpx;
+  background: #fbfaf5;
+  border-radius: 11rpx;
+  box-shadow: 0 22rpx 50rpx rgba(80, 100, 90, 0.16);
+  padding: 47rpx 44rpx 40rpx 73rpx;
+  transform: rotate(-1.6deg);
+}
+.letter::before {
+  content: '';
+  position: absolute;
+  left: 54rpx;
+  top: 0;
+  bottom: 0;
+  width: 2rpx;
+  background: rgba(196, 164, 130, 0.55);
+}
+.letter-row {
+  height: 47rpx;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 43rpx,
+    rgba(125, 133, 128, 0.28) 43rpx,
+    rgba(125, 133, 128, 0.28) 45rpx
+  );
+  font-family: var(--font-hand);
+  font-size: 27rpx;
+  line-height: 45rpx;
+  color: #4a504c;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.letter-q {
+  color: var(--color-accent-primary);
+}
+.letter-dots {
+  color: rgba(125, 133, 128, 0.45);
+  letter-spacing: 4rpx;
+}
+.letter-date {
+  text-align: right;
+  font-size: 24rpx;
+}
+.tape {
+  position: absolute;
+  width: 134rpx;
+  height: 40rpx;
+  background: rgba(107, 142, 133, 0.3);
+  transform: rotate(-4deg);
+  top: -18rpx;
+  left: 50%;
+  margin-left: -67rpx;
+}
+.tape.t2 {
+  top: auto;
+  bottom: -14rpx;
+  left: -25rpx;
+  margin: 0;
+  transform: rotate(38deg);
+  width: 105rpx;
+}
+
+/* ── 插画二：信封与火漆 ── */
+.envelope-scene {
+  position: relative;
+  width: 471rpx;
+  height: 344rpx;
+}
+.envelope {
+  position: absolute;
+  top: 43rpx;
+  right: 18rpx;
+  bottom: 11rpx;
+  left: 18rpx;
+  background: linear-gradient(175deg, #efeee7, #e5e4dc);
+  border-radius: 11rpx;
+  box-shadow: 0 25rpx 54rpx rgba(80, 100, 90, 0.18);
+}
+.flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 174rpx;
+  background: linear-gradient(180deg, #e2e1d8, #dad9cf);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  border-radius: 11rpx 11rpx 0 0;
+}
+.addr {
+  position: absolute;
+  left: 33rpx;
+  bottom: 25rpx;
+  font-family: var(--font-hand);
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  letter-spacing: 4rpx;
+  line-height: 1.9;
+}
+.addr-name {
+  display: block;
+  font-size: 27rpx;
+  color: var(--color-text-primary);
+}
+.stamp-mini {
+  position: absolute;
+  right: 40rpx;
+  top: 152rpx;
+  width: 80rpx;
+  height: 94rpx;
+  border: 9rpx dotted rgba(107, 142, 133, 0.55);
+  background: #fbfaf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 33rpx;
+  color: var(--color-accent-primary);
+}
+.wax {
+  position: absolute;
+  left: 50%;
+  top: 174rpx;
+  transform: translateX(-50%);
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #c97b60, #a9553f 58%, #7e3b2a);
+  box-shadow: 0 11rpx 25rpx rgba(126, 59, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wax::after {
+  content: '信';
+  font-family: var(--font-heading);
+  font-size: 44rpx;
+  color: rgba(255, 244, 230, 0.85);
+  text-shadow: 0 2rpx 2rpx rgba(90, 40, 28, 0.6);
+}
+.wax::before {
+  content: '';
+  position: absolute;
+  top: 9rpx;
+  right: 9rpx;
+  bottom: 9rpx;
+  left: 9rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(255, 244, 230, 0.4);
+}
+
+/* ── 插画三：邮戳 ── */
+.postmark-scene {
+  position: relative;
+  width: 471rpx;
+  height: 326rpx;
+}
+.postmark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 272rpx;
+  height: 272rpx;
+  margin: -136rpx 0 0 -136rpx;
+  transform: rotate(-8deg);
+}
+.pm-outer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 50%;
+  border: 5rpx solid rgba(107, 142, 133, 0.75);
+}
+.pm-inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 138rpx;
+  height: 138rpx;
+  margin: -69rpx 0 0 -69rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(107, 142, 133, 0.6);
+}
+.pm-ch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24rpx;
+  height: 24rpx;
+  margin: -12rpx 0 0 -12rpx;
+  line-height: 24rpx;
+  text-align: center;
+  font-family: var(--font-hand);
+  font-size: 18rpx;
+  color: rgba(107, 142, 133, 0.8);
+}
+.pm-main {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 112rpx;
+  text-align: center;
+  font-family: var(--font-hand);
+  font-size: 27rpx;
+  color: rgba(46, 51, 48, 0.85);
+}
+.pm-date {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 148rpx;
+  text-align: center;
+  font-family: var(--font-hand);
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  color: rgba(107, 142, 133, 0.8);
+}
+.cancel-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5rpx;
+  background: rgba(107, 142, 133, 0.5);
+  border-radius: 4rpx;
+}
+.cancel-line.c1 {
+  top: 76rpx;
+  transform: rotate(-2deg);
+}
+.cancel-line.c2 {
+  top: 167rpx;
+  transform: rotate(-1deg);
+}
+.cancel-line.c3 {
+  top: 257rpx;
+  transform: rotate(-3deg);
+}
+.envelope-flat {
+  position: absolute;
+  right: 7rpx;
+  bottom: 7rpx;
+  width: 236rpx;
+  height: 156rpx;
+  background: var(--color-base-surface);
+  border-radius: 7rpx;
+  box-shadow: 0 14rpx 33rpx rgba(80, 100, 90, 0.14);
+  transform: rotate(4deg);
+}
+.envelope-flat::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72rpx;
+  background: rgba(125, 133, 128, 0.14);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+/* ── 肆：三张便签 ── */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 33rpx;
+}
+.note {
+  position: relative;
+  background: #fbfaf5;
+  border-radius: 25rpx;
+  box-shadow: var(--shadow-warm-sm);
+  padding: 36rpx 40rpx 33rpx;
+  font-family: var(--font-hand);
+  font-size: 28rpx;
+  line-height: 1.9;
+  color: #4a504c;
+}
+.note.n1 {
+  transform: rotate(-0.8deg);
+}
+.note.n2 {
+  transform: rotate(0.6deg);
+  margin-left: 25rpx;
+}
+.note.n3 {
+  transform: rotate(-0.4deg);
+  margin-right: 25rpx;
+}
+.note-em {
+  color: var(--color-accent-primary);
+}
+.pin {
+  position: absolute;
+  top: -14rpx;
+  left: 50%;
+  margin-left: -13rpx;
+  width: 25rpx;
+  height: 25rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #d9bb98, #c4a482 60%, #a5825f);
+  box-shadow: 0 5rpx 9rpx rgba(80, 100, 90, 0.3);
+}
+
+/* ── 底部 ── */
+.perfo {
+  margin: 80rpx 58rpx 0;
+  height: 25rpx;
+  background-color: rgba(125, 133, 128, 0.22);
+  background-image: radial-gradient(circle at 14rpx 13rpx, var(--color-base-light) 7rpx, transparent 8rpx);
+  background-size: 29rpx 25rpx;
+}
+.footer {
+  text-align: center;
+  padding: 62rpx 58rpx 18rpx;
+}
+.footer-seal {
+  width: 98rpx;
+  height: 98rpx;
+  margin: 0 auto 29rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #c97b60, #a9553f 58%, #7e3b2a);
+  box-shadow: 0 11rpx 25rpx rgba(126, 59, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 36rpx;
+  color: rgba(255, 244, 230, 0.88);
+}
+.footer-name {
+  font-family: var(--font-heading);
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 9rpx;
+  margin-bottom: 14rpx;
+  color: var(--color-text-primary);
+}
+.footer-slogan {
+  font-family: var(--font-hand);
+  font-size: 26rpx;
+  letter-spacing: 5rpx;
+  color: var(--color-text-secondary);
+}
+.footer-line {
+  margin-top: 33rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: rgba(125, 133, 128, 0.55);
+}
+
+/* 入场动效 */
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(25rpx);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero,
+.divider-words,
+.chapter,
+.perfo,
+.footer {
+  animation: about-rise 0.7s ease both;
+}

@@ -1,84 +1,52 @@
 <!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层） -->
+<import src="../../styles/paper.wxml" />
 <view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
 
-  <!-- 顶部轻导航：返回信匣 + 当前主题名称标签（标签紧随其后靠左） -->
+  <!-- 顶部轻导航：返回信匣 -->
   <view class="nav">
     <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 信匣</view>
-    <view class="nav-tag">{{themeName}}</view>
   </view>
 
   <!-- 可滚动主容器：主信纸 → 重读记录（邮戳墙） → 回信便签 -->
   <scroll-view class="body" scroll-y>
     <view class="body-inner">
 
-      <!-- 主信纸区：主题配色信纸 + 信纸版式（papers.js 四款，方案B：底色 + 纯排版），
-           宋体标题 + 手写体两小节 + 写于/改于落款 -->
-      <view wx:if="{{paper.id === 'airmail'}}" class="detail-paper paper-airmail">
-        <view class="dp-air-inner" style="background: {{theme.palette.base}};">
-          <view class="dp-air-top">
-            <view class="dp-air-label">
-              <text>心灵信箱</text>
-              <text class="dp-air-en">PAR AVION</text>
-            </view>
-            <view class="dp-air-stamp">
-              <view class="dp-stamp-mini" style="color: {{theme.palette.title}};">信</view>
-              <view class="dp-stamp-name" style="color: {{theme.palette.tag}};">{{theme.name}}</view>
-              <view class="dp-postmark"><view class="dp-pm-date">{{openStampText}}</view></view>
-            </view>
-          </view>
-          <view class="dp-content">
-            <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
-          </view>
-        </view>
-      </view>
+      <!-- 主信纸区：信纸自持版式（十款，papers.js 配置），
+           共享模板与写信预览/分享图完全同构；写于落款 -->
+      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
 
-      <view wx:elif="{{paper.id === 'notebook'}}" class="detail-paper paper-notebook" style="background: {{theme.palette.base}};">
-        <view class="dp-marginline"></view>
-        <view class="dp-holes"><view></view><view></view><view></view></view>
-        <view class="dp-content">
-          <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
-        </view>
-      </view>
-
-      <view wx:elif="{{paper.id === 'weave'}}" class="detail-paper paper-weave" style="background: {{theme.palette.base}};">
-        <view class="dp-corner c-tl"></view>
-        <view class="dp-corner c-tr"></view>
-        <view class="dp-corner c-bl"></view>
-        <view class="dp-corner c-br"></view>
-        <view class="dp-weave-frame">
-          <view class="dp-content">
-            <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
-          </view>
-        </view>
-      </view>
-
-      <view wx:else class="detail-paper paper-su" style="background: {{theme.palette.base}};">
-        <view class="dp-content">
-          <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
-        </view>
-      </view>
-
-      <!-- 重读记录（邮戳墙）：系统自动产生，不可编辑/删除单条（BR-09） -->
+      <!-- 重读记录（邮戳墙 · 戳痕成行）：系统自动产生，不可编辑/删除单条（BR-09） -->
       <view class="sect">
-        <view class="ph-h">📌 重读记录 <text class="ph-sub">{{openCount}} 次</text></view>
-        <view class="postmarks">
-          <view wx:for="{{stamps}}" wx:key="ts" class="postmark {{item.today ? 'today' : ''}}">
-            <text class="pm-date">{{item.date}}</text>
-            <text wx:if="{{item.label}}" class="pm-label">{{item.label}}</text>
-          </view>
-          <view wx:if="{{moreChip}}" class="postmark more" bindtap="onToggleStamps">
-            <text class="pm-date">+{{moreChip.count}}</text>
-            <text class="pm-label">{{stampsExpanded ? '收起' : '展开'}}</text>
+        <view class="ph-h">
+          <text class="ph-no">01</text>
+          <text class="ph-t">重读记录</text>
+          <text class="ph-sub">{{openCount}} 次</text>
+        </view>
+        <view class="stampline {{stampsExpanded ? 'expanded' : ''}}">
+          <view class="postmarks">
+            <view wx:for="{{stamps}}" wx:key="ts" class="postmark {{item.today ? 'today' : ''}}">
+              <text class="pm-date">{{item.date}}</text>
+              <text wx:if="{{item.label}}" class="pm-label">{{item.label}}</text>
+            </view>
+            <view wx:if="{{moreChip}}" class="postmark more" bindtap="onToggleStamps">
+              <text class="pm-date">+{{moreChip.count}}</text>
+              <text class="pm-label">{{stampsExpanded ? '收起' : '展开'}}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 回信便签区：贴在桌面上的便签卡片流（日期自动生成不可改） -->
+      <!-- 回信便签区（戳痕成行：mono 编目 + 胶带便签流，日期自动生成不可改） -->
       <view class="sect">
-        <view class="ph-h">✎ 回信 <text class="ph-sub">{{replyCount}} 封</text></view>
+        <view class="ph-h">
+          <text class="ph-no">02</text>
+          <text class="ph-t">回信</text>
+          <text class="ph-sub">{{replyCount}} 封</text>
+        </view>
         <view wx:for="{{replies}}" wx:key="ts" class="reply-note {{index % 2 === 0 ? 'r1' : 'r2'}}">
           <view class="rd-row">
-            <view class="rd">📅 {{item.dateText}}</view>
+            <text class="rd-no">{{item.no}}</text>
+            <text class="rd-date">{{item.dateShort}}</text>
             <view class="reply-del" hover-class="reply-del-hover" data-ts="{{item.ts}}" catchtap="onTapReplyDelete">撕掉</view>
           </view>
           <view class="rb">{{item.text}}</view>
@@ -106,7 +74,7 @@
       <view class="oi">📤</view><view class="ol">分享</view>
     </view>
     <view class="op" hover-class="op-hover" bindtap="onTapDelete">
-      <view class="oi">🗑</view><view class="ol">删除</view>
+      <view class="oi">🗑</view><view class="ol">丢弃</view>
     </view>
   </view>
 
@@ -160,14 +128,3 @@
 
 <!-- 保存成功反馈：便签样式轻 Toast（中上方浮现 2 秒，不挡操作） -->
 <view wx:if="{{noteToast}}" class="note-toast">📌 回信已贴好。这封信越来越厚了。</view>
-
-<!-- 详情信纸内容模板：四个版式分支共用（素笺/航空笺/笔记本/织纹笺的正文结构一致） -->
-<template name="detail-letter-content">
-  <view class="dp-headline"></view>
-  <view class="lp-title" style="color: {{theme.palette.title}};">{{letter.name}}</view>
-  <view class="sec-tag" style="color: {{theme.palette.tag}};">【当时的问题】</view>
-  <view class="sec-body q" style="color: {{theme.palette.text}};">{{letter.question}}</view>
-  <view class="sec-tag" style="color: {{theme.palette.tag}};">【想明白的事】</view>
-  <view class="sec-body a" style="color: {{theme.palette.text}};">{{letter.answer}}</view>
-  <view class="lp-sign">—— 写于 {{dateText}}{{editedText ? ' · 改于 ' + editedText : ''}}</view>
-</template>

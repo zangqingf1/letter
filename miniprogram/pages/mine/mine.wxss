@@ -179,7 +179,7 @@
   background: var(--line);
 }
 
-/* ── 底部功能列表（浅色信纸下划线分隔，干净黑体系统 UI） ── */
+/* ── 底部功能列表（无分隔线，干净黑体系统 UI） ── */
 .menu {
   margin: 36rpx 32rpx 0;
 }
@@ -188,7 +188,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 34rpx 8rpx;
-  border-bottom: 1rpx solid var(--line);
 }
 .menu-item-hover {
   opacity: 0.7;

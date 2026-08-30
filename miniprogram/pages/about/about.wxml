@@ -1,0 +1,128 @@
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">关于心灵信箱</view>
+  </view>
+
+  <!-- Hero -->
+  <view class="hero">
+    <view class="hero-logo">
+      <image wx:if="{{logoOk}}" class="hero-logo-img" src="/assets/logo.png" mode="aspectFit" binderror="onLogoError" />
+      <text wx:else class="hero-logo-fallback">❀</text>
+    </view>
+    <view class="hero-name">心灵信箱</view>
+    <view class="hero-slogan-wrap"><text class="hero-slogan">把答案寄给未来</text></view>
+    <view class="hero-copy">
+      <view>生活中总有这样的时刻——</view>
+      <view>一些问题忽然想明白了，<text class="em">想找人说说，又无处可说。</text></view>
+      <view>不如写下来，寄给未来的自己。</view>
+    </view>
+  </view>
+
+  <view class="divider-words"><text>一 封 信 的 旅 程</text></view>
+
+  <!-- 壹 · 写下 -->
+  <view class="chapter">
+    <view class="chapter-num">壹 · 写下</view>
+    <view class="chapter-title">把想明白的事，写成信</view>
+    <view class="illus-wrap">
+      <view class="letter">
+        <view class="tape"></view>
+        <view class="tape t2"></view>
+        <view class="letter-lines">
+          <view class="letter-row letter-q">问：我为什么总不敢开始？</view>
+          <view class="letter-row">答：因为怕写得不好。可是—</view>
+          <view class="letter-row">先写下来，才有机会写好。</view>
+          <view class="letter-row letter-dots">……</view>
+          <view class="letter-row letter-dots letter-date">写于 2026 年 8 月 30 日</view>
+        </view>
+      </view>
+    </view>
+    <view class="chapter-copy">
+      <view>当下想明白的问题与答案，<text class="em">原原本本写下来。</text></view>
+      <view>不必修饰，不必给谁看——这里没有模板，没有评判，你的每一句话都会被原样收进信里。</view>
+    </view>
+  </view>
+
+  <!-- 贰 · 封存 -->
+  <view class="chapter">
+    <view class="chapter-num">贰 · 封存</view>
+    <view class="chapter-title">选一款信纸，落一枚火漆</view>
+    <view class="illus-wrap">
+      <view class="envelope-scene">
+        <view class="envelope">
+          <view class="flap"></view>
+          <view class="addr">致：未来的你<text class="addr-name">见字如面</text></view>
+          <view class="stamp-mini">❀</view>
+        </view>
+        <view class="wax"></view>
+      </view>
+    </view>
+    <view class="chapter-copy">
+      <view>十款手作信纸版式，从号外头版到航空笺，各有各的脾气；再配上信封与一枚火漆。</view>
+      <view>轻轻按下<text class="em">「封存寄出」</text>，它便落进你的信匣，安静地开始等待。</view>
+    </view>
+  </view>
+
+  <!-- 叁 · 重逢 -->
+  <view class="chapter">
+    <view class="chapter-num">叁 · 重逢</view>
+    <view class="chapter-title">未来的某一天，拆开它</view>
+    <view class="illus-wrap">
+      <view class="postmark-scene">
+        <view class="envelope-flat"></view>
+        <view class="cancel-line c1"></view>
+        <view class="cancel-line c2"></view>
+        <view class="cancel-line c3"></view>
+        <view class="postmark">
+          <view class="pm-outer"></view>
+          <view class="pm-inner"></view>
+          <text
+            wx:for="{{ringChars}}"
+            wx:key="index"
+            class="pm-ch"
+            style="transform: rotate({{item.a}}deg) translateY(-100rpx);"
+          >{{item.c}}</text>
+          <view class="pm-main">拆信有喜</view>
+          <view class="pm-date">2026.08.30</view>
+        </view>
+      </view>
+    </view>
+    <view class="chapter-copy">
+      <view>信匣每天会为你挑选一封「今日来信」。也许是上周的你，也许是几年前的你。</view>
+      <view>重读一遍当年的答案，若还想说点什么，<text class="em">就写一封回信贴上去</text>——信会越来越厚，像年轮，也像回声。</view>
+    </view>
+  </view>
+
+  <!-- 肆 · 安放 -->
+  <view class="chapter">
+    <view class="chapter-num">肆 · 安放</view>
+    <view class="chapter-title">一个只属于你的地方</view>
+    <view class="notes">
+      <view class="note n1">
+        <view class="pin"></view>
+        <view>这里没有广场，没有围观与点赞。</view>
+        <view>每一封信，都<text class="note-em">只寄给你一个人</text>。</view>
+      </view>
+      <view class="note n2">
+        <view class="pin"></view>
+        <view>你不写一个多余的字，</view>
+        <view>我们也不<text class="note-em">改动一个字</text>。</view>
+      </view>
+      <view class="note n3">
+        <view class="pin"></view>
+        <view>信一旦写下，就永远属于你。</view>
+        <view>想留就留，想撕就撕。</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部 -->
+  <view class="perfo"></view>
+  <view class="footer">
+    <view class="footer-seal">信</view>
+    <view class="footer-name">心灵信箱</view>
+    <view class="footer-slogan">把答案寄给未来</view>
+    <view class="footer-line">SEE YOU WHEN YOU GET THERE</view>
+  </view>
+</view>

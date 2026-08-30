@@ -1,4 +1,7 @@
 /* 02 · 写信第二步「选信纸并寄出」 */
+/* 信纸版式装饰与排版：共享样式（styles/paper.wxss，与详情/分享同构） */
+@import "../../styles/paper.wxss";
+
 .page {
   display: flex;
   flex-direction: column;
@@ -69,15 +72,16 @@
   overflow: hidden;
 }
 
-/* 信纸视图：配色信纸居中展开（高度随内容自适应，长文在纸内滚动） */
-.lv {
+/* 信纸视图容器：配色信纸居中展开（高度随内容自适应，长文在纸内滚动） */
+.pl {
   display: flex;
   flex-direction: column;
   align-items: center;
   max-height: 100%;
+  width: 100%;
 }
 /* 切换主题的"翻页"微动效（纸张物理感：淡入 + 轻位移，无弹跳闪光） */
-.lv-flip {
+.pl-flip {
   animation: page-flip 240ms ease;
 }
 @keyframes page-flip {
@@ -90,48 +94,9 @@
     transform: translateY(0);
   }
 }
-.lv-paper {
-  width: 590rpx;
+/* 预览态信纸限高：长文纸内滚动（阅读/分享端不限高，随内容生长） */
+.preview .pl-paper {
   max-height: 100%;
-  overflow-y: auto;
-  box-sizing: border-box;
-  border-radius: 12rpx;
-  padding: 40rpx 64rpx 48rpx;
-  filter: drop-shadow(0 8rpx 20rpx rgba(80, 100, 90, 0.18));
-}
-/* 信纸头线（陶土色，与写信第一步 headline 同源） */
-.lv-headline {
-  border-top: 6rpx solid #C58A6A;
-  margin-bottom: 24rpx;
-}
-.lv-name {
-  font-family: var(--font-heading);
-  font-size: 30rpx;
-  font-weight: 700;
-  text-align: center;
-  color: #5A4F3E;
-  margin-bottom: 12rpx;
-}
-.lv-tag {
-  font-family: var(--font-ui);
-  font-size: 20rpx;
-  color: #9A9284;
-  letter-spacing: 2rpx;
-  margin-top: 20rpx;
-}
-.lv-body {
-  font-family: var(--font-hand);
-  font-size: 26rpx;
-  line-height: 1.8;
-  letter-spacing: 0.5rpx;
-  color: #4A4438;
-  white-space: pre-wrap;
-}
-.lv-date {
-  font-size: 22rpx;
-  color: var(--color-text-secondary);
-  text-align: right;
-  margin-top: 36rpx;
 }
 
 /* ── 预览区横滑（信纸版式选择）：swiper 占满预览区，纸居中 ── */
@@ -177,233 +142,6 @@
 }
 .paper-dot.on {
   background: var(--color-accent-primary);
-}
-
-/* ── 信纸版式装饰（papers.js）──
-   通用性约定：装饰色仅固定暖色锚点（陶土 #C58A6A）+ 暖灰派生透明度，
-   不依赖主题配色，任意主题底色下成立；无纯黑、无冷灰阴影 */
-/* 航空笺：斜纹边框包裹整纸，内容在内层底色卡 */
-.paper-airmail {
-  padding: 10rpx;
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(197, 138, 106, 0.38) 0 14rpx,
-    transparent 14rpx 26rpx,
-    rgba(125, 133, 128, 0.3) 26rpx 40rpx,
-    transparent 40rpx 52rpx
-  );
-}
-.pv-air-inner {
-  border-radius: 8rpx;
-  padding: 28rpx 36rpx 40rpx;
-  box-sizing: border-box;
-  max-height: 100%;
-  overflow-y: auto;
-}
-.pv-air-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16rpx;
-  margin-bottom: 24rpx;
-}
-.pv-air-label {
-  font-family: var(--font-ui);
-  font-size: 18rpx;
-  color: #9A9284;
-  letter-spacing: 4rpx;
-  line-height: 1.7;
-  text-align: center;
-  border: 2rpx solid rgba(125, 133, 128, 0.45);
-  border-radius: 6rpx;
-  padding: 8rpx 16rpx;
-}
-.pv-air-label text {
-  display: block;
-}
-.pv-air-en {
-  font-size: 14rpx;
-  letter-spacing: 2rpx;
-}
-.pv-air-stamp {
-  position: relative;
-  flex: none;
-  width: 110rpx;
-  height: 126rpx;
-  border: 2rpx dashed rgba(125, 133, 128, 0.55);
-  border-radius: 4rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-}
-.pv-stamp-mini {
-  width: 44rpx;
-  height: 56rpx;
-  background: rgba(197, 138, 106, 0.28);
-  border-radius: 4rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-heading);
-  font-size: 24rpx;
-  font-weight: 700;
-}
-.pv-stamp-name {
-  font-size: 16rpx;
-  letter-spacing: 2rpx;
-}
-.pv-postmark {
-  position: absolute;
-  right: -34rpx;
-  top: 30rpx;
-  width: 92rpx;
-  height: 92rpx;
-  border: 3rpx solid rgba(125, 133, 128, 0.75);
-  border-radius: 50%;
-  transform: rotate(-12deg);
-  opacity: 0.85;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pv-postmark::after {
-  content: "";
-  position: absolute;
-  left: 8rpx;
-  right: 8rpx;
-  top: 8rpx;
-  bottom: 8rpx;
-  border: 2rpx solid rgba(125, 133, 128, 0.5);
-  border-radius: 50%;
-}
-.pv-pm-date {
-  font-family: var(--font-heading);
-  font-size: 20rpx;
-  font-weight: 700;
-  color: #7D8580;
-  letter-spacing: 2rpx;
-}
-/* 航空笺「问 / 答」引导词 */
-.paper-airmail .lv-q::before,
-.paper-airmail .lv-a::before {
-  font-family: var(--font-ui);
-  font-size: 18rpx;
-  color: #9A9284;
-  letter-spacing: 2rpx;
-}
-.paper-airmail .lv-q::before {
-  content: "问 / ";
-}
-.paper-airmail .lv-a::before {
-  content: "答 / ";
-}
-
-/* 笔记本：踩线横格（26rpx·1.8 = 46.8rpx 行盒，格线落在基线下方）+ 陶土边线 + 装订孔 */
-.paper-notebook {
-  position: relative;
-  padding: 40rpx 48rpx 44rpx 88rpx;
-}
-.pv-marginline {
-  position: absolute;
-  left: 62rpx;
-  top: 0;
-  bottom: 0;
-  width: 3rpx;
-  background: rgba(197, 138, 106, 0.55);
-}
-.pv-holes {
-  position: absolute;
-  left: 18rpx;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
-}
-.pv-holes view {
-  width: 22rpx;
-  height: 22rpx;
-  border-radius: 50%;
-  background: rgba(80, 100, 90, 0.1);
-  box-shadow: inset 0 2rpx 4rpx rgba(80, 100, 90, 0.28);
-}
-.paper-notebook .lv-body {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0 40rpx,
-    rgba(125, 133, 128, 0.26) 40rpx 42rpx,
-    transparent 42rpx 46.8rpx
-  );
-}
-.paper-notebook .lv-name {
-  display: inline-block;
-  text-align: left;
-  border-bottom: 1rpx solid rgba(125, 133, 128, 0.4);
-  padding-bottom: 10rpx;
-}
-
-/* 织纹笺：十字织纹底 + 双线内框 + 四角陶土饰 + 问/答标签 */
-.paper-weave {
-  position: relative;
-  padding: 30rpx 32rpx 34rpx;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(46, 51, 48, 0.03) 0 1rpx, transparent 1rpx 8rpx),
-    repeating-linear-gradient(90deg, rgba(46, 51, 48, 0.03) 0 1rpx, transparent 1rpx 8rpx);
-}
-.pv-weave-frame {
-  position: relative;
-  border: 1rpx solid rgba(125, 133, 128, 0.38);
-  padding: 26rpx 30rpx 30rpx;
-}
-.pv-weave-frame::after {
-  content: "";
-  position: absolute;
-  left: 8rpx;
-  right: 8rpx;
-  top: 8rpx;
-  bottom: 8rpx;
-  border: 1rpx solid rgba(125, 133, 128, 0.18);
-  pointer-events: none;
-}
-.pv-corner {
-  position: absolute;
-  width: 14rpx;
-  height: 14rpx;
-  z-index: 1;
-}
-.pv-corner::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  border: 3rpx solid #C58A6A;
-  border-radius: 2rpx;
-  transform: rotate(45deg);
-  background: transparent;
-}
-.pv-corner.c-tl { top: 23rpx; left: 25rpx; }
-.pv-corner.c-tr { top: 23rpx; right: 25rpx; }
-.pv-corner.c-bl { bottom: 27rpx; left: 25rpx; }
-.pv-corner.c-br { bottom: 27rpx; right: 25rpx; }
-.paper-weave .lv-body::before {
-  font-family: var(--font-ui);
-  font-size: 18rpx;
-  color: #9A9284;
-  border: 1rpx solid rgba(125, 133, 128, 0.5);
-  border-radius: 4rpx;
-  padding: 2rpx 10rpx;
-  margin-right: 12rpx;
-  letter-spacing: 2rpx;
-}
-.paper-weave .lv-q::before {
-  content: "问";
-}
-.paper-weave .lv-a::before {
-  content: "答";
 }
 
 /* ── 主题选择与交互区（压缩到刚好放下卡片流，剩余空间让给预览） ── */
@@ -457,18 +195,13 @@
   opacity: 0.72;
 }
 .tc-name {
-  margin-top: 6rpx;
+  margin-top: 10rpx;
   font-size: 22rpx;
   font-weight: 700;
   color: var(--color-text-primary);
 }
 .theme-card.sel .tc-name {
   color: var(--color-accent-primary);
-}
-.tc-desc {
-  margin-top: 2rpx;
-  font-size: 18rpx;
-  color: var(--color-text-secondary);
 }
 
 /* ── 底部火漆寄出栏 ── */
@@ -498,10 +231,10 @@
 }
 
 /* ── 寄出动效：火漆按压时预览信纸轻沉折起（位移 + 微缩，无弹跳） ── */
-.preview .lv {
+.preview .pl {
   transition: transform 400ms ease, opacity 400ms ease;
 }
-.preview-sealing .lv {
+.preview-sealing .pl {
   transform: translateY(8rpx) scale(0.985);
   opacity: 0.85;
 }

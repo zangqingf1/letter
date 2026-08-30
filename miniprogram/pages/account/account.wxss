@@ -170,7 +170,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 34rpx 8rpx;
-  border-bottom: 1rpx solid var(--line);
 }
 .menu-item-hover {
   opacity: 0.7;

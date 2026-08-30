@@ -1,4 +1,5 @@
 <!-- 02 · 写信第二步「选择主题」（信封随主题卡片选择，信纸版式在预览区左右滑动选择） -->
+<import src="../../styles/paper.wxml" />
 <view class="page" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：返回修改 + 步骤条（第二步高亮） -->
@@ -7,18 +8,18 @@
     <view class="steps">
       <text class="step">写内容</text>
       <text class="step-sep">·</text>
-      <text class="step on">选择主题</text>
+      <text class="step on">选主题</text>
     </view>
   </view>
 
-  <!-- 实时预览区（占满剩余屏高）：横向滑动切换信纸版式（素笺/航空笺/笔记本/织纹笺，
-       配色随所选主题）；寄出时信纸轻沉"折起" -->
+  <!-- 实时预览区（占满剩余屏高）：横向滑动切换信纸版式（号外/蓝图/票根/标语/几何/黑胶，
+       纸色自持不随主题变，主题只换信封）；寄出时信纸轻沉"折起" -->
   <view class="preview {{sealing ? 'preview-sealing' : ''}}" style="background: {{currentTheme.desk}};">
     <swiper class="preview-swiper" current="{{currentPaperIndex}}" bindchange="onPaperChange">
       <block wx:for="{{papers}}" wx:key="id">
         <swiper-item>
           <view class="pv-item">
-            <template is="letter-view" data="{{ theme: currentTheme, paper: item, letter: letter, dateText: dateText, postmarkText: postmarkText, mode: flipping ? 'lv-flip' : '' }}" />
+            <template is="paper-letter" data="{{ v: view, paper: item, handOff: handwritingOff, mode: flipping ? 'pl-flip' : '' }}" />
           </view>
         </swiper-item>
       </block>
@@ -53,7 +54,6 @@
         <image wx:if="{{item.ownEnvelope}}" class="tc-img" src="{{item.envelope}}" mode="aspectFill" />
         <view wx:else class="tc-swatch" style="background: {{item.palette.base}};"></view>
         <view class="tc-name">{{item.name}}</view>
-        <view class="tc-desc">{{item.desc}}</view>
       </view>
     </scroll-view>
   </view>
@@ -74,65 +74,3 @@
   </view>
 
 </view>
-
-<!-- 信纸视图模板：版式 = papers.js 配置（su 素笺 / airmail 航空笺 / notebook 笔记本 / weave 织纹笺）。
-     方案B：配色底 + 纯排版（无纸张图片）；装饰色仅固定暖色锚点（陶土 #C58A6A + 暖灰），
-     任意主题 palette 下通用；长文在纸内滚动 -->
-<template name="letter-content">
-  <view class="lv-headline"></view>
-  <view class="lv-name" style="color: {{theme.palette.title}};">{{letter.name}}</view>
-  <view class="lv-tag" style="color: {{theme.palette.tag}};">【当时的问题】</view>
-  <view class="lv-body lv-q" style="color: {{theme.palette.text}};">{{letter.question}}</view>
-  <view class="lv-tag" style="color: {{theme.palette.tag}};">【想明白的答案】</view>
-  <view class="lv-body lv-a" style="color: {{theme.palette.text}};">{{letter.answer}}</view>
-  <view class="lv-date">—— 写于 {{dateText}}</view>
-</template>
-
-<template name="letter-view">
-  <view class="lv {{mode}}">
-
-    <!-- 航空笺：斜纹边框包裹整张纸，内容在内层底色卡上 -->
-    <view wx:if="{{paper.id === 'airmail'}}" class="lv-paper paper-airmail">
-      <view class="pv-air-inner" style="background: {{theme.palette.base}};">
-        <view class="pv-air-top">
-          <view class="pv-air-label">
-            <text>心灵信箱</text>
-            <text class="pv-air-en">PAR AVION</text>
-          </view>
-          <view class="pv-air-stamp">
-            <view class="pv-stamp-mini" style="color: {{theme.palette.title}};">信</view>
-            <view class="pv-stamp-name" style="color: {{theme.palette.tag}};">{{theme.name}}</view>
-            <view class="pv-postmark">
-              <view class="pv-pm-date">{{postmarkText}}</view>
-            </view>
-          </view>
-        </view>
-        <template is="letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-      </view>
-    </view>
-
-    <!-- 笔记本：踩线横格 + 陶土边线 + 装订孔 -->
-    <view wx:elif="{{paper.id === 'notebook'}}" class="lv-paper paper-notebook" style="background: {{theme.palette.base}};">
-      <view class="pv-marginline"></view>
-      <view class="pv-holes"><view></view><view></view><view></view></view>
-      <template is="letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-    </view>
-
-    <!-- 织纹笺：布纹底 + 双线内框 + 四角陶土饰 -->
-    <view wx:elif="{{paper.id === 'weave'}}" class="lv-paper paper-weave" style="background: {{theme.palette.base}};">
-      <view class="pv-corner c-tl"></view>
-      <view class="pv-corner c-tr"></view>
-      <view class="pv-corner c-bl"></view>
-      <view class="pv-corner c-br"></view>
-      <view class="pv-weave-frame">
-        <template is="letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-      </view>
-    </view>
-
-    <!-- 素笺（默认）：陶土头线经典款 -->
-    <view wx:else class="lv-paper paper-su" style="background: {{theme.palette.base}};">
-      <template is="letter-content" data="{{ theme: theme, letter: letter, dateText: dateText }}" />
-    </view>
-
-  </view>
-</template>

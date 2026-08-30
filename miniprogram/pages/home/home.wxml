@@ -40,7 +40,7 @@
     <view class="t-label">今日来信</view>
     <block wx:if="{{todayLetter}}">
       <view class="t-row">
-        <view class="t-text">今天有一封来自 <text class="em">{{todayLetter.dateText}}</text> 的信，是过去的你想对你说的话。</view>
+        <view class="t-text">今天有一封来自 <text class="em">{{todayLetter.dateText}}</text> 的信，是过去的你写给自己的答案。</view>
         <view class="t-img-wrap">
           <view class="t-img">
             <image class="t-img-src" src="{{todayLetter.env}}" mode="aspectFill" />
@@ -68,7 +68,7 @@
 
   <!-- 草稿横条（条件触发） -->
   <view wx:if="{{draftCount > 0 && hasLetters}}" class="draft-bar" bindtap="onTapDrafts">
-    <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，继续写 →
+    <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，点此处继续写
   </view>
 
   <!-- 状态一：空状态（0 封） -->

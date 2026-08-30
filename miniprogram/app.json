@@ -8,7 +8,8 @@
     "pages/share/share",
     "pages/recycle/recycle",
     "pages/clips/clips",
-    "pages/account/account"
+    "pages/account/account",
+    "pages/about/about"
   ],
   "window": {
     "navigationBarTextStyle": "black",

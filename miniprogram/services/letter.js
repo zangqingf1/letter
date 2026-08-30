@@ -59,7 +59,7 @@ function ensureReal(letter) {
   const full = Object.assign({}, joined, letter, { id: letter.id });
   full.theme_id = full.theme_id || 'xiaowangzi';
   full.theme_version = full.theme_version || 1;
-  full.paper_id = full.paper_id || 'su';
+  full.paper_id = full.paper_id || 'liubai';
   full.paper_version = full.paper_version || 1;
   full.pinned = !!full.pinned;
   if (!full.created_at) full.created_at = Date.now();
@@ -145,7 +145,7 @@ function create(data) {
     answer: data.answer,
     theme_id: data.theme_id,
     theme_version: data.theme_version,
-    paper_id: data.paper_id || 'su',
+    paper_id: data.paper_id || 'liubai',
     paper_version: data.paper_version || 1,
     pinned: false,
     created_at: Date.now()
@@ -169,7 +169,7 @@ function update(id, data) {
     answer: data.answer,
     theme_id: data.theme_id,
     theme_version: data.theme_version,
-    paper_id: data.paper_id || letters[index].paper_id || 'su',
+    paper_id: data.paper_id || letters[index].paper_id || 'liubai',
     paper_version: data.paper_version || letters[index].paper_version || 1,
     updated_at: Date.now()
   });

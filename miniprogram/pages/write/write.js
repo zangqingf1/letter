@@ -36,6 +36,34 @@ function canNextOf(name, question, answer) {
   return !!(name.trim() && question.trim() && answer.trim());
 }
 
+// 信头日期（素笺正席版式）：中文落款「二〇二六年 八月三十日」+ 右上角邮戳「2026.08.30」。
+// 新写信落今天；编辑态落原信创建日期（与详情页「写于」口径一致）
+const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+function cnYear(y) {
+  return String(y).split('').map((c) => CN_DIGITS[+c]).join('');
+}
+function cnMonth(m) {
+  if (m === 10) return '十';
+  if (m === 11) return '十一';
+  if (m === 12) return '十二';
+  return CN_DIGITS[m];
+}
+function cnDay(d) {
+  if (d <= 10) return d === 10 ? '十' : CN_DIGITS[d];
+  const tens = Math.floor(d / 10);
+  const ones = d % 10;
+  return (tens === 1 ? '十' : CN_DIGITS[tens] + '十') + (ones ? CN_DIGITS[ones] : '');
+}
+function headDateOf(ts) {
+  const t = ts ? new Date(ts) : new Date();
+  const mm = t.getMonth() + 1;
+  const dd = t.getDate();
+  return {
+    cn: cnYear(t.getFullYear()) + '年 ' + cnMonth(mm) + '月' + cnDay(dd) + '日',
+    stamp: t.getFullYear() + '.' + ('0' + mm).slice(-2) + '.' + ('0' + dd).slice(-2)
+  };
+}
+
 Page({
   data: {
     statusBarHeight: 20,
@@ -53,7 +81,10 @@ Page({
     // 无障碍开关：关闭手写体（全局设置，我的页提供开关入口）
     handwritingOff: false,
     // 编辑态标记（供 wxml 隐藏「存草稿」按钮；编辑态仅「保存修改并封存」）
-    isEdit: false
+    isEdit: false,
+    // 信头落款（新写信=今天，编辑态=原信创建日期）
+    headDateCn: '',
+    headDateStamp: ''
   },
 
   onLoad(options) {
@@ -76,6 +107,9 @@ Page({
     this.editThemeId = '';
     this.editPaperId = '';
     this.editCreatedAt = null;
+    // 信头日期：新写信落今天；编辑态等预填到达后改落创建日期
+    const hd = headDateOf(this.editMode ? null : Date.now());
+    this.setData({ headDateCn: hd.cn, headDateStamp: hd.stamp });
     if (this.editMode) {
       this.setupEditPrefill();
     } else {
@@ -157,6 +191,9 @@ Page({
     this.editThemeId = d.themeId || '';
     this.editPaperId = d.paperId || '';
     this.editCreatedAt = d.createdAt || null;
+    // 编辑态信头落款改用原信创建日期（未知则保持今天的兜底）
+    const hd = headDateOf(this.editCreatedAt || Date.now());
+    this.setData({ headDateCn: hd.cn, headDateStamp: hd.stamp });
     // 记录原信内容：返回时据此判断是否真的改过（没改过就不打扰用户确认）
     this._original = { name: d.name || '', question: d.question || '', answer: d.answer || '' };
 
@@ -279,7 +316,8 @@ Page({
       id: d.id,
       name: d.name || '没起名字的信',
       snippet: snippet || '还没有写下内容',
-      timeText: t.getMonth() + 1 + '月' + t.getDate() + '日'
+      // 素笺正席版式：草稿卡日期为 mono 编目式「08.28」
+      timeText: ('0' + (t.getMonth() + 1)).slice(-2) + '.' + ('0' + t.getDate()).slice(-2)
     };
   },
 
@@ -309,7 +347,7 @@ Page({
     wx.showModal({
       title: '删掉这封草稿？',
       content: '草稿还没有寄出，删除后不会进废纸篓，也无法找回。',
-      confirmText: '删除',
+      confirmText: '撕毁',
       cancelText: '取消',
       confirmColor: '#6E7570',
       success: (res) => {
