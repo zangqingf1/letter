@@ -37,7 +37,7 @@ Page({
           id: l.id,
           name: l.name,
           dateText: dateTextOf(l),
-          env: themeService.envelopeOf(l.theme_id, themes),
+          env: themeService.envelopeThumbOf(l.theme_id, themes),
           // 纸条微倾错落（交替 ±0.5°，手作感）
           tilt: i % 2 === 0 ? -0.5 : 0.5
         }));

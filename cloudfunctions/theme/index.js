@@ -23,7 +23,8 @@ exports.main = async (event) => {
         version: t.version || 1,
         pending: !!t.pending,
         envelope: t.assets && t.assets.envelope,
-        paper: t.assets && t.assets.paper,
+        // 方案B：信纸 = 配色排版（无纸张图片），下发 palette（base/title/text/tag）
+        palette: t.palette || '',
         desk: t.desk || '',
         swatch: t.swatch || ''
       }))

@@ -27,7 +27,7 @@
           bindtouchend="onRowTouchEnd"
           bindtap="onTapRow"
         >
-          <image class="env-grey" src="{{item.env}}" mode="aspectFill" />
+          <image class="env-grey" src="{{item.env}}" mode="aspectFill" lazy-load />
           <view class="rc-info">
             <view class="rc-name">{{item.name}}</view>
             <view class="rc-days">{{item.daysText}}</view>
@@ -42,7 +42,7 @@
   <!-- 状态二：空状态（手绘插画 + 治愈系品牌文案） -->
   <block wx:else>
     <view class="empty-illust">
-      <image class="empty-box" src="/assets/mailbox.png" mode="aspectFit" />
+      <image class="empty-box" src="/assets/empty-box.png" mode="aspectFit" />
     </view>
     <view class="empty-txt">废纸篓里什么也没有。</view>
     <view class="empty-txt">那些曾经想通的答案，<text class="em">都还在信匣里守候着你。</text></view>

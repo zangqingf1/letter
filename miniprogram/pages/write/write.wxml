@@ -7,7 +7,7 @@
     <view class="steps">
       <text class="step on">写内容</text>
       <text class="step-sep">·</text>
-      <text class="step">选信纸</text>
+      <text class="step">选择主题</text>
     </view>
   </view>
 
@@ -24,7 +24,6 @@
           maxlength="{{NAME_MAX}}"
           value="{{name}}"
           bindinput="onNameInput"
-          bindblur="onFieldBlur"
         />
       </view>
 
@@ -37,7 +36,6 @@
         auto-height
         show-confirm-bar="{{false}}"
         bindinput="onQuestionInput"
-        bindblur="onFieldBlur"
       ></textarea>
       <view class="count">{{questionLen}} / {{QUESTION_MAX}}</view>
 
@@ -57,21 +55,48 @@
         auto-height
         show-confirm-bar="{{false}}"
         bindinput="onAnswerInput"
-        bindblur="onFieldBlur"
       ></textarea>
       <view class="count">{{answerLen}} / {{ANSWER_MAX}}</view>
 
     </view>
+
+    <!-- 草稿陈列区：没写完的信（点击卡片载入续写；删除为彻底删除，不进废纸篓） -->
+    <view wx:if="{{drafts.length}}" class="draft-shelf">
+      <view class="draft-shelf-title">没写完的信</view>
+      <view
+        wx:for="{{drafts}}"
+        wx:key="id"
+        class="draft-card"
+        hover-class="draft-card-hover"
+        data-id="{{item.id}}"
+        bindtap="onTapDraftItem"
+      >
+        <view class="draft-card-main">
+          <view class="draft-card-name">{{item.name}}</view>
+          <view class="draft-card-snip">{{item.snippet}}</view>
+        </view>
+        <view class="draft-card-side">
+          <view class="draft-card-time">{{item.timeText}}</view>
+          <view
+            class="draft-card-del"
+            hover-class="draft-card-del-hover"
+            data-id="{{item.id}}"
+            catchtap="onTapDraftDelete"
+          >删除</view>
+        </view>
+      </view>
+      <view class="draft-shelf-note">点击继续写，封存寄出后草稿就会离开这里。</view>
+    </view>
   </scroll-view>
 
-  <!-- 底部固定操作栏：存草稿便签按钮 + 主按钮（未填完整置灰） -->
+  <!-- 底部固定操作栏：存草稿便签按钮（编辑态不提供）+ 主按钮（未填完整置灰） -->
   <view class="btn-bar">
-    <view class="btn-sec" hover-class="btn-sec-hover" bindtap="onTapSaveDraft">💾 存草稿</view>
+    <view wx:if="{{!isEdit}}" class="btn-sec" hover-class="btn-sec-hover" bindtap="onTapSaveDraft">💾 存草稿</view>
     <view
       class="btn-primary btn-next {{canNext ? '' : 'btn-next-disabled'}}"
       hover-class="{{canNext ? 'btn-primary-hover' : 'none'}}"
       bindtap="onTapNext"
-    >选一张信纸 →</view>
+    >选择主题 →</view>
   </view>
 
 </view>

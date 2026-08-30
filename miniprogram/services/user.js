@@ -5,12 +5,13 @@ const { MOCK_USER, MOCK_STATS, MOCK_RECYCLE_COUNT } = require('../pages/mine/moc
 
 const PROFILE_KEY = 'account_profile';
 
-// 注销时清除的用户数据键：信件、废纸篓、两处草稿、落格动效标记、本地资料、
-// 首次寄出提示标记（注销后下次寄出重新提示）。handwriting_off（手写体无障碍开关）
-// 属于设备偏好，不随注销清除。
+// 注销时清除的用户数据键：信件、废纸篓、草稿列表与旧单草稿键、编辑草稿、
+// 落格动效标记、本地资料、首次寄出提示标记（注销后下次寄出重新提示）。
+// handwriting_off（手写体无障碍开关）属于设备偏好，不随注销清除。
 const USER_DATA_KEYS = [
   'letters_mock',
   'recycle_mock',
+  'letter_drafts',
   'letter_draft_current',
   'letter_edit_current',
   'letter_just_arrived',
@@ -60,8 +61,8 @@ function saveProfile(profile) {
 }
 
 // 「我的」页统计：四项便签 + 回形针数 + 废纸篓数（PRD 第八节，一次聚合返回）
-// local：四项用演示数据，回形针/废纸篓数由页面按 letter 服务实时计算后传入
-function getStats(overrides) {
+// local：四项与废纸篓数用演示数据，回形针/废纸篓行由页面经 letter 服务实时计算后展示
+function getStats() {
   if (DATA_SOURCE === 'cloud') {
     return cloud.call('stats', 'get', {}).then((r) => ({
       letterTotal: r.letterTotal || 0,
@@ -77,8 +78,8 @@ function getStats(overrides) {
     rereadTotal: MOCK_STATS.rereadTotal,
     replyTotal: MOCK_STATS.replyTotal,
     registerDays: MOCK_STATS.registerDays,
-    pinnedCount: (overrides && overrides.pinnedCount) || 0,
-    recycleCount: (overrides && overrides.recycleCount) || MOCK_RECYCLE_COUNT
+    pinnedCount: 0,
+    recycleCount: MOCK_RECYCLE_COUNT
   });
 }
 

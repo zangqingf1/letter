@@ -202,9 +202,3 @@
   line-height: 1;
   color: var(--color-text-secondary);
 }
-
-/* 关闭手写体开关（无障碍）：右对齐，等比缩小匹配行高 */
-.menu-item .hand-switch {
-  transform: scale(0.8);
-  transform-origin: right center;
-}

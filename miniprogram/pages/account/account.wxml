@@ -11,10 +11,9 @@
   <!-- 资料区：头像（open-type="chooseAvatar"）+ 昵称（type="nickname" 输入框） -->
   <view class="profile-card">
     <view class="avatar-wrap">
-      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="avatar-btn-hover">
-        <image wx:if="{{profile.avatar}}" class="avatar-img" src="{{profile.avatar}}" mode="aspectFill" />
-        <text wx:else class="avatar-char">{{avatarChar}}</text>
-      </button>
+      <image wx:if="{{profile.avatar}}" class="avatar-img" src="{{profile.avatar}}" mode="aspectFill" />
+      <text wx:else class="avatar-char">{{avatarChar}}</text>
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="avatar-btn-hover"></button>
       <view class="avatar-tip">点击更换</view>
     </view>
     <view class="profile-info">
@@ -31,7 +30,6 @@
       <view class="wrote-days">在这个匣子里写了 <text class="days-num">{{wroteDays}}</text> 天</view>
     </view>
   </view>
-  <view class="profile-hint">头像与昵称保存在你的设备上，只有你自己看得见。</view>
 
   <!-- 账号操作区 -->
   <view class="section-label">账号</view>

@@ -63,7 +63,30 @@
   box-sizing: border-box;
   overflow: hidden;
 }
-/* 按钮只做点击热区：透明、显式铺满圆形（不用百分比，规避 button 默认样式把内容拉变形） */
+/* 头像图铺满圆形：尺寸显式固定，任何情况下不随容器布局拉伸变形 */
+.avatar-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128rpx;
+  height: 128rpx;
+  display: block;
+}
+.avatar-char {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128rpx;
+  height: 128rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+/* 按钮只做点击热区：透明、覆盖整个圆形，显式铺满（规避 button 默认样式把内容拉变形） */
 .avatar-btn {
   position: absolute;
   left: 0;
@@ -76,31 +99,14 @@
   border-radius: 50%;
   background: transparent;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   line-height: 1;
+  z-index: 2;
 }
 .avatar-btn::after {
   border: none; /* 去除微信 button 默认边框 */
 }
 .avatar-btn-hover {
   opacity: 0.85;
-}
-/* 头像图绝对定位铺满圆形容器，尺寸显式固定，任何情况下不随容器布局拉伸 */
-.avatar-btn .avatar-img {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 128rpx;
-  height: 128rpx;
-  display: block;
-}
-.avatar-btn .avatar-char {
-  font-family: var(--font-heading);
-  font-size: 56rpx;
-  font-weight: 700;
-  color: var(--color-accent-primary);
 }
 /* 轻提示贴在头像下沿，不遮脸 */
 .avatar-tip {

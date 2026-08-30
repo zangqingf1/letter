@@ -11,16 +11,50 @@
   <scroll-view class="body" scroll-y>
     <view class="body-inner">
 
-      <!-- 主信纸区：当前主题信纸为底（小王子素材），宋体标题 + 手写体两小节 + 写于/改于落款 -->
-      <view class="detail-paper">
-        <image class="dp-bg" src="{{theme.paper}}" mode="scaleToFill" />
+      <!-- 主信纸区：主题配色信纸 + 信纸版式（papers.js 四款，方案B：底色 + 纯排版），
+           宋体标题 + 手写体两小节 + 写于/改于落款 -->
+      <view wx:if="{{paper.id === 'airmail'}}" class="detail-paper paper-airmail">
+        <view class="dp-air-inner" style="background: {{theme.palette.base}};">
+          <view class="dp-air-top">
+            <view class="dp-air-label">
+              <text>心灵信箱</text>
+              <text class="dp-air-en">PAR AVION</text>
+            </view>
+            <view class="dp-air-stamp">
+              <view class="dp-stamp-mini" style="color: {{theme.palette.title}};">信</view>
+              <view class="dp-stamp-name" style="color: {{theme.palette.tag}};">{{theme.name}}</view>
+              <view class="dp-postmark"><view class="dp-pm-date">{{openStampText}}</view></view>
+            </view>
+          </view>
+          <view class="dp-content">
+            <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
+          </view>
+        </view>
+      </view>
+
+      <view wx:elif="{{paper.id === 'notebook'}}" class="detail-paper paper-notebook" style="background: {{theme.palette.base}};">
+        <view class="dp-marginline"></view>
+        <view class="dp-holes"><view></view><view></view><view></view></view>
         <view class="dp-content">
-          <view class="lp-title">{{letter.name}}</view>
-          <view class="sec-tag">【当时的问题】</view>
-          <view class="sec-body">{{letter.question}}</view>
-          <view class="sec-tag">【想明白的事】</view>
-          <view class="sec-body">{{letter.answer}}</view>
-          <view class="lp-sign">—— 写于 {{dateText}}{{editedText ? ' · 改于 ' + editedText : ''}}</view>
+          <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
+        </view>
+      </view>
+
+      <view wx:elif="{{paper.id === 'weave'}}" class="detail-paper paper-weave" style="background: {{theme.palette.base}};">
+        <view class="dp-corner c-tl"></view>
+        <view class="dp-corner c-tr"></view>
+        <view class="dp-corner c-bl"></view>
+        <view class="dp-corner c-br"></view>
+        <view class="dp-weave-frame">
+          <view class="dp-content">
+            <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="detail-paper paper-su" style="background: {{theme.palette.base}};">
+        <view class="dp-content">
+          <template is="detail-letter-content" data="{{ theme: theme, letter: letter, dateText: dateText, editedText: editedText }}" />
         </view>
       </view>
 
@@ -43,7 +77,10 @@
       <view class="sect">
         <view class="ph-h">✎ 回信 <text class="ph-sub">{{replyCount}} 封</text></view>
         <view wx:for="{{replies}}" wx:key="ts" class="reply-note {{index % 2 === 0 ? 'r1' : 'r2'}}">
-          <view class="rd">📅 {{item.dateText}}</view>
+          <view class="rd-row">
+            <view class="rd">📅 {{item.dateText}}</view>
+            <view class="reply-del" hover-class="reply-del-hover" data-ts="{{item.ts}}" catchtap="onTapReplyDelete">撕掉</view>
+          </view>
           <view class="rb">{{item.text}}</view>
         </view>
       </view>
@@ -79,8 +116,9 @@
      信封微浮起 → 信纸从信封中抽出并展开 → 信封淡出移出屏幕 -->
 <view wx:if="{{opening}}" class="unseal" bindtap="onSkipOpen">
   <view class="us-stage">
-    <view class="us-paper">
-      <image class="us-paper-img" src="{{theme.paper}}" mode="widthFix" />
+    <view class="us-paper" style="background: {{theme.palette.base}};">
+      <view class="us-paper-headline"></view>
+      <view class="us-paper-line" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
     </view>
     <view class="us-env">
       <image class="us-env-img" src="{{theme.envelope}}" mode="widthFix" />
@@ -122,3 +160,14 @@
 
 <!-- 保存成功反馈：便签样式轻 Toast（中上方浮现 2 秒，不挡操作） -->
 <view wx:if="{{noteToast}}" class="note-toast">📌 回信已贴好。这封信越来越厚了。</view>
+
+<!-- 详情信纸内容模板：四个版式分支共用（素笺/航空笺/笔记本/织纹笺的正文结构一致） -->
+<template name="detail-letter-content">
+  <view class="dp-headline"></view>
+  <view class="lp-title" style="color: {{theme.palette.title}};">{{letter.name}}</view>
+  <view class="sec-tag" style="color: {{theme.palette.tag}};">【当时的问题】</view>
+  <view class="sec-body q" style="color: {{theme.palette.text}};">{{letter.question}}</view>
+  <view class="sec-tag" style="color: {{theme.palette.tag}};">【想明白的事】</view>
+  <view class="sec-body a" style="color: {{theme.palette.text}};">{{letter.answer}}</view>
+  <view class="lp-sign">—— 写于 {{dateText}}{{editedText ? ' · 改于 ' + editedText : ''}}</view>
+</template>
