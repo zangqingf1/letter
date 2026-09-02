@@ -9,7 +9,8 @@
     "pages/recycle/recycle",
     "pages/clips/clips",
     "pages/account/account",
-    "pages/about/about"
+    "pages/about/about",
+    "pages/member/member"
   ],
   "window": {
     "navigationBarTextStyle": "black",

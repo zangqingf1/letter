@@ -91,5 +91,10 @@ Page({
 
   onTapAbout() {
     wx.navigateTo({ url: '/pages/about/about' });
+  },
+
+  onTapMember() {
+    // 会员中心（纯 UI 演示入口）
+    wx.navigateTo({ url: '/pages/member/member' });
   }
 });

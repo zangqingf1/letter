@@ -20,7 +20,7 @@
 
 ## 页面与信息架构
 
-共 10 个页面（app.json），全部 `navigationStyle: custom`。底部 TabBar 仅两项：**信箱（home）/ 我的（mine）**；"写一封新信"为首页悬浮/底部主入口，不占 Tab。
+共 11 个页面（app.json），全部 `navigationStyle: custom`。底部 TabBar 仅两项：**信箱（home）/ 我的（mine）**；"写一封新信"为首页悬浮/底部主入口，不占 Tab。
 
 1. **信匣 home（Tab1）**：三状态 empty/few/normal，本地模式由 `pages/home/mock.js` 的 `DEMO_STATE` 切换演示池。今日来信每日随机一次、当日固定（本地按日期种子确定性随机；云端由 `today` 云函数按「用户+日期」种子计算并写回 `today_letter_of`，跨设备同日一致）。few 态 1–6 封 ±2° 伪随机倾斜（按 id 种子），超过 8 封切三列整齐网格且回形针信件前置。条件性草稿横条（显示真实草稿数）。冷启动骨架：`home.json initialRenderingCache: static` + data.loading 首帧色块；数据统一在 onShow 拉（onLoad 不拉，避免双请求）。寄出回传 `letter_just_arrived`（storage，消费即清除）触发新信约 800ms「落格」动效。
 2. **写信第一步 write**：一页信纸完成名称/问题/答案（均必填，字数上限常量 20/500/2000）。进入时空白新信，不自动预填；未写完的草稿以卡片陈列在书写区下方（「没写完的信」，点击载入续写，卡片可删除——二次确认后**彻底删除、不进废纸篓**，删当前正在写的同时清空表单）。保存时机仅两处：点「💾 存草稿」（成功即返回首页，Toast「已存草稿」跨页保留）或退出点系统弹窗「确定」（`enableAlertBeforeUnload`，message「这封信还没写完。」，仅表单有内容时触发）；**无自动保存**（无 10s/失焦/onHide）。多草稿 upsert（storage 键 `letter_drafts`，`currentDraftId` 跟踪）。
@@ -33,6 +33,7 @@
 9. **我的 mine（Tab2）**：品牌区 + 名片（点击进账号管理）+ 2×2 微倾便签统计（信件总数/被重读总次数/回信条数/注册天数，本地演示值、云端 stats 实数）+ 回形针/废纸篓数量行（本地实时计算）+ 功能列表（关闭手写体开关项、用户协议/隐私/关于——后三项均为 TODO 占位）。
 10. **账号管理 account**：微信官方头像（`open-type="chooseAvatar"`）与昵称（`type="nickname"`）填写能力；资料存 `account_profile`（云端头像先 uploadFile 换 cloud:// fileID），「我的」名片 onShow 读同源数据。注销 = 页内二次确认（「仍要注销/再想想」），确认后按 `user.js` 的 `USER_DATA_KEYS` 清单清除全部用户数据（`handwriting_off` 设备偏好保留），Toast 告别文案后 reLaunch 回首页；云端走 user 云函数 deactivate 物理删除。
 11. **关于 about**：静态品牌介绍页（「我的」页功能列表「关于心灵信箱」进入），长卷式图文——Hero（logo + 标语）+ 壹贰叁肆四章（写下/封存/重逢/安放，全部插画为 WXSS 手绘：迷你信纸、信封火漆、CSS 逐字旋转邮戳、便签卡）+ 火漆印收尾；零数据依赖、不接 services（仅 statusBarHeight + 返回）。设计源文件：根目录 `心灵信箱-关于页设计提案.html`。
+12. **会员中心 member**：付费 VIP 会员页（「我的」页金调入口行进入），当前为 **纯 UI 演示态**——会员状态卡（free 虚线引导 / vip 金色火漆卡）+ 权益清单（专属信纸版式 / 专属主题信封 / 信封添加上限：非会员 5 个、会员不限）+ 会员专属主题与版式锁定展示（`premium.js` 色样卡 + 🔒，不接入三端同构渲染）+ 订阅半屏拉手（月 ¥5 / 季 ¥12 / 年 ¥50，演示价）+ 开通成功完成幕。本期**不接真实微信支付、无云函数**；数据经 `services/member.js` 演示（`member_demo_state` 本地标记，「开通一次」翻成 vip 预览，注销可清）。演示价/权益上限仅文案展示，不强制落地。
 
 ## 数据模型与业务规则
 
@@ -64,6 +65,7 @@
 - **user.js**：getProfile/saveProfile/getStats/deactivate；`USER_DATA_KEYS` 是注销清除清单的唯一定义处。
 - **theme.js**：主题与信纸版式统一出口——getThemes/envelopeOf/envelopeThumbOf/paletteOf/getPapers/paperOf；云端走 theme 云函数（storage `theme_cache` TTL 24h），归一化兜底信封/palette/desk 与 `ownEnvelope`；getPapers 云端调 theme/papers action（papers 集合由 Web 后台维护），空/失败回落本地 papers.js。
 - **analytics.js**：track(event, data)；cloud 攒批（5 条或 15s，失败重试 3 次）调 analytics 云函数 batch，不采集正文。现有事件名：`letter_open, reply_add, letter_delete, letter_restore, letter_permanent_delete, letter_content_complete, draft_save, letter_step2_view, theme_select, paper_select, letter_save, share_image_generate, share_image_save, share_send`。
+- **member.js**：会员中心（纯 UI 演示）——getMembership/subscribe；`member_demo_state` 本地标记，「开通一次」翻成 vip 预览。本期不接真实支付、无云函数，已预留 cloud 适配位（`DATA_SOURCE==='cloud' && false` 守住未部署空回退）。
 
 ## 云函数清单（cloudfunctions/，Node.js + wx-server-sdk，action 分发，返回 `{ok, ...}`）
 
@@ -120,7 +122,8 @@ D:\vibeCoding\j\                     # 开发者工具打开此根目录
         ├── clips/                   # 06 回形针优先展示列表（与信匣同源筛 pinned）
         ├── account/                 # 10 账号管理：官方头像昵称填写 + 注销（USER_DATA_KEYS 清除清单）
         ├── about/                   # 11 关于心灵信箱：静态品牌介绍页（WXSS 手绘插画长卷，零数据依赖）
-        └── mine/                    # 09 我的（Tab2）：名片 + 2×2 便签统计 + 回形针/废纸篓行 + 功能列表；mock.js 演示值
+        ├── member/                  # 12 会员中心：付费 VIP（纯 UI 演示态）——状态卡/权益清单/专属主题版式锁定/订阅半屏拉手；mock.js + premium.js（专属版式与主题色样，不接入三端同构）
+        └── mine/                    # 09 我的（Tab2）：名片 + 2×2 便签统计 + 回形针/废纸篓行 + 会员中心金调入口 + 功能列表；mock.js 演示值
 ```
 
 ## 当前已知遗留（接手时先看）
@@ -129,4 +132,5 @@ D:\vibeCoding\j\                     # 开发者工具打开此根目录
 - 「我的」页用户协议/隐私仍为占位（「关于心灵信箱」已落地 `pages/about/about`）。
 - `services/draft.js` 头注释仍写"每 10 秒/失焦自动保存"，与 write.js 实际「仅点存草稿/退出点确认」不符（注释滞后，行为以 write.js 为准）。
 - 云端模式头像上传已实现（saveProfile 非 cloud:// 头像先 uploadFile 换 fileID）。
+- 会员中心 `pages/member/` 当前为**纯 UI 演示态**：`services/member.js` 的 `subscribe` 不产生真实扣款、无 `member` 云函数；「信封添加上限 5/会员不限」与专属版式/主题仅作文案与锁定卡片展示，**未在写信流程强制落地**（真实付费期再接入三端同构与上限校验）。
 - Web 后台（`admin/` + `admin` 云函数）需要人工在 CloudBase 控制台完成一次性配置才能用：部署函数、开启匿名登录、配 Web 安全域名、设 `ADMIN_KEY` 环境变量、上传静态文件、建 `papers` 集合并一键导入官方主题/版式。步骤见 `admin/README.md`。

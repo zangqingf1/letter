@@ -18,6 +18,7 @@ const USER_DATA_KEYS = [
   'user_sealed_once',
   'demo_removed_ids',
   'recycle_demo_seeded',
+  'member_demo_state',
   PROFILE_KEY
 ];
 

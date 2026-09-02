@@ -50,6 +50,16 @@
     </view>
   </view>
 
+  <!-- 会员中心：金调高亮入口行（付费会员，纯演示态） -->
+  <view class="member-entry" hover-class="member-entry-hover" bindtap="onTapMember">
+    <view class="member-entry-icon">VIP</view>
+    <view class="member-entry-body">
+      <view class="member-entry-title">会员中心</view>
+      <view class="member-entry-desc">专属信纸与主题 · 信封不限量</view>
+    </view>
+    <text class="member-entry-arrow">›</text>
+  </view>
+
   <!-- 底部功能列表：无硬体分割，浅色信纸下划线分隔，无多余图标 -->
   <view class="menu">
     <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapAbout">
