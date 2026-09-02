@@ -29,21 +29,24 @@ exports.main = async (event) => {
     let all = res.data;
 
     // 旧数据自愈：早期版本 create 漏写 _openid 的信件按 openid 永远查不到（联调期遗留），
-    // 这里把无归属人的信认领给当前用户，与 letter 云函数 ensureOwned 同策略；
-    // 自愈失败（如查询命令不支持）不影响正常信匣读取
-    try {
-      const orphanRes = await db
-        .collection('letters')
-        .where({ status: 'active', _openid: _.or(_.eq(null), _.exists(false)) })
-        .limit(100)
-        .get();
-      for (const doc of orphanRes.data) {
-        await db.collection('letters').doc(doc._id).update({ data: { _openid: OPENID } });
-        doc._openid = OPENID;
-        all = all.concat(doc);
+    // 这里把无归属人的信认领给当前用户，与 letter 云函数 ensureOwned 同策略。
+    // 门槛：仅在当前用户信匣为空时执行 —— 孤儿信的主人信匣必为空，认领后即非空不再进入；
+    // 避免每次拉信匣都对全库做一次无 openid 条件的全表扫描
+    if (all.length === 0) {
+      try {
+        const orphanRes = await db
+          .collection('letters')
+          .where({ status: 'active', _openid: _.or(_.eq(null), _.exists(false)) })
+          .limit(100)
+          .get();
+        for (const doc of orphanRes.data) {
+          await db.collection('letters').doc(doc._id).update({ data: { _openid: OPENID } });
+          doc._openid = OPENID;
+          all = all.concat(doc);
+        }
+      } catch (e) {
+        console.error('[today] 孤儿信认领失败', e);
       }
-    } catch (e) {
-      console.error('[today] 孤儿信认领失败', e);
     }
 
     // 1. 当日已选定 → 直接命中（当日固定）

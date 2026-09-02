@@ -1,4 +1,5 @@
-<!-- 04 · 分享图 · 明信片预览（3:4 竖版，沿用当前信件主题材质；重读记录与回信永不入图 BR-15） -->
+<!-- 04 · 分享图 · 明信片预览（信纸自持版式 + 底部小程序条，与导出图同构；名称/问题/答案/写信日期固定全入图，重读记录与回信永不入图 BR-15） -->
+<import src="../../styles/paper.wxml" />
 <view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
@@ -7,71 +8,32 @@
     <view class="nav-title">预览分享明信片</view>
   </view>
 
-  <!-- 明信片预览区：3:4 竖版（最终导出规格 1080×1440），信纸完整等比缩放，品牌区贴于信纸下方不遮挡 -->
-  <view class="stage {{sheetOpen ? 'stage-dim' : ''}}">
-    <view class="postcard" style="{{cardW ? 'width:' + cardW + 'px;height:' + cardH + 'px;' : ''}}">
-      <!-- 信纸主体：完整展示当前主题信纸素材（BR-15：分享图默认沿用当前主题） -->
-      <view class="pc-paper-wrap">
-        <view class="pc-paper" style="{{paperW ? 'width:' + paperW + 'px;height:' + paperH + 'px;' : ''}}">
-          <image class="pc-bg" src="{{theme.paper}}" mode="scaleToFill" />
-          <view class="pc-content" style="{{paperH ? 'padding:' + padTop + 'px ' + padSide + 'px ' + padBottom + 'px;' : ''}}">
-            <view wx:if="{{sel.name}}" class="pc-title">{{letter.name}}</view>
-            <view wx:if="{{sel.question}}" class="pc-hand pc-q">{{letter.question}}</view>
-            <view wx:if="{{sel.answer}}" class="pc-hand pc-a">{{letter.answer}}</view>
-            <view wx:if="{{sel.date}}" class="pc-date">—— 写于 {{dateText}}</view>
-          </view>
-        </view>
-      </view>
-      <!-- 品牌区：火漆 Logo + 品牌文案 + 小程序二维码占位（位于信纸下方，不遮挡信纸） -->
-      <view class="pc-brand" style="{{brandH ? 'height:' + brandH + 'px;' : ''}}">
-        <view class="pc-logo" style="{{brandH ? 'width:' + brandH * 0.34 + 'px;height:' + brandH * 0.34 + 'px;' : ''}}"></view>
-        <text class="pc-slogan" style="{{brandH ? 'font-size:' + brandH * 0.23 + 'px;' : ''}}">心灵信箱 · 把答案寄给未来</text>
-        <view class="pc-qr" style="{{brandH ? 'width:' + brandH * 0.7 + 'px;height:' + brandH * 0.7 + 'px;' : ''}}">
-          <view wx:for="{{qrCells}}" wx:key="*this" class="pc-qr-cell"></view>
+  <!-- 明信片预览区：信纸自持版式（号外/蓝图/票根/标语/几何/黑胶，与写信预览/详情阅读完全同构；
+       高度随内容自适应，长信可滚动预览）+ 底部小程序条，与导出图同构 -->
+  <view class="stage">
+    <view class="postcard">
+      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
+
+      <!-- 底部小程序条：火漆 Logo + 品牌文案 + 小程序码 -->
+      <view class="pc-brand">
+        <view class="pc-logo"></view>
+        <text class="pc-slogan">心灵信箱 · 把答案寄给未来</text>
+        <view class="pc-qr">
+          <image class="pc-qr-img" src="/assets/qrcode.jpg" mode="aspectFit" />
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 底部操作区：上层重新勾选链接 + 下层双等宽实体按钮 -->
+  <!-- 底部操作区：双等宽实体按钮 -->
   <view class="share-foot">
-    <view class="share-reselect" hover-class="share-reselect-hover" bindtap="onOpenSheet">🔄 重新勾选内容</view>
     <view class="share-ops">
       <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSave">💾 保存到相册</view>
       <view class="btn-primary share-btn" hover-class="btn-primary-hover" bindtap="onSend">💬 发给微信好友</view>
     </view>
   </view>
 
-  <!-- 勾选抽屉（界面1/3）：底部滑出，已勾选项在重新打开时完整保留 -->
-  <view class="sheet-mask {{sheetOpen ? 'show' : ''}}" bindtap="onCloseSheet"></view>
-  <view class="sheet {{sheetOpen ? 'show' : ''}}">
-    <view class="sheet-handle"></view>
-    <view class="sheet-title">挑你想让朋友看到的部分。</view>
-    <view class="sheet-opts">
-      <view class="sheet-opt {{sel.name ? 'on' : ''}}" data-key="name" bindtap="onToggleSel">
-        <view class="opt-seal">{{sel.name ? '✓' : ''}}</view>
-        <text class="opt-text">来信名称</text>
-      </view>
-      <view class="sheet-opt {{sel.question ? 'on' : ''}}" data-key="question" bindtap="onToggleSel">
-        <view class="opt-seal">{{sel.question ? '✓' : ''}}</view>
-        <text class="opt-text">当时的问题</text>
-      </view>
-      <view class="sheet-opt {{sel.answer ? 'on' : ''}}" data-key="answer" bindtap="onToggleSel">
-        <view class="opt-seal">{{sel.answer ? '✓' : ''}}</view>
-        <text class="opt-text">想明白的答案</text>
-      </view>
-      <view class="sheet-opt {{sel.date ? 'on' : ''}}" data-key="date" bindtap="onToggleSel">
-        <view class="opt-seal">{{sel.date ? '✓' : ''}}</view>
-        <text class="opt-text">创建时间</text>
-      </view>
-    </view>
-    <view class="sheet-privacy">🔒 重读记录与回信不会出现在分享图中</view>
-    <view class="btn-primary sheet-btn" hover-class="btn-primary-hover" bindtap="onTapGenerate">
-      {{hasGenerated ? '💮 重新生成分享图' : '💮 生成分享图'}}
-    </view>
-  </view>
-
-  <!-- 离屏导出画布（1080×1440，仅用于 Canvas 导出，不参与预览） -->
+  <!-- 离屏导出画布（宽 1080，高随内容在 JS 中动态设置，仅用于 Canvas 导出，不参与预览） -->
   <canvas type="2d" id="share-canvas" class="export-canvas"></canvas>
 
 </view>

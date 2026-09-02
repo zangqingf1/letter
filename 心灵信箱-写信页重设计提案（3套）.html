@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心灵信箱 · 写信第一步 页面重设计提案（3 套）</title>
+<style>
+  /* ============ 提案页本身（非方案样式） ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E7E3DA;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #3B372F;
+    padding: 48px 20px 96px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header.page { text-align: center; margin-bottom: 56px; }
+  header.page .kicker {
+    font-size: 12px; letter-spacing: 6px; color: #8B8578; margin-bottom: 14px;
+  }
+  header.page h1 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 30px; font-weight: 600; letter-spacing: 2px; color: #2E2B25;
+  }
+  header.page .sub {
+    margin-top: 16px; font-size: 13.5px; line-height: 1.9; color: #6E695E; max-width: 540px; margin-left: auto; margin-right: auto;
+  }
+  header.page .rules {
+    margin-top: 18px; display: inline-block; text-align: left;
+    font-size: 12.5px; line-height: 2; color: #6E695E;
+    border-top: 1px solid #C9C3B5; border-bottom: 1px solid #C9C3B5;
+    padding: 10px 4px;
+  }
+
+  section.sample { margin-bottom: 96px; }
+  .meta { margin-bottom: 20px; }
+  .meta .no {
+    font-family: Georgia, serif; font-size: 13px; color: #A29B8A; letter-spacing: 2px;
+  }
+  .meta h2 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 21px; font-weight: 600; color: #2E2B25; letter-spacing: 1.5px;
+    margin-top: 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .meta h2 .tagline { font-family: "PingFang SC","Microsoft YaHei",sans-serif; font-size: 13px; font-weight: 400; color: #8B8578; letter-spacing: 0; }
+  .meta ul { list-style: none; margin-top: 8px; }
+  .meta ul li {
+    font-size: 12.5px; color: #75705F; line-height: 1.9;
+    padding-left: 14px; position: relative;
+  }
+  .meta ul li::before { content: "·"; position: absolute; left: 2px; color: #A29B8A; }
+
+  /* ============ 手机机模通用 ============ */
+  .phone {
+    width: 375px; margin: 0 auto;
+    background: #2A2823;
+    border-radius: 48px; padding: 10px;
+    box-shadow: 0 2px 4px rgba(40,35,25,.20), 0 24px 56px rgba(40,35,25,.28);
+    position: relative;
+  }
+  .phone::after { /* 侧键 */
+    content: ""; position: absolute; right: -3px; top: 190px;
+    width: 3px; height: 64px; border-radius: 2px; background: #1D1B17;
+  }
+  .screen {
+    height: 792px; border-radius: 38px; overflow-y: auto; overflow-x: hidden;
+    position: relative; scrollbar-width: thin; scrollbar-color: rgba(125,133,128,.4) transparent;
+  }
+  .screen::-webkit-scrollbar { width: 4px; }
+  .screen::-webkit-scrollbar-thumb { background: rgba(125,133,128,.35); border-radius: 2px; }
+
+  .status {
+    height: 44px; flex: 0 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 24px 0; font-size: 13px; font-weight: 600; color: #2E3330;
+  }
+  .status .sic { display: flex; align-items: center; gap: 5px; }
+  .sig { display: flex; gap: 1.5px; align-items: flex-end; }
+  .sig i { width: 2.5px; background: #2E3330; border-radius: .5px; display: block; }
+  .sig i:nth-child(1) { height: 4px; } .sig i:nth-child(2) { height: 6px; }
+  .sig i:nth-child(3) { height: 8px; } .sig i:nth-child(4) { height: 10px; }
+  .wifi { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+          border-bottom: 8px solid #2E3330; margin-bottom: 1px; }
+  .batt { width: 21px; height: 10px; border: 1px solid rgba(46,51,48,.9); border-radius: 3px;
+          position: relative; }
+  .batt::before { content: ""; position: absolute; inset: 1.5px; right: 5px;
+          background: #2E3330; border-radius: 1px; }
+  .batt::after { content: ""; position: absolute; right: -3.5px; top: 2.5px;
+          width: 2px; height: 5px; background: rgba(46,51,48,.9); border-radius: 1px; }
+
+  .nav { display: flex; align-items: center; padding: 8px 18px 10px; position: relative; flex: 0 0 auto; }
+  .nav .back { font-size: 14.5px; color: #2E3330; letter-spacing: 1px; position: relative; z-index: 1; }
+  .steps {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-family: "Songti SC","SimSun",serif; font-size: 14px; letter-spacing: 1.5px; color: #2E3330;
+  }
+  .steps .cur { display: inline-block; }
+  .steps .cur::after { content: ""; display: block; width: 18px; height: 3px; border-radius: 2px;
+          background: #6B8E85; margin: 3px auto 0; }
+  .steps .sep { margin: 0 8px; color: #A9B3AE; }
+
+  .bar {
+    position: sticky; bottom: 0; z-index: 5;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px calc(12px + 10px);
+  }
+  .bar .btn-sec { font-size: 13.5px; color: #6E7570; letter-spacing: 1px; white-space: nowrap; }
+  .bar .btn-main {
+    flex: 1; height: 46px; display: flex; align-items: center; justify-content: center;
+    background: #6B8E85; color: #FDFCF9; font-size: 15px; letter-spacing: 5px; text-indent: 5px;
+    border-radius: 26px; font-family: "Songti SC","SimSun",serif;
+    box-shadow: 0 8px 18px rgba(107,142,133,.38);
+  }
+  .bar.dim .btn-main { background: #B7C2BE; box-shadow: none; color: rgba(253,252,249,.75); }
+
+  /* 手写区通用 */
+  .hand {
+    font-family: "Kaiti SC","STKaiti","KaiTi","DFKai-SB",serif;
+    font-size: 15.5px; color: #33302A;
+    line-height: 30px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 29px, rgba(150,140,110,.22) 29px 30px);
+    background-attachment: local;
+  }
+  .f-song { font-family: "Songti SC","SimSun",serif; }
+  .f-kai  { font-family: "Kaiti SC","STKaiti","KaiTi","DFKai-SB",serif; }
+  .f-hei  { font-family: "PingFang SC","Microsoft YaHei",sans-serif; }
+  .f-mono { font-family: "Courier New", Consolas, monospace; }
+
+  .zoom-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 20px; justify-content: center; }
+  .zoom { width: 224px; }
+  .zoom .cap { margin-top: 9px; font-size: 11px; color: #8B8578; letter-spacing: 1.5px; text-align: center; }
+
+  .hint { text-align: center; font-size: 11.5px; color: #A29B8A; letter-spacing: 2px; margin-top: 14px; }
+
+  @media (max-width: 430px) {
+    .phone { transform: scale(.9); transform-origin: top center; margin-bottom: -76px; }
+  }
+
+  /* ================================================================
+     NO.01 素笺正席 —— 整页一张信纸的精修升华
+     ================================================================ */
+  .p1 .screen { background: #F4F3EE; }
+  .p1 .paper {
+    margin: 6px 14px 14px; background: #FBF6EA; border-radius: 18px;
+    padding: 0 22px 26px; position: relative; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(80,100,90,.10);
+  }
+  .p1 .head-bar { height: 4px; background: #C58A6A; margin: 0 -22px; border-radius: 18px 18px 0 0; }
+  .p1 .head-stamp {
+    position: absolute; top: 18px; right: 12px; width: 62px; height: 62px;
+    border: 1.5px dashed rgba(197,138,106,.75); border-radius: 50%;
+    transform: rotate(10deg); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    color: #C58A6A; mix-blend-mode: multiply; opacity: .85;
+  }
+  .p1 .head-stamp::before { content: ""; position: absolute; inset: 5px;
+    border: 1px dashed rgba(197,138,106,.5); border-radius: 50%; }
+  .p1 .head-stamp b { font-family: "Songti SC","SimSun",serif; font-size: 9px; letter-spacing: 2px; font-weight: 600; }
+  .p1 .head-stamp i { font-family: "Courier New",monospace; font-style: normal; font-size: 8px; letter-spacing: 1px; opacity: .8; }
+  .p1 .head-name {
+    margin-top: 30px; text-align: center;
+    font-family: "Songti SC","SimSun",serif; font-size: 21px; font-weight: 600;
+    letter-spacing: 2px; color: #2E3330; line-height: 1.5;
+  }
+  .p1 .head-name .ph { color: #C9C3B5; font-weight: 400; }
+  .p1 .head-date {
+    margin-top: 8px; text-align: center; font-size: 10.5px; letter-spacing: 3px; color: #A29B8A;
+  }
+  .p1 .head-date::before, .p1 .head-date::after { content: "—"; margin: 0 8px; color: #D8CFBB; }
+  .p1 .label {
+    margin: 22px 0 2px; text-align: center; font-size: 11.5px; letter-spacing: 4px; color: #7D8580;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .p1 .label::before, .p1 .label::after { content: ""; width: 36px; height: 1px; background: #C9C3B5; }
+  .p1 .label .no { color: #6B8E85; font-family: "Songti SC","SimSun",serif; }
+  .p1 .hand.q { min-height: 150px; margin-top: 6px; }
+  .p1 .hand.a { min-height: 210px; margin-top: 6px; }
+  .p1 .count { text-align: right; font-family: "Courier New",monospace; font-size: 10.5px; color: #B4AFA2; margin-top: 4px; }
+  .p1 .fold { position: relative; margin: 20px -22px; height: 0;
+    border-top: 1.5px dashed rgba(125,133,128,.32); }
+  .p1 .fold::before, .p1 .fold::after {
+    content: ""; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 50%;
+    background: #F4F3EE; box-shadow: inset 0 0 0 1px rgba(125,133,128,.18);
+  }
+  .p1 .fold::before { left: -9px; } .p1 .fold::after { right: -9px; }
+  .p1 .tray {
+    margin: 6px 14px 0; border: 1.5px dashed #A9BDB6; border-radius: 14px;
+    background: rgba(107,142,133,.07); padding: 13px 13px 10px;
+  }
+  .p1 .tray-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: 3px; color: #6B8E85;
+  }
+  .p1 .tray-title::after { content: ""; flex: 1; border-top: 1px dashed rgba(107,142,133,.4); }
+  .p1 .tray-title .n {
+    font-family: "Courier New",monospace; font-size: 10px; color: #6B8E85;
+    border: 1px solid rgba(107,142,133,.5); border-radius: 8px; padding: 0 6px; letter-spacing: 0;
+  }
+  .p1 .dcard {
+    margin-top: 10px; background: #FFFFFF; border-radius: 10px; padding: 10px 12px;
+    box-shadow: 0 4px 12px rgba(80,100,90,.10);
+    display: flex; align-items: center; gap: 10px; position: relative;
+  }
+  .p1 .dcard .clip { flex: 0 0 auto; width: 11px; height: 21px; border: 1.5px solid #C4A482;
+    border-radius: 6px; position: relative; transform: rotate(-8deg); }
+  .p1 .dcard .clip::before { content: ""; position: absolute; left: 2.5px; right: 2.5px; top: 2.5px;
+    height: 9px; border: 1.5px solid #C4A482; border-bottom: none; border-radius: 5px 5px 0 0; }
+  .p1 .dcard .main { flex: 1; min-width: 0; }
+  .p1 .dcard .dn { font-family: "Songti SC","SimSun",serif; font-size: 13px; font-weight: 600; color: #2E3330; }
+  .p1 .dcard .ds { font-size: 10.5px; color: #9A9488; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p1 .dcard .side { text-align: right; flex: 0 0 auto; }
+  .p1 .dcard .dd { font-family: "Courier New",monospace; font-size: 9.5px; color: #B4AFA2; }
+  .p1 .dcard .del { display: block; margin-top: 4px; font-size: 10.5px; color: #6E7570;
+    border-bottom: 1px dashed rgba(110,117,112,.5); }
+  .p1 .tray-note { margin-top: 10px; font-size: 10px; color: #9AA5A0; letter-spacing: 1px; text-align: center; }
+  .p1 .bar { background: rgba(244,243,238,.92); backdrop-filter: blur(12px); }
+
+  /* NO.01 细节放大 */
+  .z1-head { background: #FBF6EA; border-radius: 8px; padding: 20px 16px 16px; position: relative;
+    box-shadow: 0 4px 14px rgba(40,35,25,.12); overflow: hidden; }
+  .z1-head::before { content: ""; display: block; height: 3px; background: #C58A6A; margin: -20px -16px 14px; }
+  .z1-head .t { text-align: center; font-family: "Songti SC","SimSun",serif; font-size: 16px;
+    font-weight: 600; letter-spacing: 2px; color: #2E3330; }
+  .z1-head .d { margin-top: 6px; text-align: center; font-size: 9.5px; letter-spacing: 2.5px; color: #A29B8A; }
+  .z1-head .d::before, .z1-head .d::after { content: "—"; margin: 0 6px; color: #D8CFBB; }
+  .z1-head .stamp { position: absolute; top: 12px; right: 8px; width: 44px; height: 44px;
+    border: 1.5px dashed rgba(197,138,106,.75); border-radius: 50%; transform: rotate(10deg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Songti SC","SimSun",serif; font-size: 7.5px; letter-spacing: 1px; color: #C58A6A;
+    mix-blend-mode: multiply; }
+  .z1-card { background: #FFFFFF; border-radius: 8px; padding: 12px 13px;
+    box-shadow: 0 4px 14px rgba(40,35,25,.12); display: flex; gap: 10px; align-items: center; }
+  .z1-card .clip { flex: 0 0 auto; width: 12px; height: 24px; border: 1.5px solid #C4A482;
+    border-radius: 6px; position: relative; transform: rotate(-8deg); }
+  .z1-card .clip::before { content: ""; position: absolute; left: 3px; right: 3px; top: 3px;
+    height: 10px; border: 1.5px solid #C4A482; border-bottom: none; border-radius: 5px 5px 0 0; }
+  .z1-card .dn { font-family: "Songti SC","SimSun",serif; font-size: 14px; font-weight: 600; color: #2E3330; }
+  .z1-card .ds { font-size: 11px; color: #9A9488; margin-top: 3px; }
+  .z1-card .side { margin-left: auto; text-align: right; }
+  .z1-card .dd { font-family: "Courier New",monospace; font-size: 10px; color: #B4AFA2; }
+  .z1-card .del { display: block; margin-top: 5px; font-size: 11px; color: #6E7570;
+    border-bottom: 1px dashed rgba(110,117,112,.5); }
+  .z1-btns { background: #F4F3EE; border-radius: 8px; padding: 14px 14px 16px;
+    box-shadow: 0 4px 14px rgba(40,35,25,.12); display: flex; flex-direction: column; gap: 10px; }
+  .z1-btns .row { display: flex; align-items: center; gap: 12px; }
+  .z1-btns .b-sec { font-size: 12px; color: #6E7570; }
+  .z1-btns .b-main { flex: 1; height: 40px; display: flex; align-items: center; justify-content: center;
+    background: #6B8E85; color: #FDFCF9; font-size: 13px; letter-spacing: 4px; text-indent: 4px;
+    border-radius: 22px; font-family: "Songti SC","SimSun",serif;
+    box-shadow: 0 6px 14px rgba(107,142,133,.38); }
+  .z1-btns .row.off .b-main { background: #B7C2BE; box-shadow: none; color: rgba(253,252,249,.75); }
+  .z1-btns .cap2 { font-size: 9.5px; color: #A29B8A; letter-spacing: 1px; }
+
+  /* ================================================================
+     NO.02 案头分笺 —— 桌面上叠放的两张笺
+     ================================================================ */
+  .p2 .screen {
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255,253,246,.8), transparent 50%),
+      radial-gradient(ellipse at 85% 100%, rgba(120,110,85,.10), transparent 55%),
+      #E9E8E1;
+  }
+  .p2 .tag {
+    margin: 6px 16px 12px; background: #FBF6EA; border-radius: 12px;
+    padding: 13px 16px 15px; position: relative;
+    box-shadow: 0 6px 18px rgba(80,100,90,.12);
+  }
+  .p2 .tag::after { /* 右上小印点 */
+    content: ""; position: absolute; top: 12px; right: 14px; width: 26px; height: 26px;
+    border: 1.5px dashed rgba(197,138,106,.6); border-radius: 50%;
+  }
+  .p2 .tag .cap { font-size: 9.5px; letter-spacing: 4px; color: #A29B8A; }
+  .p2 .tag .nm {
+    margin-top: 6px; font-family: "Songti SC","SimSun",serif; font-size: 19px; font-weight: 600;
+    letter-spacing: 1.5px; color: #2E3330; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(197,138,106,.45); padding-right: 40px;
+  }
+  .p2 .tag .nm .ph { color: #C9C3B5; font-weight: 400; }
+  .p2 .sheet {
+    margin: 0 16px 12px; background: #FBF6EA; border-radius: 14px;
+    padding: 15px 18px 12px; position: relative;
+    box-shadow: 0 8px 22px rgba(80,100,90,.13);
+  }
+  .p2 .sheet.a { background: #FFFDF2; transform: rotate(.4deg); }
+  .p2 .sheet .lrow { display: flex; align-items: center; gap: 9px; }
+  .p2 .sheet .tagchip {
+    font-family: "Songti SC","SimSun",serif; font-size: 10.5px; color: #6B8E85;
+    border: 1px solid rgba(107,142,133,.55); border-radius: 4px; padding: 1.5px 6px; letter-spacing: 2px;
+  }
+  .p2 .sheet .lt { font-size: 11.5px; letter-spacing: 3px; color: #7D8580; }
+  .p2 .sheet .hand { min-height: 120px; margin-top: 10px; }
+  .p2 .sheet.a .hand { min-height: 168px; }
+  .p2 .sheet .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .p2 .sheet .foot .tip { font-size: 9px; letter-spacing: 2px; color: #C9C3B5; }
+  .p2 .sheet .foot .count { font-family: "Courier New",monospace; font-size: 10px; color: #B4AFA2; }
+  .p2 .clip {
+    position: absolute; top: -11px; left: 18px; width: 16px; height: 34px;
+    border: 2px solid #C4A482; border-radius: 9px; transform: rotate(-10deg);
+    box-shadow: 1px 2px 3px rgba(60,50,30,.22); z-index: 2;
+  }
+  .p2 .clip::before { content: ""; position: absolute; left: 3.5px; right: 3.5px; top: 4px;
+    height: 16px; border: 2px solid #C4A482; border-bottom: none; border-radius: 7px 7px 0 0; }
+  .p2 .shelf { margin: 2px 16px 0; }
+  .p2 .shelf-title { display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; letter-spacing: 3px; color: #6E7570; }
+  .p2 .shelf-title::after { content: ""; flex: 1; border-top: 1px dashed rgba(110,117,112,.4); }
+  .p2 .shelf-title .n { font-family: "Courier New",monospace; font-size: 10px; color: #6E7570; }
+  .p2 .notes { display: flex; gap: 12px; margin-top: 10px; }
+  .p2 .note {
+    flex: 1; background: #FFF6E2; border-radius: 3px; padding: 20px 11px 9px;
+    box-shadow: 0 6px 14px rgba(80,90,70,.16); position: relative; min-width: 0;
+  }
+  .p2 .note:nth-child(1) { transform: rotate(-1.2deg); }
+  .p2 .note:nth-child(2) { transform: rotate(.9deg); }
+  .p2 .note::before { /* 顶部胶带 */
+    content: ""; position: absolute; top: -7px; left: 50%; width: 44px; height: 13px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: rgba(197,138,106,.22); border-left: 1px dashed rgba(197,138,106,.35);
+    border-right: 1px dashed rgba(197,138,106,.35);
+  }
+  .p2 .note .dn { font-family: "Songti SC","SimSun",serif; font-size: 12.5px; font-weight: 600;
+    color: #4A4438; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p2 .note .ds { margin-top: 3px; font-size: 10px; color: #9A9284; line-height: 1.6;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p2 .note .foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
+  .p2 .note .dd { font-family: "Courier New",monospace; font-size: 9px; color: #B0A794; }
+  .p2 .note .del { font-size: 9.5px; color: #8B8578; border-bottom: 1px dashed rgba(139,133,120,.6); }
+  .p2 .bar { background: rgba(233,232,225,.92); backdrop-filter: blur(12px); }
+
+  /* NO.02 细节放大 */
+  .z2-tag { background: #FBF6EA; border-radius: 8px; padding: 12px 14px 14px; position: relative;
+    box-shadow: 0 4px 14px rgba(40,35,25,.12); }
+  .z2-tag::after { content: ""; position: absolute; top: 10px; right: 12px; width: 22px; height: 22px;
+    border: 1.5px dashed rgba(197,138,106,.6); border-radius: 50%; }
+  .z2-tag .cap { font-size: 9px; letter-spacing: 3px; color: #A29B8A; }
+  .z2-tag .nm { margin-top: 5px; font-family: "Songti SC","SimSun",serif; font-size: 16px; font-weight: 600;
+    color: #2E3330; padding-bottom: 7px; border-bottom: 1px solid rgba(197,138,106,.45); }
+  .z2-sheet { background: #FFFDF2; border-radius: 8px; padding: 22px 14px 12px; position: relative;
+    box-shadow: 0 4px 14px rgba(40,35,25,.12); transform: rotate(-.5deg); }
+  .z2-sheet .clip { position: absolute; top: -9px; left: 12px; width: 14px; height: 28px;
+    border: 2px solid #C4A482; border-radius: 8px; transform: rotate(-10deg);
+    box-shadow: 1px 2px 3px rgba(60,50,30,.22); }
+  .z2-sheet .clip::before { content: ""; position: absolute; left: 3px; right: 3px; top: 3.5px;
+    height: 13px; border: 2px solid #C4A482; border-bottom: none; border-radius: 6px 6px 0 0; }
+  .z2-sheet .lt { font-size: 10.5px; letter-spacing: 2.5px; color: #7D8580; }
+  .z2-sheet .lt .tagchip { font-family: "Songti SC","SimSun",serif; font-size: 10px; color: #6B8E85;
+    border: 1px solid rgba(107,142,133,.55); border-radius: 4px; padding: 1px 5px; margin-right: 6px; }
+  .z2-sheet .hand { min-height: 74px; margin-top: 8px; font-size: 13.5px; line-height: 26px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 25px, rgba(150,140,110,.22) 25px 26px); }
+  .z2-note { background: #FFF6E2; border-radius: 3px; padding: 17px 11px 9px; position: relative;
+    box-shadow: 0 5px 12px rgba(40,35,25,.14); transform: rotate(-1.2deg); }
+  .z2-note::before { content: ""; position: absolute; top: -6px; left: 50%; width: 40px; height: 12px;
+    transform: translateX(-50%) rotate(-2deg); background: rgba(197,138,106,.22);
+    border-left: 1px dashed rgba(197,138,106,.35); border-right: 1px dashed rgba(197,138,106,.35); }
+  .z2-note .dn { font-family: "Songti SC","SimSun",serif; font-size: 12.5px; font-weight: 600; color: #4A4438; }
+  .z2-note .ds { margin-top: 3px; font-size: 10px; color: #9A9284; }
+  .z2-note .foot { display: flex; justify-content: space-between; margin-top: 8px; }
+  .z2-note .dd { font-family: "Courier New",monospace; font-size: 9px; color: #B0A794; }
+  .z2-note .del { font-size: 9.5px; color: #8B8578; border-bottom: 1px dashed rgba(139,133,120,.6); }
+
+  /* ================================================================
+     NO.03 暖印编辑部 —— 同色系内的精装刊物内页
+     ================================================================ */
+  .p3 .screen { background: #F7F1E1; }
+  .p3 .band {
+    height: 28px; background: #6B8E85; color: rgba(253,252,249,.95);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; position: relative;
+  }
+  .p3 .band b { font-size: 9px; letter-spacing: 4px; font-weight: 600; font-family: "Songti SC","SimSun",serif; }
+  .p3 .band i { font-family: "Courier New",monospace; font-style: normal; font-size: 8.5px; letter-spacing: 1.5px; opacity: .85; }
+  .p3 .band .hole { position: absolute; top: 8px; width: 12px; height: 12px; border-radius: 50%;
+    background: rgba(46,51,48,.28); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+  .p3 .band .hole.h1 { left: 78px; } .p3 .band .hole.h2 { right: 78px; }
+  .p3 .mast { padding: 22px 22px 0; text-align: center; }
+  .p3 .mast .kick { font-family: "Courier New",monospace; font-size: 9px; letter-spacing: 3px; color: #A29B8A; }
+  .p3 .mast .big {
+    margin-top: 8px; font-family: "Songti SC","SimSun",serif; font-size: 27px; font-weight: 900;
+    letter-spacing: 8px; text-indent: 8px; color: #26241C;
+  }
+  .p3 .mast .rule-heavy { height: 3px; background: #26241C; margin-top: 14px; }
+  .p3 .mast .rule-thin { height: 1px; background: #26241C; margin-top: 3px; }
+  .p3 .dateline {
+    display: flex; justify-content: space-between; padding: 8px 2px 0;
+    font-family: "Courier New",monospace; font-size: 9.5px; letter-spacing: 1.5px; color: #6E695E;
+  }
+  .p3 .col { padding: 0 22px; }
+  .p3 .nameblk { margin-top: 18px; }
+  .p3 .nameblk .cap { font-family: "Courier New",monospace; font-size: 9px; letter-spacing: 2px; color: #A29B8A; }
+  .p3 .nameblk .nm {
+    margin-top: 4px; font-family: "Songti SC","SimSun",serif; font-size: 19px; font-weight: 900;
+    letter-spacing: 1px; color: #26241C; line-height: 1.5;
+    border-bottom: 1px solid #26241C; padding-bottom: 9px;
+  }
+  .p3 .qa { margin-top: 20px; display: flex; gap: 13px; }
+  .p3 .qa .mark {
+    flex: 0 0 auto; width: 24px; height: 24px; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Songti SC","SimSun",serif; font-size: 13px; font-weight: 900;
+  }
+  .p3 .qa .mark.q { border: 1.5px solid #26241C; color: #26241C; }
+  .p3 .qa .mark.a { background: #6B8E85; color: #FDFCF9; }
+  .p3 .qa .body { flex: 1; min-width: 0; }
+  .p3 .qa .lt { font-size: 10.5px; letter-spacing: 3px; color: #7D8580; }
+  .p3 .qa .txt { margin-top: 8px; }
+  .p3 .qa .txt .hand { background: none; font-size: 15px; line-height: 28px; }
+  .p3 .qa .txt .hand-empty { color: #C9C3B5; }
+  .p3 .qa .cfoot {
+    margin-top: 10px; border-top: 1px solid rgba(38,36,28,.25);
+    display: flex; justify-content: space-between; padding-top: 5px;
+    font-family: "Courier New",monospace; font-size: 9.5px; letter-spacing: 1px; color: #8B8578;
+  }
+  .p3 .colrule { height: 1px; background: rgba(38,36,28,.35); margin: 18px 0 0; }
+  .p3 .toc { margin: 6px 22px 0; }
+  .p3 .toc-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 6px; border-bottom: 1px solid #26241C;
+  }
+  .p3 .toc-head b { font-family: "Songti SC","SimSun",serif; font-size: 12.5px;
+    letter-spacing: 4px; color: #26241C; font-weight: 700; }
+  .p3 .toc-head i { font-family: "Courier New",monospace; font-style: normal; font-size: 9px; color: #A29B8A; }
+  .p3 .toc-row { display: flex; align-items: baseline; gap: 9px; padding: 11px 0 3px; }
+  .p3 .toc-row .dd { font-family: "Courier New",monospace; font-size: 9.5px; color: #A29B8A; flex: 0 0 auto; }
+  .p3 .toc-row .tt { font-family: "Songti SC","SimSun",serif; font-size: 13.5px; font-weight: 700;
+    color: #26241C; flex: 0 0 auto; }
+  .p3 .toc-row .lead { flex: 1; border-bottom: 1.5px dotted rgba(38,36,28,.35); transform: translateY(-3px); }
+  .p3 .toc-row .del { font-size: 10px; color: #8B8578; flex: 0 0 auto;
+    border-bottom: 1px dashed rgba(139,133,120,.6); }
+  .p3 .toc-row .ss { flex: 0 0 100%; font-size: 10px; color: #9A9284; padding: 2px 0 6px; }
+  .p3 .toc-note { margin-top: 8px; font-size: 9.5px; letter-spacing: 1px; color: #A29B8A; text-align: right; }
+  .p3 .bar {
+    background: rgba(247,241,225,.95); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(38,36,28,.4);
+  }
+  .p3 .bar .btn-sec { color: #5A5240; }
+  .p3 .bar .btn-main { border-radius: 6px; box-shadow: 0 6px 14px rgba(107,142,133,.32); }
+
+  /* NO.03 细节放大 */
+  .z3-mast { background: #F7F1E1; padding: 14px 16px 12px; box-shadow: 0 4px 14px rgba(40,35,25,.12); }
+  .z3-mast .band { height: 22px; background: #6B8E85; color: rgba(253,252,249,.95);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+    font-size: 8px; letter-spacing: 3px; font-family: "Songti SC","SimSun",serif; margin: -14px -16px 12px; }
+  .z3-mast .band i { font-family: "Courier New",monospace; font-style: normal; font-size: 8px; opacity: .85; }
+  .z3-mast .big { text-align: center; font-family: "Songti SC","SimSun",serif; font-size: 19px;
+    font-weight: 900; letter-spacing: 6px; text-indent: 6px; color: #26241C; }
+  .z3-mast .rule-heavy { height: 2.5px; background: #26241C; margin-top: 10px; }
+  .z3-mast .rule-thin { height: 1px; background: #26241C; margin-top: 2.5px; }
+  .z3-mast .dateline { display: flex; justify-content: space-between; padding-top: 6px;
+    font-family: "Courier New",monospace; font-size: 8.5px; color: #6E695E; }
+  .z3-qa { background: #F7F1E1; padding: 14px 16px; box-shadow: 0 4px 14px rgba(40,35,25,.12); }
+  .z3-qa .qa { display: flex; gap: 10px; }
+  .z3-qa .mark { flex: 0 0 auto; width: 21px; height: 21px; display: flex; align-items: center;
+    justify-content: center; font-family: "Songti SC","SimSun",serif; font-size: 12px; font-weight: 900; }
+  .z3-qa .mark.a { background: #6B8E85; color: #FDFCF9; }
+  .z3-qa .lt { font-size: 10px; letter-spacing: 2.5px; color: #7D8580; }
+  .z3-qa .txt { margin-top: 6px; font-family: "Kaiti SC","STKaiti","KaiTi",serif; font-size: 12.5px;
+    line-height: 24px; color: #33302A; }
+  .z3-qa .cfoot { margin-top: 8px; border-top: 1px solid rgba(38,36,28,.25);
+    display: flex; justify-content: space-between; padding-top: 4px;
+    font-family: "Courier New",monospace; font-size: 8.5px; color: #8B8578; }
+  .z3-toc { background: #F7F1E1; padding: 14px 16px; box-shadow: 0 4px 14px rgba(40,35,25,.12); }
+  .z3-toc .toc-head { display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 5px; border-bottom: 1px solid #26241C; }
+  .z3-toc .toc-head b { font-family: "Songti SC","SimSun",serif; font-size: 12px; letter-spacing: 3px;
+    color: #26241C; font-weight: 700; }
+  .z3-toc .toc-head i { font-family: "Courier New",monospace; font-style: normal; font-size: 8.5px; color: #A29B8A; }
+  .z3-toc .toc-row { display: flex; align-items: baseline; gap: 8px; padding: 10px 0 2px; }
+  .z3-toc .toc-row .dd { font-family: "Courier New",monospace; font-size: 9px; color: #A29B8A; }
+  .z3-toc .toc-row .tt { font-family: "Songti SC","SimSun",serif; font-size: 12.5px; font-weight: 700; color: #26241C; }
+  .z3-toc .toc-row .lead { flex: 1; border-bottom: 1.5px dotted rgba(38,36,28,.35); transform: translateY(-3px); }
+  .z3-toc .toc-row .del { font-size: 9.5px; color: #8B8578; border-bottom: 1px dashed rgba(139,133,120,.6); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <div class="kicker">心灵信箱 · 写信第一步 · 页面重设计提案</div>
+    <h1>写下这封信 · 三版方案</h1>
+    <div class="sub">
+      针对「写信第一步」整页显示的三版重设计。三版梯度渐进，均沿用现有设计体系——
+      暖纸米黄 + 鼠尾草绿 + 暖沙金、宋体标题 / 楷体手写、纸感邮路隐喻——不引入新隐喻，只换编排。
+    </div>
+    <div class="rules">
+      三版均完整保留页面功能：信名（20 字内）· 问题（500 字）· 答案（2000 字）三段必填与右下角实时计数 ·
+      折痕分区 · 「没写完的信」草稿陈列（载入续写 / 撕毁）· 底栏「💾 存草稿 + 选主题」双按钮 ·
+      顶栏「‹ 返回 + 写内容 · 选主题」步骤条 · 退出保护与编辑态差异不在提案内重复呈现。<br>
+      机模内的页面可上下滚动，查看整页落位。
+    </div>
+  </header>
+
+  <!-- ================= NO.01 素笺正席 ================= -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 01</div>
+      <h2>素笺正席 <span class="tagline">稳 · 现有整页信纸的精修升华</span></h2>
+      <ul>
+        <li>保留「一页一张信纸 + 折痕分区」的现有骨架，落地成本最低。</li>
+        <li>信头升级为完整仪式：陶土色顶线 + 居中宋体信名 + 日期行，右上角压一枚虚线圆小邮戳（与 detail 邮戳墙同语言）。</li>
+        <li>字段引导语改为「其一 / 其二」编号式小字，鼠尾草绿编号 + 两侧短横线，更有书卷气。</li>
+        <li>草稿陈列由虚线框升级为「便签夹」：鼠尾草虚线托盘 + 白卡带回形针角标、日期与「撕毁」线，呼应回形针页。</li>
+        <li>底栏不变，主按钮保持火漆胶囊意象；细节放大见下方三张。</li>
+      </ul>
+    </div>
+
+    <div class="phone p1">
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="sic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="wifi"></span><span class="batt"></span></span>
+        </div>
+        <div class="nav">
+          <span class="back">‹ 返回</span>
+          <div class="steps"><span class="cur">写内容</span><span class="sep">·</span>选主题</div>
+        </div>
+
+        <div class="paper">
+          <div class="head-bar"></div>
+          <div class="head-stamp"><b>心灵信箱</b><i>2026.08.30</i></div>
+          <div class="head-name">关于失眠，我想明白的事</div>
+          <div class="head-date">写于 二〇二六年 八月三十日</div>
+
+          <div class="label"><span class="no">其一</span>&nbsp;遇到了什么问题？</div>
+          <div class="hand q">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+          <div class="count">53 / 500</div>
+
+          <div class="fold"></div>
+
+          <div class="label"><span class="no">其二</span>&nbsp;你可以怎么做？</div>
+          <div class="hand a">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+          <div class="count">123 / 2000</div>
+        </div>
+
+        <div class="tray">
+          <div class="tray-title">没写完的信 <span class="n">2</span></div>
+          <div class="dcard">
+            <span class="clip"></span>
+            <div class="main">
+              <div class="dn">没起名字的信</div>
+              <div class="ds">要不要换个部门，还是再撑一年……</div>
+            </div>
+            <div class="side">
+              <div class="dd">08.28</div>
+              <span class="del">撕毁</span>
+            </div>
+          </div>
+          <div class="dcard">
+            <span class="clip"></span>
+            <div class="main">
+              <div class="dn">给三个月后的自己</div>
+              <div class="ds">如果坚持满一百天，想对自己说……</div>
+            </div>
+            <div class="side">
+              <div class="dd">08.24</div>
+              <span class="del">撕毁</span>
+            </div>
+          </div>
+          <div class="tray-note">点击继续写，封存寄出后草稿就会离开这里。</div>
+        </div>
+
+        <div class="bar">
+          <span class="btn-sec">💾 存草稿</span>
+          <div class="btn-main">选主题</div>
+        </div>
+      </div>
+    </div>
+    <div class="hint">机模内可上下滚动 · 信纸本体未做换纸色，仍为米黄 FBF6EA</div>
+
+    <div class="zoom-row">
+      <div class="zoom">
+        <div class="z1-head">
+          <div class="stamp">心灵<br>信箱</div>
+          <div class="t">关于失眠，我想明白的事</div>
+          <div class="d">写于 二〇二六年 八月三十日</div>
+        </div>
+        <div class="cap">信头：陶土顶线 + 日期行 + 虚线小邮戳</div>
+      </div>
+      <div class="zoom">
+        <div class="z1-card">
+          <span class="clip"></span>
+          <div>
+            <div class="dn">没起名字的信</div>
+            <div class="ds">要不要换个部门，还是再撑一年……</div>
+          </div>
+          <div class="side">
+            <div class="dd">08.28</div>
+            <span class="del">撕毁</span>
+          </div>
+        </div>
+        <div class="cap">草稿白卡：回形针角标 + 撕毁线</div>
+      </div>
+      <div class="zoom">
+        <div class="z1-btns">
+          <div class="row">
+            <span class="b-sec">💾 存草稿</span>
+            <div class="b-main">选主题</div>
+          </div>
+          <div class="row off">
+            <span class="b-sec">💾 存草稿</span>
+            <div class="b-main">选主题</div>
+          </div>
+          <div class="cap2">主按钮：可寄出态 / 未填齐置灰态</div>
+        </div>
+        <div class="cap">底栏双按钮与置灰态</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= NO.02 案头分笺 ================= -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 02</div>
+      <h2>案头分笺 <span class="tagline">中 · 桌面上叠放的两张笺</span></h2>
+      <ul>
+        <li>整页纸拆开摊在「桌面」上：页面底色改暖灰桌面（E9E8E1），信纸不再连成一整张，空间层级更清晰。</li>
+        <li>信名做成「信封抬头标签笺」：小注「给这封信」+ 宋体信名 + 陶土色下划线，右上角一枚虚线小印。</li>
+        <li>问题、答案分作两张独立纸笺上下叠放，答案笺左上压一枚金色回形针（呼应 clips 页），各带编号标签与计数。</li>
+        <li>草稿陈列改为 detail 回信便签语言：米黄便签 ±1° 微倾、顶部胶带，两枚并排。</li>
+        <li>折痕消失，改为两笺之间的自然间隙；底栏仍为火漆胶囊双按钮。</li>
+      </ul>
+    </div>
+
+    <div class="phone p2">
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="sic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="wifi"></span><span class="batt"></span></span>
+        </div>
+        <div class="nav">
+          <span class="back">‹ 返回</span>
+          <div class="steps"><span class="cur">写内容</span><span class="sep">·</span>选主题</div>
+        </div>
+
+        <div class="tag">
+          <div class="cap">给 这 封 信</div>
+          <div class="nm">关于失眠，我想明白的事</div>
+        </div>
+
+        <div class="sheet">
+          <div class="lrow"><span class="tagchip">其一</span><span class="lt">遇到了什么问题？</span></div>
+          <div class="hand">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+          <div class="foot"><span class="tip">写完再往下</span><span class="count">53 / 500</span></div>
+        </div>
+
+        <div class="sheet a">
+          <span class="clip"></span>
+          <div class="lrow"><span class="tagchip">其二</span><span class="lt">你可以怎么做？</span></div>
+          <div class="hand">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+          <div class="foot"><span class="tip">写完就可以封存了</span><span class="count">123 / 2000</span></div>
+        </div>
+
+        <div class="shelf">
+          <div class="shelf-title">没写完的信 <span class="n">· 2</span></div>
+          <div class="notes">
+            <div class="note">
+              <div class="dn">没起名字的信</div>
+              <div class="ds">要不要换个部门，还是再撑一年……</div>
+              <div class="foot"><span class="dd">08.28</span><span class="del">撕毁</span></div>
+            </div>
+            <div class="note">
+              <div class="dn">给三个月后的自己</div>
+              <div class="ds">如果坚持满一百天，想对自己说……</div>
+              <div class="foot"><span class="dd">08.24</span><span class="del">撕毁</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <span class="btn-sec">💾 存草稿</span>
+          <div class="btn-main">选主题</div>
+        </div>
+      </div>
+    </div>
+    <div class="hint">机模内可上下滚动 · 桌面底色 E9E8E1，与主题 desk 色同源</div>
+
+    <div class="zoom-row">
+      <div class="zoom">
+        <div class="z2-tag">
+          <div class="cap">给 这 封 信</div>
+          <div class="nm">关于失眠，我想明白的事</div>
+        </div>
+        <div class="cap">信名标签笺：小注 + 陶土下划线</div>
+      </div>
+      <div class="zoom">
+        <div class="z2-sheet">
+          <span class="clip"></span>
+          <div class="lt"><span class="tagchip">其二</span>你可以怎么做？</div>
+          <div class="hand">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。</div>
+        </div>
+        <div class="cap">答案笺：金色回形针 + 编号标签</div>
+      </div>
+      <div class="zoom">
+        <div class="z2-note">
+          <div class="dn">给三个月后的自己</div>
+          <div class="ds">如果坚持满一百天，想对自己说……</div>
+          <div class="foot"><span class="dd">08.24</span><span class="del">撕毁</span></div>
+        </div>
+        <div class="cap">草稿便签：微倾 + 胶带（detail 同语言）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= NO.03 暖印编辑部 ================= -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 03</div>
+      <h2>暖印编辑部 <span class="tagline">进 · 同色系内的精装刊物内页</span></h2>
+      <ul>
+        <li>整个页面变成一张「信稿内页」：米黄纸通铺（F7F1E1），顶部一条鼠尾草装订带（含装订孔与页码感小字「第一页 · PAGE 01」）。</li>
+        <li>宋体大刊头「写下这封信」+ 报头式粗细双线 + mono 日期栏，与「号外头版」信纸同血统但更克制。</li>
+        <li>问题 / 答案用页边距「Q / A」方章标注（Q 空心墨色、A 实心鼠尾草），引导语退为栏上小字。</li>
+        <li>计数改为页脚编目行：细线之上 mono「已书 53 / 上限 500」，编辑感十足。</li>
+        <li>草稿陈列做成「待续稿 · 目录」：mono 日期 + 宋体稿名 + 点线引导 + 「撕毁」，像刊物的目录页。</li>
+        <li>底栏主按钮由胶囊改方角 6px，墨色细顶线收边；仍是鼠尾草主色，不改色板。</li>
+      </ul>
+    </div>
+
+    <div class="phone p3">
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="sic"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="wifi"></span><span class="batt"></span></span>
+        </div>
+
+        <div class="band">
+          <b>心灵信箱 · 信稿</b>
+          <span class="hole h1"></span><span class="hole h2"></span>
+          <i>第一页 · PAGE 01</i>
+        </div>
+
+        <div class="mast">
+          <div class="kick">WRITE · STEP ONE</div>
+          <div class="big">写下这封信</div>
+          <div class="rule-heavy"></div>
+          <div class="rule-thin"></div>
+          <div class="dateline"><span>2026.08.30</span><span>‹ 返回</span></div>
+        </div>
+
+        <div class="col nameblk">
+          <div class="cap">信名 · TITLE（20 字内）</div>
+          <div class="nm">关于失眠，我想明白的事</div>
+        </div>
+
+        <div class="col qa">
+          <div class="mark q">Q</div>
+          <div class="body">
+            <div class="lt">遇到了什么问题？</div>
+            <div class="txt"><div class="hand">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div></div>
+            <div class="cfoot"><span>已书 53</span><span>上限 500</span></div>
+          </div>
+        </div>
+
+        <div class="col"><div class="colrule"></div></div>
+
+        <div class="col qa">
+          <div class="mark a">A</div>
+          <div class="body">
+            <div class="lt">你可以怎么做？</div>
+            <div class="txt"><div class="hand">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div></div>
+            <div class="cfoot"><span>已书 123</span><span>上限 2000</span></div>
+          </div>
+        </div>
+
+        <div class="toc">
+          <div class="toc-head"><b>待续稿 · 目录</b><i>CONTENTS × 2</i></div>
+          <div class="toc-row">
+            <span class="dd">08.28</span><span class="tt">没起名字的信</span>
+            <span class="lead"></span><span class="del">撕毁</span>
+            <span class="ss">要不要换个部门，还是再撑一年……</span>
+          </div>
+          <div class="toc-row">
+            <span class="dd">08.24</span><span class="tt">给三个月后的自己</span>
+            <span class="lead"></span><span class="del">撕毁</span>
+            <span class="ss">如果坚持满一百天，想对自己说……</span>
+          </div>
+          <div class="toc-note">点击继续写，封存寄出后即从目录移去。</div>
+        </div>
+
+        <div class="bar">
+          <span class="btn-sec">💾 存草稿</span>
+          <div class="btn-main">选主题</div>
+        </div>
+      </div>
+    </div>
+    <div class="hint">机模内可上下滚动 · 纸面通铺 F7F1E1，装订带即鼠尾草主色</div>
+
+    <div class="zoom-row">
+      <div class="zoom">
+        <div class="z3-mast">
+          <div class="band"><span>心灵信箱 · 信稿</span><i>PAGE 01</i></div>
+          <div class="big">写下这封信</div>
+          <div class="rule-heavy"></div>
+          <div class="rule-thin"></div>
+          <div class="dateline"><span>2026.08.30</span><span>‹ 返回</span></div>
+        </div>
+        <div class="cap">装订带 + 宋体刊头 + 报头双线</div>
+      </div>
+      <div class="zoom">
+        <div class="z3-qa">
+          <div class="qa">
+            <div class="mark a">A</div>
+            <div>
+              <div class="lt">你可以怎么做？</div>
+              <div class="txt">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。</div>
+              <div class="cfoot"><span>已书 52</span><span>上限 2000</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">Q/A 方章标注 + mono 编目行</div>
+      </div>
+      <div class="zoom">
+        <div class="z3-toc">
+          <div class="toc-head"><b>待续稿 · 目录</b><i>CONTENTS × 2</i></div>
+          <div class="toc-row">
+            <span class="dd">08.28</span><span class="tt">没起名字的信</span>
+            <span class="lead"></span><span class="del">撕毁</span>
+          </div>
+          <div class="toc-row">
+            <span class="dd">08.24</span><span class="tt">给三个月后的自己</span>
+            <span class="lead"></span><span class="del">撕毁</span>
+          </div>
+        </div>
+        <div class="cap">草稿即目录：点线引导 + mono 日期</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

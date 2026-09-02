@@ -7,12 +7,40 @@
     <image class="brand-name" src="/assets/name.png" mode="aspectFit" />
   </view>
 
+  <!-- 冷启动骨架（initialRenderingCache static 首帧，仅首次加载显示；色块占位 + 轻呼吸，无其他动效） -->
+  <block wx:if="{{loading}}">
+    <view class="today sk-card">
+      <view class="sk sk-label"></view>
+      <view class="sk-row">
+        <view class="sk-lines">
+          <view class="sk sk-line"></view>
+          <view class="sk sk-line sk-line-short"></view>
+        </view>
+        <view class="sk sk-img"></view>
+      </view>
+    </view>
+    <view class="desk">
+      <view class="letters letters-few">
+        <view
+          class="letter-card"
+          wx:for="{{[0, 1, 2, 3]}}"
+          wx:key="*this"
+          style="transform: rotate({{item % 2 ? 2 : -2}}deg);"
+        >
+          <view class="sk sk-env"></view>
+          <view class="sk sk-name"></view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
   <!-- 今日来信 -->
   <view class="today {{hasLetters ? '' : 'today-empty'}}" bindtap="onTapTodayLetter">
     <view class="t-label">今日来信</view>
     <block wx:if="{{todayLetter}}">
       <view class="t-row">
-        <view class="t-text">今天有一封来自 <text class="em">{{todayLetter.dateText}}</text> 的信，是过去的你想对你说的话。</view>
+        <view class="t-text">今天有一封来自 <text class="em">{{todayLetter.dateText}}</text> 的信，是过去的你写给自己的答案。</view>
         <view class="t-img-wrap">
           <view class="t-img">
             <image class="t-img-src" src="{{todayLetter.env}}" mode="aspectFill" />
@@ -40,7 +68,7 @@
 
   <!-- 草稿横条（条件触发） -->
   <view wx:if="{{draftCount > 0 && hasLetters}}" class="draft-bar" bindtap="onTapDrafts">
-    <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，继续写 →
+    <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，点此处继续写
   </view>
 
   <!-- 状态一：空状态（0 封） -->
@@ -70,7 +98,7 @@
         bindtap="onTapLetter"
       >
         <view class="env-wrap">
-          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" lazy-load />
           <view wx:if="{{item.pinned}}" class="clip-wrap">
             <image class="clip" src="/assets/clip.png" mode="aspectFit" />
           </view>
@@ -85,5 +113,6 @@
   <view wx:if="{{hasLetters}}" class="float-write" hover-class="float-write-hover" bindtap="onTapWrite">
     <image class="float-mailbox" src="/assets/mailbox.png" mode="aspectFit" />
   </view>
+  </block>
 
 </view>

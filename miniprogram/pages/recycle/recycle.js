@@ -50,7 +50,7 @@ Page({
           return {
             id: it.id,
             name: it.name,
-            env: themeService.envelopeOf(it.theme_id, themes),
+            env: themeService.envelopeThumbOf(it.theme_id, themes),
             warn,
             daysText: warn ? '还有 ' + daysLeft + ' 天。再看看它，或者取回来。' : '还有 ' + daysLeft + ' 天将被处理',
             pill: daysLeft + ' 天',
@@ -123,12 +123,15 @@ Page({
     track('letter_restore', { letter_id: item.id });
     letterService
       .restoreFromRecycle(item.id)
-      .then(() => wx.showToast({ title: '信已取回信匣', icon: 'none' }))
+      .then(() => {
+        wx.showToast({ title: '信已取回信匣', icon: 'none' });
+        // 等云端确认取回成功再刷新列表，否则读到旧数据、已取回的信仍显示在页面上
+        this.loadItems();
+      })
       .catch((err) => {
         console.error('[recycle] 取回失败', err);
         wx.showToast({ title: '信暂时取不回来，稍后再试试', icon: 'none' });
       });
-    this.loadItems();
   },
 
   // ── 彻底删除：二次确认（PRD 固定文案），删除后不可恢复（BR-12） ──

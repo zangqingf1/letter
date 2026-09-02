@@ -72,12 +72,55 @@
   box-shadow: var(--shadow-warm-sm);
 }
 
-/* 信纸头线（陶土色）+ 信件名称 */
+/* 信纸头线（陶土色）+ 信件名称 + 日期行 + 角落虚线小邮戳（素笺正席信头） */
 .headline {
   border-top: 8rpx solid #C58A6A;
   margin: 0 auto 28rpx;
-  padding-top: 24rpx;
+  padding-top: 28rpx;
   text-align: center;
+  position: relative;
+}
+.head-stamp {
+  position: absolute;
+  top: 8rpx;
+  right: 0;
+  width: 112rpx;
+  height: 112rpx;
+  border: 3rpx dashed rgba(197, 138, 106, 0.75);
+  border-radius: 50%;
+  transform: rotate(10deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  color: #C58A6A;
+  mix-blend-mode: multiply;
+  pointer-events: none; /* 不挡标题输入的点击 */
+  opacity: 0.85;
+}
+.head-stamp::before {
+  content: "";
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  bottom: 10rpx;
+  left: 10rpx;
+  border: 2rpx dashed rgba(197, 138, 106, 0.5);
+  border-radius: 50%;
+}
+.stamp-name {
+  font-family: var(--font-heading);
+  font-size: 18rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+  text-indent: 4rpx;
+}
+.stamp-date {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 16rpx;
+  letter-spacing: 1rpx;
+  opacity: 0.8;
 }
 .title-input {
   font-family: var(--font-heading);
@@ -93,8 +136,20 @@
   font-weight: 400;
   font-size: 32rpx;
 }
+.head-date {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  letter-spacing: 6rpx;
+  color: #A29B8A;
+}
+.head-date::before,
+.head-date::after {
+  content: "—";
+  margin: 0 14rpx;
+  color: #D8CFBB;
+}
 
-/* 印制引导语（居中，两侧短横线） */
+/* 编号印制引导语（其一/其二 鼠尾草编号 + 两侧短横线） */
 .field-label {
   font-size: 22rpx;
   color: var(--color-text-secondary);
@@ -111,6 +166,10 @@
   height: 1rpx;
   background: var(--line);
   flex: 0 0 48rpx;
+}
+.label-no {
+  color: var(--color-accent-primary);
+  font-family: var(--font-heading);
 }
 
 /* 手写体输入区（32rpx / 行高 1.8 = 57.6rpx，与信纸横线 28.8px 对齐） */
@@ -143,10 +202,11 @@
   letter-spacing: 0;
 }
 
-/* 字数计数：各输入区右下角轻淡显示 */
+/* 字数计数：各输入区右下角轻淡 mono 编目式显示 */
 .count {
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 20rpx;
-  color: var(--color-text-secondary);
+  color: #B4AFA2;
   text-align: right;
   margin-top: 12rpx;
 }
@@ -221,4 +281,121 @@
   background: #B7C2BE;
   color: rgba(244, 243, 238, 0.9);
   box-shadow: 0 8rpx 20rpx rgba(183, 194, 190, 0.3);
+}
+
+/* ── 草稿便签夹：鼠尾草虚线托盘 + 回形针白卡（素笺正席版式） ── */
+.draft-shelf {
+  margin: 20rpx 32rpx 40rpx;
+  padding: 24rpx 24rpx 20rpx;
+  border: 2rpx dashed #A9BDB6;
+  border-radius: 20rpx;
+  background: rgba(107, 142, 133, 0.07);
+}
+.draft-shelf-title {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  font-size: 24rpx;
+  letter-spacing: 6rpx;
+  color: var(--color-accent-primary);
+  margin-bottom: 16rpx;
+}
+.draft-shelf-title::after {
+  content: "";
+  flex: 1;
+  border-top: 2rpx dashed rgba(107, 142, 133, 0.4);
+}
+.draft-shelf-num {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 20rpx;
+  letter-spacing: 0;
+  line-height: 32rpx;
+  padding: 0 14rpx;
+  border: 2rpx solid rgba(107, 142, 133, 0.5);
+  border-radius: 16rpx;
+}
+.draft-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-warm-sm);
+}
+.draft-card:last-of-type {
+  margin-bottom: 0;
+}
+.draft-card-hover {
+  opacity: 0.75;
+}
+/* CSS 回形针角标（金色，与回形针页 clip.png 同意象） */
+.draft-card-clip {
+  flex: none;
+  width: 22rpx;
+  height: 42rpx;
+  border: 3rpx solid #C4A482;
+  border-radius: 12rpx;
+  position: relative;
+  transform: rotate(-8deg);
+}
+.draft-card-clip::before {
+  content: "";
+  position: absolute;
+  top: 5rpx;
+  left: 5rpx;
+  right: 5rpx;
+  height: 18rpx;
+  border: 3rpx solid #C4A482;
+  border-bottom: none;
+  border-radius: 10rpx 10rpx 0 0;
+}
+.draft-card-main {
+  flex: 1;
+  min-width: 0;
+}
+.draft-card-name {
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-card-snip {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  margin-top: 6rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-card-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10rpx;
+}
+.draft-card-time {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 20rpx;
+  color: #B4AFA2;
+}
+.draft-card-del {
+  font-size: 22rpx;
+  color: #6E7570;
+  padding: 4rpx 4rpx 6rpx;
+  border-bottom: 2rpx dashed rgba(110, 117, 112, 0.5);
+}
+.draft-card-del-hover {
+  opacity: 0.6;
+}
+.draft-shelf-note {
+  font-size: 20rpx;
+  color: #9AA5A0;
+  letter-spacing: 2rpx;
+  margin-top: 18rpx;
+  text-align: center;
 }

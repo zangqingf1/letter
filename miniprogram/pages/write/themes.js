@@ -1,22 +1,25 @@
-// 官方信纸主题配置（PRD 5.7 / Theme 实体：信封、信纸、便签、分享图四件套 + 版本号）
-// PRD 规划 6 套官方主题（晨光/雨夜/牛皮纸/棉麻/花笺/咖啡渍，副标题取自 PRD 5.7 主题表）；
-// 【小王子】为当前唯一素材就绪的主题并作为默认，其余 pending: true —— 卡片仅展示色样占位、
-// 点击提示"还在路上"，待视觉稿产出后按同一结构补充素材（TODO）。
-// 已保存信件锁定创建时 theme_version（BR 主题版本规则）。
+// 官方主题配置（PRD 5.7 / Theme 实体：信封、信纸配色、便签、分享图 + 版本号）
+// 【方案B 改版】信纸不再使用纸张图片：信纸 = palette 底色 + 纯排版（宋体标题 +
+// 手写体正文），主题差异体现为信纸底色；信封素材保留。因此主题不再依赖信纸素材，
+// 原 pending 的 6 套主题全部开放：无信封素材的主题由 theme 服务回落默认信封（小王子）。
+// palette.text/title/tag 为暖墨色系，各主题底色均为浅色，共用同一套墨色保证可读性。
+// 已保存信件锁定创建时 theme_version（BR 主题版本规则）；信纸改为排版后小王子升至 v2。
 module.exports = [
   {
     id: 'xiaowangzi',
     name: '小王子',
     desc: '温柔童话',
-    version: 1,
-    envelope: '/assets/theme/xiaowangzi/envelope.jpg', // 信封图：保存后在首页信匣展示 + 第二步主题缩略图
-    paper: '/assets/theme/xiaowangzi/paper.png',        // 信纸图：写信第二步预览与详情正文用
+    version: 2,
+    ownEnvelope: true, // 有自有信封素材（theme 服务归一化会重算该标记；默认主题卡片显示信封图）
+    envelope: '/assets/theme/xiaowangzi/envelope.jpg', // 信封图：详情拆信 + 写信第二步预览（原图 1230px 高清，真机渲染稳定）
+    envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg', // 网格/列表小图信封（首页信匣、回形针、废纸篓行，jpg 解码更省）
+    palette: { base: '#F9F3E4', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, // 信纸底色 + 墨色
     desk: '#EDE9DC' // 预览区暖桌面底色，随主题更换
   },
-  { id: 'chenyu', name: '晨光', desc: '温暖明亮', version: 0, pending: true, swatch: '#F3EADB' },
-  { id: 'yuye', name: '雨夜', desc: '安静陪伴', version: 0, pending: true, swatch: '#C4CBD3' },
-  { id: 'niupizhi', name: '牛皮纸', desc: '朴实有趣', version: 0, pending: true, swatch: '#D8C4A4' },
-  { id: 'mianma', name: '棉麻', desc: '极简高级', version: 0, pending: true, swatch: '#E3DECF' },
-  { id: 'huajian', name: '花笺', desc: '柔美治愈', version: 0, pending: true, swatch: '#E7CFCB' },
-  { id: 'kafeizi', name: '咖啡渍', desc: '手账有趣', version: 0, pending: true, swatch: '#CBB693' }
+  { id: 'chenyu', name: '晨光', desc: '温暖明亮', version: 1, swatch: '#F3EADB', palette: { base: '#F3EADB', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, desk: '#EFE6D3' },
+  { id: 'yuye', name: '雨夜', desc: '安静陪伴', version: 1, swatch: '#C4CBD3', palette: { base: '#DDE2E6', title: '#4C5560', text: '#3E4750', tag: '#8A939C' }, desk: '#D4DADF' },
+  { id: 'niupizhi', name: '牛皮纸', desc: '朴实有趣', version: 1, swatch: '#D8C4A4', palette: { base: '#E7D9BC', title: '#6B5636', text: '#57462C', tag: '#9C8B6C' }, desk: '#DCD0B2' },
+  { id: 'mianma', name: '棉麻', desc: '极简高级', version: 1, swatch: '#E3DECF', palette: { base: '#EBE7DA', title: '#5C594C', text: '#4C4A40', tag: '#98948A' }, desk: '#E0DCCB' },
+  { id: 'huajian', name: '花笺', desc: '柔美治愈', version: 1, swatch: '#E7CFCB', palette: { base: '#F1DFDB', title: '#6E514C', text: '#5C443F', tag: '#AB8B85' }, desk: '#E8D3CE' },
+  { id: 'kafeizi', name: '咖啡渍', desc: '手账有趣', version: 1, swatch: '#CBB693', palette: { base: '#E4D8BE', title: '#66543A', text: '#52442C', tag: '#9D8F73' }, desk: '#D8CBB0' }
 ];

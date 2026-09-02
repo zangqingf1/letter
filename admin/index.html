@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心灵信箱 · 管理后台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="view-login" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="login-logo">📮</div>
+    <h1>心灵信箱 · 管理后台</h1>
+    <p class="login-tip">管理员密钥配置在云函数 <code>admin</code> 的环境变量 <code>ADMIN_KEY</code> 中</p>
+    <input id="login-key" type="password" placeholder="管理员密钥" autocomplete="off">
+    <button id="login-btn" class="btn primary block">登 录</button>
+    <p id="login-err" class="login-err"></p>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="view-main" class="layout hidden">
+  <aside class="sidebar">
+    <div class="brand">📮 心灵信箱<br><small>管理后台</small></div>
+    <nav id="nav">
+      <a data-nav="dashboard" class="active">📊 数据看板</a>
+      <a data-nav="themes">💌 主题管理</a>
+      <a data-nav="papers">✉️ 版式管理</a>
+      <a data-nav="users">👥 用户管理</a>
+    </nav>
+    <div class="sidebar-foot">
+      <p class="privacy-note">本后台不接触任何信件正文</p>
+      <button id="logout-btn" class="btn ghost block">退出登录</button>
+    </div>
+  </aside>
+  <main id="content" class="content"></main>
+</div>
+
+<!-- 编辑抽屉 -->
+<div id="drawer-mask" class="drawer-mask hidden"></div>
+<aside id="drawer" class="drawer hidden"><div id="drawer-body"></div></aside>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

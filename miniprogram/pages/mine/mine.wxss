@@ -179,7 +179,59 @@
   background: var(--line);
 }
 
-/* ── 底部功能列表（浅色信纸下划线分隔，干净黑体系统 UI） ── */
+/* ── 会员中心：金调高亮入口行（付费会员，纯演示态） ── */
+.member-entry {
+  margin: 36rpx 32rpx 0;
+  background: linear-gradient(120deg, rgba(196, 164, 130, 0.16), rgba(196, 164, 130, 0.06));
+  border: 2rpx solid rgba(196, 164, 130, 0.5);
+  border-radius: 24rpx;
+  padding: 26rpx 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  box-sizing: border-box;
+}
+.member-entry-hover {
+  opacity: 0.8;
+}
+.member-entry-icon {
+  flex: none;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C4A482, #9A7C5A);
+  color: #FDFAF3;
+  font-family: var(--font-heading);
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(150, 120, 70, 0.24);
+}
+.member-entry-body {
+  flex: 1;
+  min-width: 0;
+}
+.member-entry-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.member-entry-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+}
+.member-entry-arrow {
+  flex: none;
+  font-size: 36rpx;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
+/* ── 底部功能列表（无分隔线，干净黑体系统 UI） ── */
 .menu {
   margin: 36rpx 32rpx 0;
 }
@@ -188,7 +240,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 34rpx 8rpx;
-  border-bottom: 1rpx solid var(--line);
 }
 .menu-item-hover {
   opacity: 0.7;
@@ -201,10 +252,4 @@
   font-size: 36rpx;
   line-height: 1;
   color: var(--color-text-secondary);
-}
-
-/* 关闭手写体开关（无障碍）：右对齐，等比缩小匹配行高 */
-.menu-item .hand-switch {
-  transform: scale(0.8);
-  transform-origin: right center;
 }

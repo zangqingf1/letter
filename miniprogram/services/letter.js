@@ -59,6 +59,8 @@ function ensureReal(letter) {
   const full = Object.assign({}, joined, letter, { id: letter.id });
   full.theme_id = full.theme_id || 'xiaowangzi';
   full.theme_version = full.theme_version || 1;
+  full.paper_id = full.paper_id || 'liubai';
+  full.paper_version = full.paper_version || 1;
   full.pinned = !!full.pinned;
   if (!full.created_at) full.created_at = Date.now();
   full.opens = full.opens || [];
@@ -102,11 +104,14 @@ function getAll() {
 // ── 单封信（详情 / 分享页同源）──
 // 返回 { letter, isDemo }；local 下按 id 找不到或未传 id 时回落演示数据预览状态。
 // 演示回落时保留请求 id：后续对该信的写操作可落成真实信（ensureReal）。
+// cloud 下取不到（不存在/不属于当前用户/已进废纸篓）时显式失败，
+// 由页面提示「取不出来」，不再回落演示数据（云端模式没有演示语义）。
 function get(id) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud
-      .call('letter', 'get', { id })
-      .then((r) => ({ letter: r && r.letter ? r.letter : demoLetter(), isDemo: !(r && r.letter) }));
+    return cloud.call('letter', 'get', { id }).then((r) => {
+      if (r && r.letter) return { letter: r.letter, isDemo: false };
+      return Promise.reject(new Error('letter not found or recycled'));
+    });
   }
   let letter = null;
   if (id) {
@@ -124,7 +129,8 @@ function demoLetter() {
   return JSON.parse(JSON.stringify(DEMO_LETTERS[DEMO_STATE] || DEMO_LETTERS.multi));
 }
 
-// ── 寄出（写信第二步，BR-01/13；theme_id + theme_version 绑定创建时版本）──
+// ── 寄出（写信第二步，BR-01/13；theme_id + theme_version 绑定创建时版本，
+// paper_id + paper_version 绑定创建时信纸版式）──
 // 返回新信 id。
 function create(data) {
   if (DATA_SOURCE === 'cloud') {
@@ -139,6 +145,8 @@ function create(data) {
     answer: data.answer,
     theme_id: data.theme_id,
     theme_version: data.theme_version,
+    paper_id: data.paper_id || 'liubai',
+    paper_version: data.paper_version || 1,
     pinned: false,
     created_at: Date.now()
   });
@@ -146,14 +154,14 @@ function create(data) {
   return Promise.resolve(newLetterId);
 }
 
-// ── 编辑保存（PRD 5.6：只更新内容/主题/theme_version 并记 updated_at，
+// ── 编辑保存（PRD 5.6：只更新内容/主题/theme_version/信纸版式并记 updated_at，
 // 重读记录与回信静默原样保留）。返回是否真正落库（演示数据不持久化）。
 function update(id, data) {
   if (DATA_SOURCE === 'cloud') {
     return cloud.call('letter', 'update', Object.assign({ id }, data)).then(() => true);
   }
   const letters = readLetters();
-  const index = letters.findIndex((l) => l.id === id);
+  const index = letters.findIndex((l) => String(l.id) === String(id));
   if (index === -1) return Promise.resolve(false);
   letters[index] = Object.assign({}, letters[index], {
     name: data.name,
@@ -161,6 +169,8 @@ function update(id, data) {
     answer: data.answer,
     theme_id: data.theme_id,
     theme_version: data.theme_version,
+    paper_id: data.paper_id || letters[index].paper_id || 'liubai',
+    paper_version: data.paper_version || letters[index].paper_version || 1,
     updated_at: Date.now()
   });
   writeLetters(letters);
@@ -218,11 +228,26 @@ function addReply(letter, text) {
   return Promise.resolve(letter.replies);
 }
 
+// ── 撕掉回信（用户删除单条回信；物理删除，不进废纸篓）──
+// 按 ts（创建时间戳）精确匹配；返回更新后的回信数组（元素 {ts, text}）；演示信先落成真实信
+function removeReply(letter, ts) {
+  if (DATA_SOURCE === 'cloud') {
+    return cloud.call('reply', 'remove', { letter_id: letter.id, ts }).then((r) => {
+      letter.replies = (r && r.replies) || [];
+      return letter.replies;
+    });
+  }
+  ensureReal(letter);
+  letter.replies = (letter.replies || []).filter((r) => Number(r.ts) !== Number(ts));
+  persist(letter);
+  return Promise.resolve(letter.replies);
+}
+
 // ── 整信回写（local 编辑态兜底；云端各变更走独立 action，不需要整体覆盖）──
 function persist(letter) {
   if (DATA_SOURCE === 'cloud') return Promise.resolve(false);
   const letters = readLetters();
-  const index = letters.findIndex((l) => l.id === letter.id);
+  const index = letters.findIndex((l) => String(l.id) === String(letter.id));
   if (index === -1) return Promise.resolve(false);
   letters[index] = letter;
   writeLetters(letters);
@@ -230,17 +255,18 @@ function persist(letter) {
 }
 
 // ── 删除 → 废纸篓（BR-11：信件连重读记录与回信原样进入 30 天保留期）──
-// 演示信先落成真实信再删除，并从演示池剔除（防止"删了又复活"）
+// 演示信先落成真实信再删除，并从演示池剔除（防止"删了又复活"）；
+// 入废纸篓的是 ensureReal 补全后的完整信件（含 created_at 等字段兜底）
 function moveToRecycle(letter) {
   if (DATA_SOURCE === 'cloud') {
     return cloud.call('letter', 'moveToRecycle', { id: letter.id });
   }
   const wasReal = readLetters().some((l) => String(l.id) === String(letter.id));
-  ensureReal(letter);
-  writeLetters(readLetters().filter((l) => String(l.id) !== String(letter.id)));
-  if (!wasReal) addDemoRemoved(letter.id);
+  const real = ensureReal(letter);
+  writeLetters(readLetters().filter((l) => String(l.id) !== String(real.id)));
+  if (!wasReal) addDemoRemoved(real.id);
   const recycle = wx.getStorageSync(RECYCLE_KEY) || [];
-  recycle.push(Object.assign({}, letter, { deleted_at: Date.now() }));
+  recycle.push(Object.assign({}, real, { deleted_at: Date.now() }));
   wx.setStorageSync(RECYCLE_KEY, recycle);
   return Promise.resolve(true);
 }
@@ -316,6 +342,7 @@ module.exports = {
   setPinned,
   recordOpen,
   addReply,
+  removeReply,
   persist,
   moveToRecycle,
   listRecycle,

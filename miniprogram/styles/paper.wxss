@@ -1,0 +1,762 @@
+/* ============================================================
+   信纸共享样式（styles/paper.wxml 模板专用；三端同构的唯一装饰来源）
+   引用方：pages/write/step2.wxss（选主题预览）、pages/detail/detail.wxss（拆信后阅读）、
+           pages/share/share.wxss（分享明信片预览；导出装饰在 share.js drawXxxStyle 重绘）。
+   配色与 pages/write/papers.js 的 colors 一一对应（唯一事实来源在 papers.js，改色请三处同步）。
+   版式基准：纸卡统一宽 630rpx 居中；分享 Canvas（K = 1080/630）按同一套 rpx 数值换算绘制，
+   保证选主题预览 / 拆信阅读 / 分享图三者渲染完全相同。
+   ============================================================ */
+
+.pl {
+  --plf-song: 'Noto Serif SC', 'Songti SC', 'STKaiti', 'KaiTi', serif;
+  --plf-kai: 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  --plf-hei: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --plf-mono: 'Courier New', Consolas, monospace;
+}
+
+.pl-paper {
+  width: 630rpx;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border-radius: 12rpx;
+  overflow-y: auto;
+  box-shadow: 0 8rpx 24rpx rgba(40, 35, 25, 0.16);
+}
+
+/* 手写体无障碍开关（handwriting_off）：楷体正文回落系统黑体，三端口径一致 */
+.pl.hand-off .plv-name,
+.pl.hand-off .plv-q,
+.pl.hand-off .plv-a,
+.pl.hand-off .pls-name,
+.pl.hand-off .pls-q,
+.pl.hand-off .pls-a,
+.pl.hand-off .plm-name,
+.pl.hand-off .plm-txt {
+  font-family: var(--plf-hei);
+}
+
+/* ────────────────────────────────────────────────
+   07 号外头版 extra —— 报纸头版：双线报头 + 首字下沉
+   ──────────────────────────────────────────────── */
+.pl-extra {
+  background: #F5EFDE;
+  color: #262219;
+  /* 顶部留白：报头双线不顶纸边（与 share.js drawExtraStyle 的 mastOff 同步） */
+  padding: 50rpx 44rpx 36rpx;
+}
+.plx-rule-h { height: 6rpx; background: #262219; }
+.plx-rule-t { height: 2rpx; background: #262219; margin-top: 4rpx; }
+.plx-mast {
+  font-family: var(--plf-song);
+  font-size: 46rpx; font-weight: 900;
+  letter-spacing: 14rpx; text-indent: 14rpx;
+  text-align: center;
+  padding: 14rpx 0 10rpx;
+  color: #1E1B14;
+}
+.plx-extra {
+  font-size: 22rpx; font-weight: 700;
+  letter-spacing: 6rpx;
+  color: #A33B24;
+  vertical-align: 18rpx;
+}
+.plx-dateline {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10rpx 2rpx 12rpx;
+  font-family: var(--plf-hei);
+  font-size: 19rpx; letter-spacing: 2rpx;
+  color: #5A5240;
+}
+.plx-name {
+  margin-top: 34rpx;
+  font-family: var(--plf-song);
+  font-size: 40rpx; font-weight: 900;
+  letter-spacing: 2rpx; line-height: 1.5;
+  color: #1E1B14;
+}
+.plx-q {
+  margin-top: 22rpx;
+  font-family: var(--plf-hei);
+  font-size: 26rpx; font-weight: 700;
+  line-height: 1.9;
+  color: #5A5240;
+}
+.plx-q::before { content: "■ "; color: #A33B24; font-size: 20rpx; }
+.plx-answer {
+  margin-top: 26rpx; padding-top: 26rpx;
+  white-space: pre-wrap;
+  border-top: 2rpx solid #B9AE93;
+  font-family: var(--plf-song);
+  font-size: 28rpx; line-height: 2.0;
+  text-align: justify;
+  color: #262219;
+}
+.plx-drop {
+  float: left;
+  font-size: 72rpx; line-height: 1; font-weight: 900;
+  padding: 6rpx 12rpx 0 0;
+  color: #A33B24;
+}
+.plx-end {
+  margin: 28rpx 0 24rpx;
+  text-align: center;
+  font-family: var(--plf-song);
+  font-size: 20rpx; letter-spacing: 10rpx;
+  color: #A33B24;
+}
+.plx-end::before,
+.plx-end::after { content: "—"; margin: 0 12rpx; color: #B9AE93; }
+
+/* ────────────────────────────────────────────────
+   08 工程蓝图 blueprint —— 白线网格 + 裁切角标 + 标题栏
+   ──────────────────────────────────────────────── */
+.pl-bp {
+  position: relative;
+  background:
+    repeating-linear-gradient(to bottom, rgba(234, 242, 248, 0.10) 0 2rpx, transparent 2rpx 40rpx),
+    repeating-linear-gradient(to right, rgba(234, 242, 248, 0.10) 0 2rpx, transparent 2rpx 40rpx),
+    #16324F;
+  border: 2rpx solid rgba(234, 242, 248, 0.75);
+  box-shadow: 0 0 0 8rpx #16324F, 0 0 0 10rpx rgba(234, 242, 248, 0.55), 0 14rpx 34rpx rgba(10, 25, 45, 0.40);
+  color: #EAF2F8;
+  padding: 36rpx 44rpx 44rpx;
+}
+.plb-c { position: absolute; width: 22rpx; height: 22rpx; border: 0 solid #EAF2F8; }
+.plb-c1 { top: 12rpx; left: 12rpx; border-top-width: 3rpx; border-left-width: 3rpx; }
+.plb-c2 { top: 12rpx; right: 12rpx; border-top-width: 3rpx; border-right-width: 3rpx; }
+.plb-c3 { bottom: 12rpx; left: 12rpx; border-bottom-width: 3rpx; border-left-width: 3rpx; }
+.plb-c4 { bottom: 12rpx; right: 12rpx; border-bottom-width: 3rpx; border-right-width: 3rpx; }
+.plb-eyebrow {
+  display: flex; justify-content: space-between;
+  font-family: var(--plf-mono);
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: rgba(234, 242, 248, 0.65);
+  margin-bottom: 30rpx;
+}
+.plb-name {
+  font-family: var(--plf-hei);
+  font-size: 40rpx; font-weight: 700;
+  letter-spacing: 4rpx; line-height: 1.4;
+  color: #FFFFFF;
+}
+.plb-underline { width: 88rpx; height: 3rpx; background: #EAF2F8; margin: 22rpx 0 36rpx; }
+.plb-box {
+  position: relative;
+  border: 2rpx solid rgba(234, 242, 248, 0.80);
+  padding: 26rpx 26rpx 24rpx;
+}
+.plb-lbl {
+  position: absolute; top: -14rpx; left: 18rpx;
+  background: #16324F;
+  padding: 0 10rpx;
+  font-family: var(--plf-hei);
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: #9CC4E4;
+}
+.plb-qtxt {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 26rpx; line-height: 1.9;
+  color: #C9DCEA;
+}
+.plb-a { margin-top: 42rpx; }
+.plb-atxt {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 28rpx; line-height: 2.0;
+  color: #EAF2F8;
+}
+.plb-tblock {
+  margin-top: 48rpx; margin-left: auto;
+  width: 360rpx;
+  border: 2rpx solid rgba(234, 242, 248, 0.80);
+}
+.plb-trow { display: flex; border-top: 1rpx solid rgba(234, 242, 248, 0.35); }
+.plb-tk {
+  width: 160rpx; flex: none;
+  padding: 12rpx 16rpx;
+  border-right: 1rpx solid rgba(234, 242, 248, 0.35);
+  font-family: var(--plf-hei);
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: #9CC4E4;
+}
+.plb-tv {
+  padding: 12rpx 16rpx;
+  font-family: var(--plf-mono);
+  font-size: 18rpx; letter-spacing: 2rpx;
+  color: #EAF2F8;
+}
+
+/* ────────────────────────────────────────────────
+   09 存根票根 ticket —— 右侧日期存根 + 条码编号
+   ──────────────────────────────────────────────── */
+.pl-tk {
+  position: relative;
+  background: #F6EDDC;
+  color: #2E2A26;
+  padding: 44rpx 160rpx 44rpx 48rpx;
+}
+.plt-stub {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 128rpx;
+  border-left: 3rpx dashed #C2452D;
+  background: rgba(194, 69, 45, 0.05);
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 28rpx 0;
+  box-sizing: border-box;
+}
+.plt-rivet {
+  flex: none;
+  width: 16rpx; height: 16rpx; border-radius: 50%;
+  background: #F6EDDC;
+  border: 3rpx solid #C2452D;
+}
+.plt-stub-date { text-align: center; color: #C2452D; }
+.plt-sd-l {
+  font-family: var(--plf-hei);
+  font-size: 18rpx; font-weight: 700; letter-spacing: 3rpx;
+}
+.plt-sd-d {
+  font-family: var(--plf-mono);
+  font-size: 34rpx; font-weight: 700; letter-spacing: 1rpx;
+  margin: 6rpx 0 4rpx;
+}
+.plt-note { display: flex; flex-direction: column; align-items: center; }
+.plt-note-ch {
+  font-family: var(--plf-hei);
+  font-size: 20rpx; line-height: 1.6;
+  color: #8A6A5A;
+}
+.plt-brand {
+  font-family: var(--plf-hei);
+  font-size: 18rpx; letter-spacing: 6rpx;
+  color: #C2452D;
+}
+.plt-serial {
+  font-family: var(--plf-mono);
+  font-size: 20rpx; letter-spacing: 2rpx;
+  color: #8A8070;
+  margin-top: 14rpx;
+}
+.plt-name {
+  font-family: var(--plf-hei);
+  font-size: 36rpx; font-weight: 700;
+  letter-spacing: 2rpx; line-height: 1.55;
+  color: #26221D;
+  margin-top: 18rpx;
+}
+.plt-cap {
+  font-family: var(--plf-hei);
+  font-size: 18rpx; font-weight: 700; letter-spacing: 6rpx;
+  color: #C2452D;
+  margin-top: 30rpx;
+}
+.plt-q {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 26rpx; line-height: 1.95;
+  color: #6E675C;
+  margin-top: 10rpx;
+}
+.plt-hr { border-top: 2rpx dashed #C9BBA0; margin: 30rpx 0 0; }
+.plt-a {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 27rpx; line-height: 2.0;
+  color: #2E2A26;
+  margin-top: 26rpx;
+}
+.plt-barcode {
+  margin-top: 44rpx;
+  height: 48rpx; max-width: 320rpx;
+  background: repeating-linear-gradient(to right,
+    #2E2A26 0 3rpx, transparent 3rpx 9rpx,
+    #2E2A26 9rpx 14rpx, transparent 14rpx 17rpx,
+    #2E2A26 17rpx 19rpx, transparent 19rpx 26rpx,
+    #2E2A26 26rpx 29rpx, transparent 29rpx 33rpx);
+}
+.plt-under {
+  font-family: var(--plf-mono);
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: #2E2A26;
+  margin-top: 10rpx;
+}
+.plt-foot {
+  font-family: var(--plf-hei);
+  font-size: 19rpx; letter-spacing: 2rpx;
+  color: #8A6A5A;
+  margin-top: 14rpx;
+}
+
+/* ────────────────────────────────────────────────
+   10 大字标语 poster —— 描边水印 + 斜贴标语条 + 方章
+   ──────────────────────────────────────────────── */
+.pl-po {
+  position: relative;
+  background: #F0E9DA;
+  color: #221E18;
+  padding: 48rpx 48rpx 44rpx;
+}
+.plp-wm {
+  position: absolute; right: -50rpx; bottom: -110rpx;
+  font-family: var(--plf-song);
+  font-size: 440rpx; line-height: 1; font-weight: 900;
+  /* 不支持 text-stroke 的内核回落为浅色实字，不破坏可读性 */
+  color: rgba(150, 132, 96, 0.10);
+  -webkit-text-stroke: 3rpx rgba(150, 132, 96, 0.30);
+  pointer-events: none;
+}
+.plp-kicker {
+  position: relative;
+  font-family: var(--plf-hei);
+  font-size: 19rpx; letter-spacing: 8rpx;
+  color: #96784D;
+}
+.plp-name {
+  position: relative;
+  margin-top: 20rpx;
+  font-family: var(--plf-hei);
+  font-size: 44rpx; font-weight: 900;
+  letter-spacing: 2rpx; line-height: 1.45;
+  max-width: 88%;
+  color: #17140F;
+}
+.plp-banner {
+  position: relative;
+  display: inline-block;
+  margin-top: 28rpx;
+  background: #B5342A; color: #F5EFE0;
+  font-family: var(--plf-hei);
+  font-size: 20rpx; letter-spacing: 4rpx;
+  padding: 12rpx 20rpx;
+  transform: rotate(-1.5deg);
+}
+.plp-cap {
+  position: relative;
+  margin-top: 38rpx;
+  font-family: var(--plf-hei);
+  font-size: 19rpx; font-weight: 700; letter-spacing: 6rpx;
+  color: #B5342A;
+}
+.plp-q {
+  position: relative;
+  margin-top: 12rpx;
+  white-space: pre-wrap;
+  font-family: var(--plf-hei);
+  font-size: 26rpx; line-height: 2.0;
+  color: #6E6552;
+}
+.plp-a {
+  position: relative;
+  margin-top: 12rpx;
+  white-space: pre-wrap;
+  font-family: var(--plf-hei);
+  font-size: 27rpx; font-weight: 500; line-height: 2.0;
+  color: #221E18;
+}
+.plp-sealzone {
+  position: relative;
+  margin-top: 46rpx;
+  display: flex; justify-content: flex-end; align-items: center;
+}
+.plp-seal-date {
+  font-family: var(--plf-hei);
+  font-size: 19rpx; letter-spacing: 3rpx;
+  color: #6E6552;
+  margin-right: 20rpx;
+}
+.plp-seal {
+  width: 92rpx; height: 92rpx;
+  background: #B5342A;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  padding: 8rpx; box-sizing: border-box;
+  transform: rotate(4deg);
+  box-shadow: 0 0 0 4rpx #F0E9DA, 0 0 0 6rpx #B5342A;
+}
+.plp-seal text {
+  width: 50%; text-align: center;
+  font-family: var(--plf-kai);
+  font-size: 28rpx; font-weight: 700; line-height: 1.2;
+  color: #F5EFE0;
+}
+
+/* ────────────────────────────────────────────────
+   11 包豪斯几何 bauhaus —— 出血几何群 + 色块标注
+   ──────────────────────────────────────────────── */
+.pl-bh {
+  position: relative;
+  background: #FAF7EF;
+  color: #17150F;
+  padding: 44rpx 48rpx;
+}
+.plh-circle {
+  position: absolute; top: -56rpx; right: -50rpx;
+  width: 200rpx; height: 200rpx; border-radius: 50%;
+  background: #D9402A;
+}
+.plh-tri {
+  position: absolute; top: 118rpx; right: 56rpx;
+  width: 0; height: 0;
+  border-left: 56rpx solid transparent;
+  border-right: 56rpx solid transparent;
+  border-bottom: 100rpx solid #1F4FA0;
+  transform: rotate(14deg);
+}
+.plh-bar {
+  position: absolute; top: 30rpx; right: 196rpx;
+  width: 18rpx; height: 150rpx;
+  background: #17150F;
+  transform: rotate(24deg);
+}
+.plh-dot {
+  position: absolute; top: 196rpx; right: 148rpx;
+  width: 28rpx; height: 28rpx; border-radius: 50%;
+  background: #E8B33C;
+}
+.plh-name {
+  position: relative;
+  padding-top: 10rpx;
+  font-family: var(--plf-hei);
+  font-size: 40rpx; font-weight: 900;
+  letter-spacing: 2rpx; line-height: 1.5;
+  max-width: 70%;
+  color: #17150F;
+}
+.plh-hr { border-top: 5rpx solid #17150F; margin-top: 34rpx; }
+.plh-row { display: flex; margin-top: 34rpx; }
+.plh-chip {
+  flex: none;
+  width: 36rpx; height: 36rpx;
+  margin-right: 18rpx; margin-top: 4rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--plf-hei);
+  font-size: 19rpx; font-weight: 700;
+  color: #FAF7EF;
+}
+.plh-chip-q { background: #D9402A; }
+.plh-chip-a { background: #1F4FA0; }
+.plh-q {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 26rpx; line-height: 1.95;
+  color: #5C584C;
+}
+.plh-a {
+  font-family: var(--plf-hei);
+  white-space: pre-wrap;
+  font-size: 27rpx; line-height: 2.0;
+  color: #17150F;
+}
+.plh-dateblock {
+  display: inline-block;
+  margin-top: 48rpx;
+  background: #E8B33C;
+  border: 3rpx solid #17150F;
+  padding: 12rpx 22rpx;
+  font-family: var(--plf-hei);
+  font-size: 20rpx; font-weight: 700; letter-spacing: 3rpx;
+  color: #17150F;
+  box-shadow: 7rpx 7rpx 0 #17150F;
+}
+
+/* ────────────────────────────────────────────────
+   12 黑胶唱片 vinyl —— 暗纸 + 同心圆盘芯
+   ──────────────────────────────────────────────── */
+.pl-vinyl {
+  position: relative;
+  background: #1B1A1C;
+  color: #D9D2C4;
+  padding: 48rpx 48rpx 44rpx;
+}
+.plv-disc {
+  position: absolute; top: -150rpx; right: -120rpx;
+  width: 400rpx; height: 400rpx; border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.10), transparent 42%),
+    repeating-radial-gradient(circle at center, #131215 0 9rpx, #201E22 9rpx 12rpx);
+  box-shadow: 0 14rpx 40rpx rgba(0, 0, 0, 0.50);
+}
+.plv-label {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 150rpx; height: 150rpx; border-radius: 50%;
+  background: #C24A2E;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #F4E8D8; text-align: center;
+}
+.plv-l1 { font-family: var(--plf-hei); font-size: 15rpx; letter-spacing: 3rpx; }
+.plv-l2 { font-family: var(--plf-mono); font-size: 26rpx; font-weight: 700; margin-top: 3rpx; }
+.plv-l3 { font-family: var(--plf-hei); font-size: 14rpx; letter-spacing: 2rpx; margin-top: 2rpx; }
+.plv-hole { width: 14rpx; height: 14rpx; border-radius: 50%; background: #1B1A1C; margin-top: 6rpx; }
+.plv-track {
+  font-family: var(--plf-mono);
+  font-size: 18rpx; letter-spacing: 5rpx;
+  color: #C24A2E;
+}
+.plv-name {
+  margin-top: 18rpx;
+  font-family: var(--plf-kai);
+  font-size: 38rpx; letter-spacing: 2rpx; line-height: 1.6;
+  max-width: 62%;
+  color: #F0E9D8;
+}
+.plv-cap {
+  margin-top: 40rpx;
+  font-family: var(--plf-hei);
+  font-size: 18rpx; letter-spacing: 6rpx;
+  color: #C24A2E;
+  display: flex; align-items: center;
+}
+.plv-cap::after {
+  content: "";
+  flex: 1; height: 1rpx;
+  background: rgba(194, 74, 46, 0.35);
+  margin-left: 12rpx;
+}
+.plv-q {
+  margin-top: 12rpx;
+  white-space: pre-wrap;
+  font-family: var(--plf-hei);
+  font-size: 26rpx; line-height: 2.0;
+  color: #9C9484;
+}
+.plv-a {
+  margin-top: 12rpx;
+  white-space: pre-wrap;
+  font-family: var(--plf-hei);
+  font-size: 27rpx; line-height: 2.0;
+  color: #D9D2C4;
+}
+.plv-foot {
+  margin-top: 48rpx;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.plv-side {
+  font-family: var(--plf-mono);
+  font-size: 16rpx; letter-spacing: 4rpx;
+  color: #6E685C;
+}
+.plv-date {
+  font-family: var(--plf-hei);
+  font-size: 19rpx; letter-spacing: 2rpx;
+  color: #C24A2E;
+}
+
+/* ────────────────────────────────────────────────
+   13 素问笺 suwen —— 问/答朱印对帖 + 右上斜盖邮戳
+   （配色 papers.js suwen；Canvas 见 share.js drawSuwenStyle）
+   ──────────────────────────────────────────────── */
+.pl-suwen {
+  position: relative;
+  overflow: hidden;
+  background: #FAF7F0;
+  color: #3B372F;
+  padding: 52rpx 48rpx 44rpx;
+}
+/* 右上斜盖邮戳：虚线圆框 写于/08.30/2026 */
+.pls-postmark {
+  position: absolute; top: 28rpx; right: 32rpx;
+  width: 72rpx; height: 72rpx; border-radius: 50%;
+  border: 2rpx dashed #A63B2A;
+  color: #A63B2A; transform: rotate(-9deg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2rpx; opacity: 0.85;
+}
+.pls-pm1 { font-size: 12rpx; letter-spacing: 4rpx; }
+.pls-pm2 { font-family: var(--plf-song); font-size: 18rpx; letter-spacing: 2rpx; }
+.pls-pm3 { font-size: 12rpx; letter-spacing: 2rpx; }
+.pls-name {
+  font-family: var(--plf-kai);
+  font-size: 32rpx; letter-spacing: 4rpx; line-height: 1.6;
+  color: #2E2B25;
+  padding-right: 84rpx; /* 避让右上邮戳 */
+}
+.pls-rule { height: 2rpx; background: #D8D2C2; margin: 20rpx 0 28rpx; }
+.pls-row { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
+.pls-seal {
+  flex: none; width: 24rpx; height: 24rpx; margin-top: 4rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--plf-song); font-size: 16rpx; border-radius: 4rpx;
+}
+.pls-seal-q { border: 2rpx solid #A63B2A; color: #A63B2A; }
+.pls-seal-a { background: #A63B2A; color: #FAF7F0; }
+.pls-q {
+  font-family: var(--plf-kai);
+  font-size: 28rpx; line-height: 2.0;
+  color: #6B6557;
+  white-space: pre-wrap;
+}
+.pls-a {
+  font-family: var(--plf-kai);
+  font-size: 28rpx; line-height: 2.0;
+  color: #3B372F;
+  white-space: pre-wrap;
+}
+
+/* ────────────────────────────────────────────────
+   14 留白志 liubai —— 编辑部极简：短线 + 页脚线
+   （配色 papers.js liubai；Canvas 见 share.js drawLiubaiStyle）
+   ──────────────────────────────────────────────── */
+.pl-liubai {
+  background: #FEFEFC;
+  color: #23211D;
+  padding: 52rpx 48rpx 44rpx;
+}
+.pll-name {
+  font-family: var(--plf-song);
+  font-size: 36rpx; font-weight: 600;
+  letter-spacing: 4rpx; line-height: 1.5;
+  color: #1D1B17;
+}
+.pll-name-rule { width: 40rpx; height: 4rpx; background: #1D1B17; margin: 24rpx 0 40rpx; }
+.pll-cap {
+  font-size: 16rpx; letter-spacing: 8rpx;
+  color: #B3AC9C; margin-bottom: 14rpx;
+  display: flex; align-items: center; gap: 12rpx;
+}
+.pll-cap::after { content: ""; flex: 1; height: 2rpx; background: #ECE8DE; }
+.pll-txt {
+  font-size: 28rpx; line-height: 2.1;
+  white-space: pre-wrap;
+}
+.pll-qt { color: #8A8478; margin-bottom: 36rpx; }
+.pll-a .pll-txt { color: #33302A; }
+.pll-footer {
+  margin-top: 48rpx; padding-top: 16rpx;
+  border-top: 2rpx solid #ECE8DE;
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 18rpx; color: #A29B8A; letter-spacing: 2rpx;
+}
+.pll-date { color: #6E695E; }
+
+/* ────────────────────────────────────────────────
+   15 墨夜笺 moye —— 暗夜纸 + 暖金细线
+   （配色 papers.js moye；Canvas 见 share.js drawMoyeStyle）
+   ──────────────────────────────────────────────── */
+.pl-moye {
+  background: radial-gradient(ellipse at 50% 20%, #2A2F3A 0%, #22262E 60%, #1D2027 100%);
+  color: #DDD6C6;
+  padding: 52rpx 48rpx 44rpx;
+}
+/* 报头：双细金线夹「心灵信箱」 */
+.plm-toprule {
+  display: flex; align-items: center; gap: 12rpx;
+  margin-bottom: 28rpx;
+  color: #C6A870;
+}
+.plm-toprule::before,
+.plm-toprule::after { content: ""; flex: 1; height: 2rpx; background: rgba(198,168,112,0.45); }
+.plm-toprule text { font-size: 14rpx; letter-spacing: 6rpx; text-indent: 6rpx; }
+.plm-name {
+  font-family: var(--plf-kai);
+  font-size: 34rpx; letter-spacing: 4rpx; line-height: 1.6;
+  color: #F0E9D8; text-align: center;
+}
+.plm-q { margin-top: 36rpx; }
+.plm-cap {
+  font-size: 16rpx; letter-spacing: 6rpx;
+  color: #C6A870; margin-bottom: 12rpx;
+  display: flex; align-items: center; gap: 12rpx;
+}
+.plm-cap::after { content: ""; flex: 1; height: 2rpx; background: rgba(198,168,112,0.28); }
+.plm-txt {
+  font-family: var(--plf-kai);
+  font-size: 28rpx; line-height: 2.1;
+  white-space: pre-wrap;
+}
+.plm-qt { color: #B4AD9D; }
+.plm-a { margin-top: 34rpx; }
+.plm-a .plm-txt { color: #DDD6C6; }
+.plm-date {
+  margin-top: 44rpx; text-align: center;
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: #C6A870;
+}
+
+/* ────────────────────────────────────────────────
+   16 航空笺 airmail2 —— 全幅斜纹画框 + 签条邮票邮戳
+   （配色 papers.js airmail2；Canvas 见 share.js drawAirmailStyle）
+   ──────────────────────────────────────────────── */
+.pl-airmail {
+  /* 全幅 45° 四段斜纹：红 13 / 米 9 / 蓝 13 / 米 9（周期 44rpx） */
+  padding: 12rpx;
+  background: repeating-linear-gradient(45deg,
+    #C2452D 0 13rpx, #F3EFE2 13rpx 22rpx,
+    #33557E 22rpx 35rpx, #F3EFE2 35rpx 44rpx);
+}
+.pla-sheet {
+  background: #FCFBF4;
+  padding: 36rpx 36rpx 34rpx;
+  position: relative; overflow: hidden;
+}
+.pla-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16rpx;
+}
+/* PAR AVION 签条 */
+.pla-avion {
+  border: 2rpx solid #33557E; color: #33557E;
+  padding: 8rpx 14rpx; text-align: center; line-height: 1.5;
+}
+.pla-avion-en {
+  display: block;
+  font-family: var(--plf-song); font-size: 16rpx;
+  letter-spacing: 4rpx; font-weight: 700;
+}
+.pla-avion-cn {
+  display: block;
+  font-size: 14rpx; letter-spacing: 6rpx; text-indent: 6rpx;
+}
+/* 邮票 */
+.pla-stampbox { position: relative; flex: none; width: 82rpx; }
+.pla-stamp {
+  width: 70rpx; height: 82rpx; margin-left: auto;
+  background: #F4F0E1; border: 2rpx solid #CFC8B2; padding: 8rpx;
+  box-sizing: border-box;
+}
+.pla-frame {
+  height: 100%;
+  border: 3rpx solid #33557E;
+  background: repeating-linear-gradient(135deg, rgba(51,85,126,0.10) 0 4rpx, transparent 4rpx 8rpx);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rpx;
+  color: #33557E; box-sizing: border-box;
+}
+.pla-stamp-v { font-family: var(--plf-song); font-size: 24rpx; font-weight: 700; }
+.pla-stamp-l { font-size: 12rpx; letter-spacing: 4rpx; text-indent: 4rpx; }
+.pla-route {
+  margin-top: 12rpx;
+  font-size: 14rpx; letter-spacing: 4rpx;
+  color: #A8A18C; text-align: right;
+}
+.pla-name {
+  margin-top: 28rpx;
+  font-family: var(--plf-song);
+  font-size: 34rpx; font-weight: 700;
+  letter-spacing: 4rpx; color: #22303E; line-height: 1.5;
+}
+.pla-q { margin-top: 28rpx; }
+.pla-cap {
+  font-size: 16rpx; letter-spacing: 6rpx;
+  color: #C2452D; margin-bottom: 8rpx; font-weight: 700;
+}
+.pla-txt {
+  font-size: 28rpx; line-height: 2.0;
+  white-space: pre-wrap;
+}
+.pla-qt { color: #6B7B8A; }
+.pla-hr-dash { border-top: 2rpx dashed #C9C2AC; margin: 22rpx 0; }
+.pla-a { margin-top: 28rpx; }
+.pla-a .pla-txt { color: #29405A; }
+.pla-foot {
+  margin-top: 32rpx;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.pla-via {
+  font-family: var(--plf-song);
+  font-size: 14rpx; letter-spacing: 4rpx;
+  color: #A8A18C;
+}
+.pla-date {
+  font-size: 18rpx; letter-spacing: 4rpx;
+  color: #33557E;
+}

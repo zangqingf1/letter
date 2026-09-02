@@ -21,7 +21,7 @@
         bindtap="onTapRow"
       >
         <view class="env-wrap">
-          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" lazy-load />
           <view class="clip-wrap">
             <image class="clip" src="/assets/clip.png" mode="aspectFit" />
           </view>

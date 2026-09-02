@@ -1,0 +1,139 @@
+<!-- 11 · 会员中心（从「我的」页会员中心入口进入）：会员状态卡 + 权益清单 + 专属主题/版式 + 订阅半屏拉手 -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 我的 + 居中标题（与账号管理页同款） -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">会员中心</view>
+  </view>
+  <view class="page-note">一张金卡信纸，安放下你的专属与长久。</view>
+
+  <!-- 会员状态卡 -->
+  <!-- 未开通态：虚线描边引导 -->
+  <view wx:if="{{state === 'free'}}" class="status-card free">
+    <view class="status-free-top">
+      <view class="status-free-title">还未开通会员</view>
+      <view class="status-seal seal-plain">VIP</view>
+    </view>
+    <view class="status-desc">解锁专属信纸与主题，信封不再设上限。</view>
+    <view class="status-points">
+      <text class="status-point">🎴 专属信纸版式</text>
+      <text class="status-point">📮 专属主题信封</text>
+      <text class="status-point">🌱 信封不限量</text>
+    </view>
+    <view class="btn-primary status-btn" hover-class="btn-primary" bindtap="openSheet">立即开通</view>
+  </view>
+
+  <!-- 已开通态：金色卡片 + 火漆 -->
+  <view wx:else class="status-card vip">
+    <view class="status-vip-head">
+      <view class="status-seal seal-gold">VIP</view>
+      <view class="status-vip-level">{{level}}</view>
+      <view class="status-vip-tag">{{renew ? '自动续费 · 随时可退' : '会员'}}</view>
+    </view>
+    <view class="status-vip-meta">
+      <view class="meta-item">
+        <text class="meta-label">等级</text>
+        <text class="meta-value">{{level}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">权益</text>
+        <text class="meta-value">专属版式 · 信封不限</text>
+      </view>
+    </view>
+    <view class="btn-primary status-btn" hover-class="btn-primary" bindtap="openSheet">续费</view>
+  </view>
+
+  <!-- 权益清单 -->
+  <view class="section-label">我的权益</view>
+  <view class="benefit-list">
+    <view class="benefit-item" wx:for="{{benefits}}" wx:key="type">
+      <view class="benefit-icon">{{item.icon}}</view>
+      <view class="benefit-body">
+        <view class="benefit-title">{{item.title}}</view>
+        <view class="benefit-desc">{{item.desc}}</view>
+      </view>
+      <view wx:if="{{item.unlocked}}" class="benefit-badge on">已解锁</view>
+      <view wx:else class="benefit-badge">未解锁</view>
+    </view>
+  </view>
+
+  <!-- 会员专属 · 自定义主题与版式 -->
+  <view class="section-label">会员专属 · 自定义主题与版式</view>
+  <view class="show-group">
+    <view class="show-label">专属信纸版式</view>
+    <scroll-view class="show-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="show-row">
+        <view class="show-card" wx:for="{{premiumPapers}}" wx:key="id" bindtap="onTapPremium">
+          <view class="paper-preview" style="background: {{item.colors.bg}};">
+            <view class="paper-line" style="background: {{item.colors.gold}};"></view>
+            <view class="paper-text" style="color: {{item.colors.ink}};">{{item.name}}</view>
+          </view>
+          <view class="show-name">{{item.name}}</view>
+          <view class="show-desc">{{item.desc}}</view>
+          <view wx:if="{{state === 'vip'}}" class="show-state unlocked">✓</view>
+          <view wx:else class="show-state">🔒</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+  <view class="show-group">
+    <view class="show-label">专属主题信封</view>
+    <scroll-view class="show-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="show-row">
+        <view class="show-card" wx:for="{{premiumThemes}}" wx:key="id" bindtap="onTapPremium">
+          <view class="theme-preview" style="background: {{item.swatch}};">
+            <view class="theme-envelope">
+              <view class="theme-flap"></view>
+              <view class="theme-body"></view>
+            </view>
+          </view>
+          <view class="show-name">{{item.name}}</view>
+          <view class="show-desc">{{item.desc}}</view>
+          <view wx:if="{{state === 'vip'}}" class="show-state unlocked">✓</view>
+          <view wx:else class="show-state">🔒</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 订阅半屏拉手 -->
+  <view class="sheet-mask" wx:if="{{showSheet}}" bindtap="closeSheet"></view>
+  <view class="sheet {{showSheet ? 'sheet-open' : ''}}">
+    <view class="sheet-handle"></view>
+    <view class="sheet-head">
+      <text class="sheet-title">{{state === 'vip' ? '续费会员' : '开通会员'}}</text>
+      <text class="sheet-close" bindtap="closeSheet">✕</text>
+    </view>
+    <view class="plan-list">
+      <view
+        class="plan-item {{selectedPlan === item.id ? 'plan-active' : ''}}"
+        wx:for="{{plans}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onSelectPlan"
+      >
+        <view class="plan-main">
+          <view class="plan-name">{{item.name}}</view>
+          <view class="plan-tag">{{item.tag}}</view>
+        </view>
+        <view class="plan-price"><text class="plan-unit">{{item.unit}}</text>{{item.price}}<text class="plan-period">{{item.period}}</text></view>
+      </view>
+    </view>
+    <view class="agree" bindtap="onToggleAgree">
+      <view class="agree-check {{agreed ? 'agree-check-on' : ''}}">{{agreed ? '✓' : ''}}</view>
+      <view class="agree-text">开通即表示同意<text class="agree-link">《会员服务协议》</text>与<text class="agree-link">《自动续费规则》</text></view>
+    </view>
+    <view class="btn-primary sheet-btn" hover-class="btn-primary" bindtap="onConfirmPay">{{payText}}</view>
+    <view class="sheet-note">本期为演示流程，不产生真实扣款。</view>
+  </view>
+
+  <!-- 开通成功完成幕（点击任意处跳过） -->
+  <view class="success" wx:if="{{showSuccess}}" bindtap="onSkipSuccess">
+    <view class="success-seal">✔</view>
+    <view class="success-title">已开通会员</view>
+    <view class="success-desc">感谢你愿意长久地守候。</view>
+    <view class="success-tap">点击任意处继续</view>
+  </view>
+
+</view>

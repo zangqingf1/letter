@@ -1,4 +1,7 @@
 /* 04 · 分享图 · 明信片预览 */
+/* 信纸版式装饰与排版：共享样式（styles/paper.wxss，与写信预览/详情阅读同构） */
+@import "../../styles/paper.wxss";
+
 .page {
   display: flex;
   flex-direction: column;
@@ -33,20 +36,19 @@
   font-weight: 700;
 }
 
-/* ── 明信片预览区（3:4 竖版，最终导出规格 1080×1440） ── */
+/* ── 明信片预览区：信纸自持版式（共享模板，宽 630rpx 与导出图同源）+ 小程序条 ── */
 .stage {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
   padding: 8rpx 40rpx;
 }
 .postcard {
   position: relative;
-  /* 默认 630×840rpx（3:4），onReady 按预览区实测等比缩放 */
+  margin: auto; /* 内容不超高时水平垂直居中，超高时可滚动预览（flex margin auto 居中不裁顶） */
+  /* 宽 630rpx；高度随信纸内容自适应，底部小程序条 88rpx */
   width: 630rpx;
-  height: 840rpx;
   border-radius: 16rpx;
   overflow: hidden;
   box-shadow: 0 12rpx 36rpx rgba(80, 100, 90, 0.18);
@@ -54,72 +56,11 @@
   flex-direction: column;
   background: #EDE9DC;
 }
-/* 信纸主体：居中完整展示，不被品牌区遮挡 */
-.pc-paper-wrap {
+.postcard .pl {
   flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pc-paper {
-  position: relative;
-  border-radius: 12rpx;
-  overflow: hidden;
-  box-shadow: 0 6rpx 20rpx rgba(80, 100, 90, 0.14);
-}
-/* 主题信纸铺满信纸主体（尺寸由 JS 按素材比例计算，整纸完整可见） */
-.pc-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-.pc-content {
-  position: relative;
-  z-index: 1;
-  height: 100%;
-  box-sizing: border-box;
-  /* 上避开信纸头部插画、下避开火漆封印、左右对齐横线区：由 JS 按信纸实际尺寸换算 */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.pc-title {
-  font-family: var(--font-heading);
-  font-size: 34rpx;
-  font-weight: 700;
-  text-align: center;
-  color: #5A4F3E;
-  margin-bottom: 8rpx;
-}
-.pc-hand {
-  font-family: var(--font-hand);
-  font-size: 28rpx;
-  line-height: 1.85;
-  letter-spacing: 0.5rpx;
-  color: #4A4438;
-}
-.pc-q {
-  margin-top: 16rpx;
-}
-.pc-a {
-  margin-top: 32rpx;
-}
-.pc-date {
-  margin-top: auto;
-  font-size: 22rpx;
-  color: #9A9284;
-  text-align: right;
-}
-/* 无障碍：关闭手写体开关生效时回落到系统字体（与全局设置一致） */
-.hand-off .pc-hand {
-  font-family: var(--font-ui);
-  letter-spacing: 0;
 }
 
-/* ── 品牌区：贴在信纸下方（不遮挡信纸），火漆 Logo + 品牌文案 + 二维码占位 ── */
+/* ── 品牌区：贴在信纸下方（不遮挡信纸），火漆 Logo + 品牌文案 + 小程序码 ── */
 .pc-brand {
   position: relative;
   flex: none;
@@ -132,8 +73,7 @@
   gap: 14rpx;
   padding: 0 110rpx 0 32rpx;
   box-sizing: border-box;
-}
-.pc-logo {
+}.pc-logo {
   width: 30rpx;
   height: 30rpx;
   border-radius: 50%;
@@ -144,7 +84,7 @@
   font-size: 20rpx;
   letter-spacing: 1rpx;
 }
-/* 小程序二维码占位（接入真实小程序码后替换） */
+/* 小程序码（白色衬底保证扫码对比度） */
 .pc-qr {
   position: absolute;
   right: 24rpx;
@@ -156,32 +96,18 @@
   border-radius: 8rpx;
   padding: 5rpx;
   box-sizing: border-box;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-content: space-between;
 }
-.pc-qr-cell {
-  width: 14rpx;
-  height: 14rpx;
-  background: #2E3330;
-  border-radius: 2rpx;
+.pc-qr-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 4rpx;
 }
 
 /* ── 底部操作区 ── */
 .share-foot {
   flex: none;
-  padding: 0 40rpx calc(20rpx + env(safe-area-inset-bottom));
-}
-/* 重新勾选链接（界面2 上层辅助操作） */
-.share-reselect {
-  text-align: center;
-  font-size: 26rpx;
-  color: var(--color-text-secondary);
-  padding: 14rpx 0 18rpx;
-}
-.share-reselect-hover {
-  opacity: 0.6;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
 }
 .share-ops {
   display: flex;
@@ -192,117 +118,11 @@
   font-size: 30rpx;
 }
 
-/* ── 勾选抽屉（界面1/3）：底部滑出，暖米白纸质抽屉 ── */
-.sheet-mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(46, 51, 48, 0.4);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 320ms ease;
-  z-index: 20;
-}
-.sheet-mask.show {
-  opacity: 1;
-  visibility: visible;
-}
-.sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 21;
-  /* 顶角 24px 圆角 + 36×4px 把手（设计规范第三节抽屉规格） */
-  border-radius: 48rpx 48rpx 0 0;
-  background: var(--color-base-light);
-  box-shadow: 0 -8rpx 32rpx rgba(80, 100, 90, 0.16);
-  padding: 16rpx 48rpx calc(36rpx + env(safe-area-inset-bottom));
-  transform: translateY(100%);
-  transition: transform 360ms ease;
-}
-.sheet.show {
-  transform: translateY(0);
-}
-.sheet-handle {
-  width: 72rpx;
-  height: 8rpx;
-  border-radius: 4rpx;
-  background: var(--color-disabled);
-  margin: 0 auto 24rpx;
-}
-.sheet-title {
-  font-family: var(--font-heading);
-  font-size: 34rpx;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  text-align: center;
-  margin-bottom: 32rpx;
-}
-.sheet-opts {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-.sheet-opt {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  background: var(--color-base-surface);
-  border: 2rpx solid transparent;
-  border-radius: 16rpx;
-  padding: 24rpx 28rpx;
-  transition: background 200ms ease, border-color 200ms ease;
-}
-.sheet-opt.on {
-  background: #F0EDE2;
-  border-color: var(--color-accent-secondary);
-}
-/* 陶土色火漆小印章勾号 */
-.opt-seal {
-  flex: none;
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  border: 3rpx solid var(--color-disabled);
-  background: transparent;
-  color: #FFFFFF;
-  font-size: 26rpx;
-  line-height: 40rpx;
-  text-align: center;
-  box-sizing: border-box;
-}
-.sheet-opt.on .opt-seal {
-  background: var(--color-accent-secondary);
-  border-color: var(--color-accent-secondary);
-}
-.opt-text {
-  font-size: 30rpx;
-  color: var(--color-text-primary);
-}
-.sheet-privacy {
-  font-size: 24rpx;
-  color: var(--color-text-secondary);
-  text-align: center;
-  margin: 32rpx 0 24rpx;
-}
-.sheet-btn {
-  font-size: 32rpx;
-}
-
-/* 预览微缩淡化（界面3：抽屉滑出时明信片后退让位） */
-.stage {
-  transition: opacity 320ms ease, transform 320ms ease;
-}
-.stage-dim {
-  opacity: 0.35;
-  transform: scale(0.94);
-}
-
-/* ── 离屏导出画布（1080×1440，不参与预览） ── */
+/* ── 离屏导出画布（宽 1080，高随内容在 JS 中动态设置；不参与预览） ── */
 .export-canvas {
   position: fixed;
   left: -9999px;
   top: 0;
   width: 1080px;
-  height: 1440px;
+  height: 1597px;
 }

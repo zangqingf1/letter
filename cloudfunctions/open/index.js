@@ -16,7 +16,13 @@ exports.main = async (event) => {
   try {
     const letterId = event.letter_id;
     const letter = await db.collection('letters').doc(letterId).get().catch(() => null);
-    if (!letter || !letter.data || letter.data._openid !== OPENID) {
+    if (!letter || !letter.data) {
+      return { ok: false, error: 'not found' };
+    }
+    // 旧数据自愈：无 _openid 的遗留信件认领给当前用户（与 letter/today 云函数 ensureOwned 同策略）
+    if (!letter.data._openid) {
+      await db.collection('letters').doc(letterId).update({ data: { _openid: OPENID } });
+    } else if (letter.data._openid !== OPENID) {
       return { ok: false, error: 'not found' };
     }
 
@@ -35,6 +41,7 @@ exports.main = async (event) => {
       .collection('open_records')
       .where({ _openid: OPENID, letter_id: letterId })
       .orderBy('created_at', 'asc')
+      .limit(1000) // 云数据库 get() 默认只返回 20 条，邮戳墙会被静默截断
       .get();
     return {
       ok: true,

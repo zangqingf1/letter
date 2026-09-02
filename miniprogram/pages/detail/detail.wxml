@@ -1,49 +1,54 @@
 <!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层） -->
+<import src="../../styles/paper.wxml" />
 <view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
 
-  <!-- 顶部轻导航：返回信匣 + 当前主题名称标签（标签紧随其后靠左） -->
+  <!-- 顶部轻导航：返回信匣 -->
   <view class="nav">
     <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 信匣</view>
-    <view class="nav-tag">{{themeName}}</view>
   </view>
 
   <!-- 可滚动主容器：主信纸 → 重读记录（邮戳墙） → 回信便签 -->
   <scroll-view class="body" scroll-y>
     <view class="body-inner">
 
-      <!-- 主信纸区：当前主题信纸为底（小王子素材），宋体标题 + 手写体两小节 + 写于/改于落款 -->
-      <view class="detail-paper">
-        <image class="dp-bg" src="{{theme.paper}}" mode="scaleToFill" />
-        <view class="dp-content">
-          <view class="lp-title">{{letter.name}}</view>
-          <view class="sec-tag">【当时的问题】</view>
-          <view class="sec-body">{{letter.question}}</view>
-          <view class="sec-tag">【想明白的事】</view>
-          <view class="sec-body">{{letter.answer}}</view>
-          <view class="lp-sign">—— 写于 {{dateText}}{{editedText ? ' · 改于 ' + editedText : ''}}</view>
-        </view>
-      </view>
+      <!-- 主信纸区：信纸自持版式（十款，papers.js 配置），
+           共享模板与写信预览/分享图完全同构；写于落款 -->
+      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
 
-      <!-- 重读记录（邮戳墙）：系统自动产生，不可编辑/删除单条（BR-09） -->
+      <!-- 重读记录（邮戳墙 · 戳痕成行）：系统自动产生，不可编辑/删除单条（BR-09） -->
       <view class="sect">
-        <view class="ph-h">📌 重读记录 <text class="ph-sub">{{openCount}} 次</text></view>
-        <view class="postmarks">
-          <view wx:for="{{stamps}}" wx:key="ts" class="postmark {{item.today ? 'today' : ''}}">
-            <text class="pm-date">{{item.date}}</text>
-            <text wx:if="{{item.label}}" class="pm-label">{{item.label}}</text>
-          </view>
-          <view wx:if="{{moreChip}}" class="postmark more" bindtap="onToggleStamps">
-            <text class="pm-date">+{{moreChip.count}}</text>
-            <text class="pm-label">{{stampsExpanded ? '收起' : '展开'}}</text>
+        <view class="ph-h">
+          <text class="ph-no">01</text>
+          <text class="ph-t">重读记录</text>
+          <text class="ph-sub">{{openCount}} 次</text>
+        </view>
+        <view class="stampline {{stampsExpanded ? 'expanded' : ''}}">
+          <view class="postmarks">
+            <view wx:for="{{stamps}}" wx:key="ts" class="postmark {{item.today ? 'today' : ''}}">
+              <text class="pm-date">{{item.date}}</text>
+              <text wx:if="{{item.label}}" class="pm-label">{{item.label}}</text>
+            </view>
+            <view wx:if="{{moreChip}}" class="postmark more" bindtap="onToggleStamps">
+              <text class="pm-date">+{{moreChip.count}}</text>
+              <text class="pm-label">{{stampsExpanded ? '收起' : '展开'}}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 回信便签区：贴在桌面上的便签卡片流（日期自动生成不可改） -->
+      <!-- 回信便签区（戳痕成行：mono 编目 + 胶带便签流，日期自动生成不可改） -->
       <view class="sect">
-        <view class="ph-h">✎ 回信 <text class="ph-sub">{{replyCount}} 封</text></view>
+        <view class="ph-h">
+          <text class="ph-no">02</text>
+          <text class="ph-t">回信</text>
+          <text class="ph-sub">{{replyCount}} 封</text>
+        </view>
         <view wx:for="{{replies}}" wx:key="ts" class="reply-note {{index % 2 === 0 ? 'r1' : 'r2'}}">
-          <view class="rd">📅 {{item.dateText}}</view>
+          <view class="rd-row">
+            <text class="rd-no">{{item.no}}</text>
+            <text class="rd-date">{{item.dateShort}}</text>
+            <view class="reply-del" hover-class="reply-del-hover" data-ts="{{item.ts}}" catchtap="onTapReplyDelete">撕掉</view>
+          </view>
           <view class="rb">{{item.text}}</view>
         </view>
       </view>
@@ -69,7 +74,7 @@
       <view class="oi">📤</view><view class="ol">分享</view>
     </view>
     <view class="op" hover-class="op-hover" bindtap="onTapDelete">
-      <view class="oi">🗑</view><view class="ol">删除</view>
+      <view class="oi">🗑</view><view class="ol">丢弃</view>
     </view>
   </view>
 
@@ -79,8 +84,9 @@
      信封微浮起 → 信纸从信封中抽出并展开 → 信封淡出移出屏幕 -->
 <view wx:if="{{opening}}" class="unseal" bindtap="onSkipOpen">
   <view class="us-stage">
-    <view class="us-paper">
-      <image class="us-paper-img" src="{{theme.paper}}" mode="widthFix" />
+    <view class="us-paper" style="background: {{theme.palette.base}};">
+      <view class="us-paper-headline"></view>
+      <view class="us-paper-line" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
     </view>
     <view class="us-env">
       <image class="us-env-img" src="{{theme.envelope}}" mode="widthFix" />

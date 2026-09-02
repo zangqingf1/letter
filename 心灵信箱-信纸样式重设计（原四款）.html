@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心灵信箱 · 信纸样式重设计（原四款）</title>
+<style>
+  /* ============ 提案页本身（非信纸样式） ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E7E3DA;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #3B372F;
+    padding: 48px 20px 96px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header.page { text-align: center; margin-bottom: 56px; }
+  header.page .kicker {
+    font-size: 12px; letter-spacing: 6px; color: #8B8578; margin-bottom: 14px;
+  }
+  header.page h1 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 30px; font-weight: 600; letter-spacing: 2px; color: #2E2B25;
+  }
+  header.page .sub {
+    margin-top: 16px; font-size: 13.5px; line-height: 1.9; color: #6E695E; max-width: 540px; margin-left: auto; margin-right: auto;
+  }
+  header.page .rules {
+    margin-top: 18px; display: inline-block; text-align: left;
+    font-size: 12.5px; line-height: 2; color: #6E695E;
+    border-top: 1px solid #C9C3B5; border-bottom: 1px solid #C9C3B5;
+    padding: 10px 4px;
+  }
+
+  section.sample { margin-bottom: 80px; }
+  .meta { margin-bottom: 18px; }
+  .meta .no {
+    font-family: Georgia, serif; font-size: 13px; color: #A29B8A; letter-spacing: 2px;
+  }
+  .meta h2 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 21px; font-weight: 600; color: #2E2B25; letter-spacing: 1.5px;
+    margin-top: 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .meta h2 .tagline { font-family: "PingFang SC","Microsoft YaHei",sans-serif; font-size: 13px; font-weight: 400; color: #8B8578; letter-spacing: 0; }
+  .meta .idmap { font-family: "Courier New", Consolas, monospace; font-size: 11.5px; color: #A29B8A; margin-top: 6px; letter-spacing: 1px; }
+  .meta ul { list-style: none; margin-top: 8px; }
+  .meta ul li {
+    font-size: 12.5px; color: #75705F; line-height: 1.9;
+    padding-left: 14px; position: relative;
+  }
+  .meta ul li::before { content: "·"; position: absolute; left: 2px; color: #A29B8A; }
+
+  /* ============ 信纸通用基底 ============ */
+  .paper {
+    width: 100%; max-width: 680px; margin: 0 auto;
+    min-height: 560px;
+    box-shadow: 0 1px 2px rgba(40,35,25,.10), 0 12px 32px rgba(40,35,25,.14);
+    position: relative;
+    padding: 56px 52px 48px;
+    overflow: hidden;
+  }
+  @media (max-width: 560px) { .paper { padding: 40px 26px 36px; min-height: 480px; } }
+
+  .f-kai  { font-family: "Kaiti SC","STKaiti","KaiTi","DFKai-SB",serif; }
+  .f-song { font-family: "Songti SC","SimSun",serif; }
+  .f-hei  { font-family: "PingFang SC","Microsoft YaHei",sans-serif; }
+  .f-mono { font-family: "Courier New", Consolas, monospace; }
+
+  /* ================================================================
+     R1 素笺（su）—— 素到只剩一条线，但那条线要足够讲究
+     原版：一根陶土头线。新版：陶土双线 + 中缝菱饰，居中排版。
+     ================================================================ */
+  .r1 { background: #FBF8F2; color: #3B362E; }
+  .r1::before { /* 极轻的纵向帘纹，让「素」有质感 */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, rgba(120,104,80,.035) 0 1px, transparent 1px 7px);
+  }
+  .r1 .inner { position: relative; z-index: 1; }
+  .r1 .orn { display: flex; align-items: center; gap: 14px; }
+  .r1 .orn::before, .r1 .orn::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(to right, transparent, #C58A6A 18%, #C58A6A 82%, transparent);
+  }
+  .r1 .orn .dia {
+    width: 9px; height: 9px; transform: rotate(45deg);
+    border: 1.5px solid #C58A6A;
+  }
+  .r1 .orn2 { margin-top: 4px; display: flex; justify-content: center; }
+  .r1 .orn2 .dia-solid { width: 5px; height: 5px; transform: rotate(45deg); background: #C58A6A; }
+  .r1 .name {
+    margin-top: 30px; text-align: center;
+    font-family: "Songti SC","SimSun",serif;
+    font-size: 24px; font-weight: 600; letter-spacing: 5px; text-indent: 5px; color: #2E2A22;
+  }
+  .r1 .q { margin-top: 40px; }
+  .r1 .a { margin-top: 34px; }
+  .r1 .cap {
+    text-align: center; font-size: 11px; letter-spacing: 8px; text-indent: 8px;
+    color: #C58A6A; margin-bottom: 14px;
+  }
+  .r1 .txt { font-family: "Kaiti SC","STKaiti","KaiTi",serif; font-size: 16px; line-height: 2.1; text-align: justify; }
+  .r1 .q .txt { color: #84796A; font-size: 15px; }
+  .r1 .a .txt { color: #3B362E; }
+  .r1 .date {
+    margin-top: 46px; display: flex; align-items: center; gap: 14px; justify-content: center;
+    font-size: 12px; letter-spacing: 3px; color: #A3947E;
+  }
+  .r1 .date::before, .r1 .date::after {
+    content: ""; width: 46px; height: 1px; background: #DCD2C0;
+  }
+
+  /* ================================================================
+     R2 航空笺（airmail）—— 整张纸都是从邮路上来的
+     原版：斜纹边框+邮票。新版：全幅斜纹画框 + PAR AVION 签条 + 邮票邮戳。
+     ================================================================ */
+  .r2 {
+    padding: 12px;
+    background: repeating-linear-gradient(45deg,
+      #C2452D 0 14px, #F3EFE2 14px 24px,
+      #33557E 24px 38px, #F3EFE2 38px 48px);
+  }
+  .r2 .sheet {
+    background: #FCFBF4; height: 100%; min-height: 536px;
+    padding: 40px 40px 36px; position: relative; overflow: hidden;
+  }
+  @media (max-width: 560px) { .r2 .sheet { padding: 30px 22px 28px; } }
+  .r2 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .r2 .avion {
+    border: 1.5px solid #33557E; color: #33557E;
+    padding: 6px 12px; text-align: center; line-height: 1.5;
+  }
+  .r2 .avion .en { font-family: Georgia, serif; font-size: 13px; letter-spacing: 3px; font-weight: 700; }
+  .r2 .avion .cn { font-size: 10px; letter-spacing: 6px; text-indent: 6px; }
+  .r2 .stampbox { position: relative; flex: none; width: 88px; }
+  .r2 .stamp {
+    width: 76px; height: 88px; margin-left: auto;
+    background: #F4F0E1; border: 1px solid #CFC8B2; padding: 6px;
+  }
+  .r2 .stamp .frame {
+    height: 100%; border: 2px solid #33557E;
+    background: repeating-linear-gradient(135deg, rgba(51,85,126,.10) 0 4px, transparent 4px 9px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #33557E;
+  }
+  .r2 .stamp .v { font-family: Georgia, serif; font-size: 20px; font-weight: 700; }
+  .r2 .stamp .l { font-size: 9px; letter-spacing: 3px; text-indent: 3px; }
+  .r2 .cancel {
+    position: absolute; left: -22px; bottom: -10px;
+    width: 68px; height: 68px; border-radius: 50%;
+    border: 1.5px solid #8F897A; color: #8F897A; opacity: .8; transform: rotate(-14deg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 8.5px; letter-spacing: 2px; background: rgba(252,251,244,.35);
+  }
+  .r2 .cancel b { font-size: 10px; }
+  .r2 .route { margin-top: 12px; font-size: 10px; letter-spacing: 3px; color: #A8A18C; text-align: right; }
+  .r2 .name {
+    margin-top: 30px; font-family: "Songti SC","SimSun",serif;
+    font-size: 26px; font-weight: 700; letter-spacing: 2px; color: #22303E; line-height: 1.5;
+  }
+  .r2 .q { margin-top: 30px; }
+  .r2 .cap { font-size: 11px; letter-spacing: 5px; color: #C2452D; margin-bottom: 8px; font-weight: 700; }
+  .r2 .cap.blue { color: #33557E; }
+  .r2 .txt { font-size: 15px; line-height: 2.0; }
+  .r2 .q .txt { color: #6B7B8A; }
+  .r2 .a { margin-top: 30px; }
+  .r2 .a .txt { color: #29405A; }
+  .r2 .hr-dash { border: none; border-top: 1.5px dashed #C9C2AC; margin: 24px 0; }
+  .r2 .foot { margin-top: 34px; display: flex; justify-content: space-between; align-items: baseline; }
+  .r2 .foot .via { font-family: Georgia, serif; font-size: 10px; letter-spacing: 4px; color: #A8A18C; }
+  .r2 .foot .d { font-size: 12.5px; letter-spacing: 2px; color: #33557E; }
+
+  /* ================================================================
+     R3 笔记本（notebook）—— 一页真的笔记本
+     原版：横格踩线。新版：蓝色横格 + 红页边线 + 左侧装订孔，字行压线。
+     ================================================================ */
+  .r3 {
+    background:
+      linear-gradient(to right, transparent 0 58px, #D66A5A 58px 59.5px, transparent 59.5px 62px, #D66A5A 62px 63px, transparent 63px),
+      repeating-linear-gradient(to bottom, transparent 0 29px, rgba(96,125,160,.38) 29px 30px),
+      #FDFDFB;
+    color: #33393F;
+    padding-left: 88px;
+  }
+  @media (max-width: 560px) { .r3 { padding-left: 66px; background: linear-gradient(to right, transparent 0 44px, #D66A5A 44px 45.5px, transparent 45.5px 48px, #D66A5A 48px 49px, transparent 49px), repeating-linear-gradient(to bottom, transparent 0 29px, rgba(96,125,160,.38) 29px 30px), #FDFDFB; } }
+  .r3 .hole {
+    position: absolute; left: 20px; width: 17px; height: 17px; border-radius: 50%;
+    border: 2.5px solid #C9C4B8; background: #EFEDE6;
+    box-shadow: inset 1px 1.5px 2px rgba(60,55,45,.22);
+  }
+  @media (max-width: 560px) { .r3 .hole { left: 10px; width: 14px; height: 14px; } }
+  .r3 .h1 { top: 84px; } .r3 .h2 { top: 50%; } .r3 .h3 { bottom: 84px; }
+  .r3 .head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1.5px solid #33393F; padding-bottom: 10px; }
+  .r3 .name { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #23282D; }
+  .r3 .head .d { font-size: 12px; letter-spacing: 1px; color: #7A828A; }
+  .r3 .entry { margin-top: 30px; }
+  .r3 .txt { font-size: 15.5px; line-height: 30px; }
+  .r3 .lbl { font-weight: 700; color: #C2452D; }
+  .r3 .q { margin-bottom: 24px; }
+  .r3 .q .txt { color: #6B7280; }
+  .r3 .a .txt { color: #33393F; }
+  .r3 .foot { margin-top: 26px; text-align: right; font-size: 12px; letter-spacing: 2px; color: #7A828A; }
+
+  /* ================================================================
+     R4 织纹笺（weave）—— 一块织出来的布
+     原版：布纹+双框。新版：经纬织纹底 + 双框内一道缝线，名称缝上布标。
+     ================================================================ */
+  .r4 {
+    background:
+      repeating-linear-gradient(0deg,  rgba(122,102,72,.07) 0 2px, transparent 2px 8px),
+      repeating-linear-gradient(90deg, rgba(122,102,72,.07) 0 2px, transparent 2px 8px),
+      #F1EAE0;
+    border: 2px solid #6E5E48;
+    box-shadow: inset 0 0 0 6px #F1EAE0, inset 0 0 0 7.5px #A08A66, 0 12px 32px rgba(40,35,25,.14);
+    color: #4A4030;
+  }
+  .r4 .inner { border: 1.5px dashed #A08A66; padding: 34px 30px; min-height: 500px; display: flex; flex-direction: column; }
+  @media (max-width: 560px) { .r4 .inner { padding: 26px 20px; min-height: 430px; } }
+  .r4 .label {
+    align-self: center;
+    border: 1.5px dashed #A08A66; background: #F6F1E8;
+    padding: 10px 26px;
+    font-family: "Songti SC","SimSun",serif;
+    font-size: 20px; font-weight: 600; letter-spacing: 4px; text-indent: 4px; color: #3E3628;
+    position: relative;
+  }
+  .r4 .label::before, .r4 .label::after {
+    content: ""; position: absolute; top: 50%; width: 26px; height: 1.5px; background: #A08A66;
+  }
+  .r4 .label::before { left: -34px; }
+  .r4 .label::after { right: -34px; }
+  .r4 .q { margin-top: 38px; }
+  .r4 .a { margin-top: 32px; }
+  .r4 .cap { font-size: 11px; letter-spacing: 6px; color: #8A6F4A; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .r4 .cap::after { content: ""; flex: 1; height: 1px; background: #D9CEBB; }
+  .r4 .txt { font-size: 15.5px; line-height: 2.05; }
+  .r4 .q .txt { color: #857a67; }
+  .r4 .a .txt { color: #4A4030; }
+  .r4 .date { margin-top: auto; padding-top: 32px; text-align: right; font-size: 12px; letter-spacing: 3px; color: #8A6F4A; }
+  .r4 .date b { border-bottom: 1.5px dashed #A08A66; padding-bottom: 3px; font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <div class="kicker">心 灵 信 箱 · 原 四 款 重 设 计</div>
+    <h1>素笺 · 航空笺 · 笔记本 · 织纹笺</h1>
+    <p class="sub">对线上现有四款信纸逐款推翻重画。每款保留原来的「身份」——素、邮路、横格、织物——但按同一套新标准重做：配色自持不取主题色、四项内容固定、装饰纯样式可复刻进 WXSS 与分享 Canvas。</p>
+    <div class="rules">
+      每款标注对应的 paper_id（su / airmail / notebook / weave），落地时 version 升为 2<br>
+      六套新提案（NO.01–12）与本页不冲突：本页是替换现有四款的重设计<br>
+      与前两轮相同，仍渲染同一封示例信便于对比
+    </div>
+  </header>
+
+  <!-- ============ R1 素笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">R1 · 原「素笺」</div>
+      <h2>素笺 <span class="tagline">素到只剩一条线，但那条线要足够讲究</span></h2>
+      <div class="idmap">paper_id: su · version 1 → 2</div>
+      <ul>
+        <li>原版的一根陶土头线，升级为「渐显双线 + 中缝菱饰」的居中 letterhead</li>
+        <li>纸面加一道极轻的纵向帘纹，「素」而不「平」；名称居中宋体</li>
+        <li>问 / 答以居中小标引出（答案楷体、问题退灰），日期居中收尾——全款只有一个锚点色 #C58A6A</li>
+      </ul>
+    </div>
+    <div class="paper r1">
+      <div class="inner">
+        <div class="orn"><span class="dia"></span></div>
+        <div class="orn2"><span class="dia-solid"></span></div>
+        <div class="name f-song">关于失眠，我想明白的事</div>
+        <div class="q">
+          <div class="cap f-hei">问</div>
+          <div class="txt f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <div class="a">
+          <div class="cap f-hei">答</div>
+          <div class="txt f-kai">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="date f-hei">写于 2026 年 8 月 30 日</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ R2 航空笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">R2 · 原「航空笺」</div>
+      <h2>航空笺 <span class="tagline">整张纸都是从邮路上来的</span></h2>
+      <div class="idmap">paper_id: airmail · version 1 → 2</div>
+      <ul>
+        <li>斜纹升级为全幅红蓝「画框」，框内另衬一张米白信纸，厚度感立现</li>
+        <li>左上 PAR AVION / 航空邮件 签条，右上邮票印日期（08.30 / 2026）+ 邮戳压角</li>
+        <li>问题退灰、答案蓝墨，页脚「VIA AIR MAIL · 写于 2026.08.30」收尾</li>
+      </ul>
+    </div>
+    <div class="paper r2">
+      <div class="sheet">
+        <div class="head">
+          <div class="avion f-hei">
+            <div class="en">PAR AVION</div>
+            <div class="cn">航空邮件</div>
+          </div>
+          <div class="stampbox">
+            <div class="stamp f-hei">
+              <div class="frame">
+                <span class="v">08.30</span>
+                <span class="l">2026</span>
+              </div>
+            </div>
+            <div class="cancel f-hei"><b>心灵信箱</b><span>已封存</span></div>
+          </div>
+        </div>
+        <div class="route f-hei">BY MENTAL MAILBOX · 寄给未来</div>
+        <div class="name f-song">关于失眠，我想明白的事</div>
+        <div class="q">
+          <div class="cap f-hei">问</div>
+          <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <hr class="hr-dash">
+        <div class="a">
+          <div class="cap f-hei">答</div>
+          <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="foot">
+          <span class="via">VIA AIR MAIL</span>
+          <span class="d f-hei">写于 2026 年 8 月 30 日</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ R3 笔记本 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">R3 · 原「笔记本」</div>
+      <h2>笔记本 <span class="tagline">一页真的笔记本，字行压线写</span></h2>
+      <div class="idmap">paper_id: notebook · version 1 → 2</div>
+      <ul>
+        <li>蓝色 30px 横格 + 左侧红色双页边线 + 三枚带内影的装订孔，像摊开的本子</li>
+        <li>名称在页首栏、右侧同栏落日期，像日记的抬头；正文 15.5px 字行精确压在格线上</li>
+        <li>「问：」「答：」用红笔色写在行首，页脚右下注「写于 2026.08.30」</li>
+      </ul>
+    </div>
+    <div class="paper r3">
+      <span class="hole h1"></span><span class="hole h2"></span><span class="hole h3"></span>
+      <div class="head f-hei">
+        <div class="name">关于失眠，我想明白的事</div>
+        <div class="d">2026.08.30</div>
+      </div>
+      <div class="entry">
+        <div class="q f-hei">
+          <div class="txt"><span class="lbl">问：</span>最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <div class="a f-hei">
+          <div class="txt"><span class="lbl">答：</span>焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+      </div>
+      <div class="foot f-hei">写于 2026 年 8 月 30 日 · 心灵信箱</div>
+    </div>
+  </section>
+
+  <!-- ============ R4 织纹笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">R4 · 原「织纹笺」</div>
+      <h2>织纹笺 <span class="tagline">一块织出来的布，名称缝在布标上</span></h2>
+      <div class="idmap">paper_id: weave · version 1 → 2</div>
+      <ul>
+        <li>经纬两组细纹叠出真实的织布底，外框 2px 深棕实线 + 内圈缝线虚线双框</li>
+        <li>名称不再是普通标题，而是缝在布面上的「织唛布标」：虚线框 + 两侧缝线牵条</li>
+        <li>问 / 答小标带延伸细线，日期右下加缝线短划——处处是「针脚」</li>
+      </ul>
+    </div>
+    <div class="paper r4">
+      <div class="inner">
+        <div class="label f-song">关于失眠，我想明白的事</div>
+        <div class="q">
+          <div class="cap f-hei">问</div>
+          <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <div class="a">
+          <div class="cap f-hei">答</div>
+          <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="date f-hei"><b>写于 2026 年 8 月 30 日</b></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

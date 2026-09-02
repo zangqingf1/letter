@@ -24,7 +24,7 @@ Page({
         avatarChar: (profile.nickname || '友')[0],
         wroteDays: profile.wroteDays
       });
-    });
+    }).catch((err) => console.error('[account] 资料读取失败', err));
   },
 
   // 官方头像填写能力回调：e.detail.avatarUrl 为微信临时路径，先落成本地文件再存，避免重启后失效
@@ -58,7 +58,12 @@ Page({
   },
 
   saveProfile() {
-    userService.saveProfile(this.data.profile);
+    userService
+      .saveProfile(this.data.profile)
+      .catch((err) => {
+        console.error('[account] 资料保存失败', err);
+        wx.showToast({ title: '没存上，再试一次吧', icon: 'none' });
+      });
   },
 
   onTapBack() {
