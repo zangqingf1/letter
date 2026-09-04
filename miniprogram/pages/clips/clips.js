@@ -4,6 +4,7 @@
 
 const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 
 // 信件日期文案：按创建时间补出「N月N日」（信件数据由 letter 服务提供）
 function dateTextOf(letter) {
@@ -30,14 +31,15 @@ Page({
 
   // 数据经 letter 服务获取（与首页信匣同源，仅筛回形针点亮信件 —— PRD 第十节、BR-06）
   loadClips() {
-    Promise.all([letterService.getAll(), themeService.getThemes()]).then(([box, themes]) => {
+    Promise.all([letterService.getAll(), themeService.getThemes(), memberService.getMembership()]).then(([box, themes, m]) => {
+      const isVip = !!(m && m.state === 'vip');
       const items = box.list
         .filter((l) => l.pinned)
         .map((l, i) => ({
           id: l.id,
           name: l.name,
           dateText: dateTextOf(l),
-          env: themeService.envelopeThumbOf(l.theme_id, themes),
+          env: themeService.envelopeThumbOf(l.theme_id, themes, isVip),
           // 纸条微倾错落（交替 ±0.5°，手作感）
           tilt: i % 2 === 0 ? -0.5 : 0.5
         }));

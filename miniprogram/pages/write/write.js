@@ -99,6 +99,9 @@ Page({
     // TODO: 我的页提供开关入口，统一读写该存储键
     this.setData({ handwritingOff: wx.getStorageSync('handwriting_off') === true });
 
+    // 从第二步「返回修改」回来时撤销进入第二步自动落的草稿（onShow 消费，仅本次新建的）
+    this._pendingDraftUndo = false;
+
     // 编辑模式：从详情页进入，预填原信内容（PRD 5.6，复用写信两步流程）
     this.editMode = !!(options && options.mode === 'edit');
     // 供 wxml 判断编辑态（编辑态不提供「存草稿」按钮）
@@ -135,6 +138,23 @@ Page({
     this.syncAlertBeforeUnload();
   },
 
+  // 从第二步「返回修改」回来（按钮或手势返回均触发本页 onShow）：
+  // 撤销进入第二步时自动落的草稿（仅撤销本次新建的，编辑态与已存在的草稿不受影响）。
+  // 内容仍在表单中，未真正封存前不产生"幽灵草稿"。
+  onShow() {
+    if (this._pendingDraftUndo) {
+      this._pendingDraftUndo = false;
+      if (!this.editMode && this.currentDraftId) {
+        const id = this.currentDraftId;
+        this.currentDraftId = '';
+        draftService
+          .remove(id)
+          .then(() => this.loadDraftShelf())
+          .catch(() => {});
+      }
+    }
+  },
+
   onUnload() {
     // 页面真正卸载（含系统弹窗「确定」离开）：
     // 新写信 → 退出确认落草稿（唯一自动保存时机之一）；编辑态 → 丢弃未封存修改回原信阅读态
@@ -143,7 +163,11 @@ Page({
         draftService.clearEdit();
       }
     } else {
-      this.saveDraft(true);
+      // 已封存寄出则不再自动重存（草稿已在第二步精确清除，内容已成真实信件）；
+      // 否则照旧：退出确认才落草稿
+      const sealed = getApp()._letterSealed;
+      getApp()._letterSealed = false;
+      if (!sealed) this.saveDraft(true);
     }
     try {
       wx.disableAlertBeforeUnload();
@@ -353,7 +377,7 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         draftService.remove(id).then(() => {
-          // 删的是正在写的这封：清空表单，避免下一次自动保存又把它写回
+          // 删的是正在写的这封：清空表单，避免退出/存草稿时又把它写回
           if (id === this.currentDraftId) {
             this.currentDraftId = '';
             this.setData({
@@ -396,6 +420,9 @@ Page({
   onTapNext() {
     if (!this.data.canNext) return;
     const d = this.data;
+    // 进入第二步前当前内容是否已是草稿：'' 说明本次由下方 saveDraft 自动新建，
+    // 从第二步「返回修改」回来时（onShow）据此撤销该自动草稿
+    const draftExisted = !!this.currentDraftId;
     // 跳转写信第二步「选择主题」，内容经事件通道传递（长文不走 URL）；
     // 编辑模式额外带信件 id / 原主题 / 原信纸版式 / 创建时间，供第二步双落款与回选
     const go = () => {
@@ -422,6 +449,7 @@ Page({
       return;
     }
     // 先确保当前内容已落草稿并拿到 id（避免 emitted draftId 为空时寄出误清全部草稿）
+    this._pendingDraftUndo = !draftExisted;
     Promise.resolve(this.saveDraft(true)).then(go);
   },
 

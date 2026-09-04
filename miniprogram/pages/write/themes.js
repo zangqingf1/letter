@@ -21,5 +21,10 @@ module.exports = [
   { id: 'niupizhi', name: '牛皮纸', desc: '朴实有趣', version: 1, swatch: '#D8C4A4', palette: { base: '#E7D9BC', title: '#6B5636', text: '#57462C', tag: '#9C8B6C' }, desk: '#DCD0B2' },
   { id: 'mianma', name: '棉麻', desc: '极简高级', version: 1, swatch: '#E3DECF', palette: { base: '#EBE7DA', title: '#5C594C', text: '#4C4A40', tag: '#98948A' }, desk: '#E0DCCB' },
   { id: 'huajian', name: '花笺', desc: '柔美治愈', version: 1, swatch: '#E7CFCB', palette: { base: '#F1DFDB', title: '#6E514C', text: '#5C443F', tag: '#AB8B85' }, desk: '#E8D3CE' },
-  { id: 'kafeizi', name: '咖啡渍', desc: '手账有趣', version: 1, swatch: '#CBB693', palette: { base: '#E4D8BE', title: '#66543A', text: '#52442C', tag: '#9D8F73' }, desk: '#D8CBB0' }
+  { id: 'kafeizi', name: '咖啡渍', desc: '手账有趣', version: 1, swatch: '#CBB693', palette: { base: '#E4D8BE', title: '#66543A', text: '#52442C', tag: '#9D8F73' }, desk: '#D8CBB0' },
+
+  // ── 会员专属主题（premium:true，后台 member_items kind='theme' 下发，与 admin seed 手工同步）──
+  // 无信封素材，选择卡与会员页用 swatch 色样展示，信封回落默认（小王子）。
+  { id: 'guiniao', name: '归鸟', desc: '归途晚照 · 专属', version: 1, premium: true, swatch: '#D9C3B2', palette: { base: '#E9DCCF', title: '#5A4634', text: '#4A3B2C', tag: '#9C8B78' }, desk: '#DFD2C4' },
+  { id: 'xingxi', name: '星汐', desc: '夜海微光 · 专属', version: 1, premium: true, swatch: '#B8C4CF', palette: { base: '#C8D2DC', title: '#2E3A46', text: '#27323C', tag: '#74808C' }, desk: '#BDC9D4' }
 ];

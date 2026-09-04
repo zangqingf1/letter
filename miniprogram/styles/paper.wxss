@@ -31,7 +31,9 @@
 .pl.hand-off .pls-q,
 .pl.hand-off .pls-a,
 .pl.hand-off .plm-name,
-.pl.hand-off .plm-txt {
+.pl.hand-off .plm-txt,
+.pl.hand-off .plpm-name,
+.pl.hand-off .plpm-txt {
   font-family: var(--plf-hei);
 }
 
@@ -759,4 +761,58 @@
 .pla-date {
   font-size: 18rpx; letter-spacing: 4rpx;
   color: #33557E;
+}
+
+/* ────────────────────────────────────────────────
+   会员专属 premium —— 通用金线笺（后台添加的专属版式）
+   结构固定，颜色行内注入 colors.bg/ink/gold（paper.wxml 分支同构），
+   后台改配色即生效，无需改代码；与 share.js drawPremiumStyle 同 rpx 值。
+   ──────────────────────────────────────────────── */
+.pl-premium {
+  padding: 60rpx 56rpx 48rpx;
+}
+.plpm-rule {
+  height: 4rpx;
+  margin-bottom: 34rpx;
+}
+.plpm-name {
+  font-family: var(--plf-song);
+  font-size: 44rpx; font-weight: 900;
+  letter-spacing: 4rpx; line-height: 1.5;
+  text-align: center;
+}
+.plpm-rule2 {
+  height: 2rpx;
+  width: 96rpx;
+  margin: 26rpx auto 40rpx;
+}
+.plpm-cap {
+  font-family: var(--plf-hei);
+  font-size: 22rpx; font-weight: 700;
+  letter-spacing: 4rpx;
+  margin-bottom: 14rpx;
+}
+.plpm-txt {
+  font-family: var(--plf-kai);
+  font-size: 28rpx; line-height: 2.0;
+  white-space: pre-wrap;
+}
+.plpm-q {
+  margin-bottom: 40rpx;
+}
+.plpm-a {
+  margin-bottom: 16rpx;
+}
+.plpm-foot {
+  border-top: 2rpx solid transparent;
+  padding-top: 28rpx;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.plpm-f-l {
+  font-family: var(--plf-hei);
+  font-size: 20rpx; letter-spacing: 3rpx;
+}
+.plpm-f-r {
+  font-family: var(--plf-hei);
+  font-size: 20rpx; letter-spacing: 2rpx;
 }

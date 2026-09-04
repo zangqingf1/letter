@@ -1,6 +1,6 @@
 // 草稿服务（技术架构文档.md §5.4 三层防线）
-// 第一版：本地 storage 为第一道防线（行为与原页面完全一致）；云端 drafts 集合
-// 同步（失焦/onHide 异步备份）在 M2 接入，接口形状已按云端预留。
+// 本地 storage 为第一道防线；云端模式（DATA_SOURCE='cloud'）由 draft 云函数读写
+// drafts 集合备份。保存时机由页面控制（点「存草稿」或退出点「确定」），本服务不自行触发。
 //
 // 多草稿列表：letter_drafts 为草稿数组，每项 { id, name, question, answer, updatedAt }；
 // 旧单草稿键 letter_draft_current 在首次 list() 时迁移进列表后移除。
@@ -70,7 +70,8 @@ function list() {
 }
 
 // 保存草稿（upsert：带 id 更新对应项，无 id 追加新项）。
-// 每 10 秒 / 失焦 / 切后台时调用；失败静默（草稿最佳努力，不打扰用户）。
+// 调用时机由页面决定（点「存草稿」、退出确认、切草稿/进第二步前静默落草稿），无自动保存；
+// 失败静默（草稿最佳努力，不打扰用户）。
 // 返回 Promise<含 id 的草稿项>，调用方据此回写 currentDraftId（寄出后精确清除）。
 function save(draft) {
   const item = {

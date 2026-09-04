@@ -45,5 +45,21 @@ module.exports = [
   {
     id: 'airmail2', name: '航空笺', desc: '全幅斜纹画框 · 邮票邮戳', version: 1,
     colors: { bg: '#FCFBF4', stripe1: '#C2452D', stripe2: '#F3EFE2', stripe3: '#33557E', ink: '#22303E', red: '#C2452D', blue: '#33557E', qGray: '#6B7B8A', aBlue: '#29405A', tan: '#A8A18C', dash: '#C9C2AC', stampPaper: '#F4F0E1', stampLine: '#CFC8B2' }
+  },
+
+  // ── 会员专属版式（premium:true，后台 member_items kind='paper' 下发，与 admin seed 手工同步）──
+  // 通用专属模板渲染（styles/paper.wxml pl-premium 分支 + share.js drawPremiumStyle），
+  // 只取 colors.bg/ink/gold 三色；后台改配色即生效，无需改代码。
+  {
+    id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, premium: true,
+    colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' }
+  },
+  {
+    id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', version: 1, premium: true,
+    colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' }
+  },
+  {
+    id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, premium: true,
+    colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' }
   }
 ];

@@ -1,6 +1,7 @@
 const letterService = require('../../services/letter.js');
 const draftService = require('../../services/draft.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 const { DATA_SOURCE } = require('../../config/env.js');
 
 // 今日来信（local 态）：同一天固定同一封（按日期种子确定性随机，次日重摇）；
@@ -79,10 +80,11 @@ Page({
   // 草稿横条按真实草稿显示（云端 today 聚合返回 draftCount，本地读 draft 服务）
   loadMailbox(arrivingId) {
     // 云模式下 today 聚合接口已返回 draftCount，无需再单独调 draft 服务
-    const tasks = [letterService.getAll(), themeService.getThemes()];
+    const tasks = [letterService.getAll(), themeService.getThemes(), memberService.getMembership()];
     if (DATA_SOURCE !== 'cloud') tasks.push(draftService.list());
     Promise.all(tasks).then(
-      ([box, themes, drafts]) => {
+      ([box, themes, m, drafts]) => {
+        const isVip = !!(m && m.state === 'vip');
         // 回形针优先展示（BR-06）：只改排序，不改视觉
         const sorted = [...box.list].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
         const isTidy = sorted.length > 8;
@@ -94,7 +96,7 @@ Page({
           id: l.id,
           name: l.name,
           dateText: dateTextOf(l),
-          env: themeService.envelopeThumbOf(l.theme_id, themes),
+          env: themeService.envelopeThumbOf(l.theme_id, themes, isVip),
           tilt: l.tilt,
           pinned: !!l.pinned,
           // 刚寄出的信：落格动效（淡入 + 10px 落定）

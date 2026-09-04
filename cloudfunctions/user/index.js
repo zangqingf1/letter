@@ -10,10 +10,13 @@ exports.main = async (event) => {
 
   try {
     switch (action) {
-      // 静默建档：首次 callFunction 时确保 users 存在（不弹任何授权，PRD 第六节）
+      // 静默建档：首次 callFunction 时确保 users 存在（不弹任何授权，PRD 第六节）。
+      // 若该 openid 已被后台封禁（users.status='banned'），返回 banned 拒绝使用。
       case 'ensure': {
-        const found = await db.collection('users').where({ _openid: OPENID }).count();
-        if (found.total === 0) {
+        const res = await db.collection('users').where({ _openid: OPENID }).limit(1).get();
+        if (res.data.length) {
+          if (res.data[0].status === 'banned') return { ok: false, error: 'banned' };
+        } else {
           await db.collection('users').add({
             data: { _openid: OPENID, nickname: '', avatar_url: '', status: 'active', created_at: db.serverDate() }
           });
@@ -24,6 +27,8 @@ exports.main = async (event) => {
       case 'getProfile': {
         const res = await db.collection('users').where({ _openid: OPENID }).limit(1).get();
         const u = res.data[0];
+        // 后台封禁拦截：小程序端提示并拒绝进入使用
+        if (u && u.status === 'banned') return { ok: false, error: 'banned' };
         return {
           ok: true,
           profile: u ? { nickname: u.nickname || '', avatar: u.avatar_url || '' } : null,
@@ -50,13 +55,16 @@ exports.main = async (event) => {
         return { ok: true };
       }
 
-      // 注销：物理删除该账号全部数据（PRD 第六节，BR-12 口径），不留软删除副本
+      // 注销：物理删除该账号全部数据（PRD 第六节，BR-12 口径），不留软删除副本。
+      // members（会员状态）也一并清除，保证「注销 = 清空该 openid 全部数据」的语义。
       case 'deactivate': {
         await db.collection('letters').where({ _openid: OPENID }).remove();
         await db.collection('open_records').where({ _openid: OPENID }).remove();
         await db.collection('reply_records').where({ _openid: OPENID }).remove();
         await db.collection('drafts').where({ _openid: OPENID }).remove();
         await db.collection('events').where({ _openid: OPENID }).remove();
+        await db.collection('members').where({ _openid: OPENID }).remove();
+        await db.collection('member_orders').where({ _openid: OPENID }).remove();
         await db.collection('users').where({ _openid: OPENID }).remove();
         return { ok: true };
       }
