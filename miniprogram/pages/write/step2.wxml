@@ -19,6 +19,7 @@
       <block wx:for="{{papers}}" wx:key="id">
         <swiper-item>
           <view class="pv-item">
+            <view wx:if="{{item.premium && !isVip}}" class="pv-lock">🔒</view>
             <template is="paper-letter" data="{{ v: view, paper: item, handOff: handwritingOff, mode: flipping ? 'pl-flip' : '' }}" />
           </view>
         </swiper-item>
@@ -52,7 +53,8 @@
         bindtap="onSelectTheme"
       >
         <image wx:if="{{item.ownEnvelope}}" class="tc-img" src="{{item.envelope}}" mode="aspectFill" />
-        <view wx:else class="tc-swatch" style="background: {{item.palette.base}};"></view>
+        <view wx:else class="tc-swatch" style="background: {{item.premium ? (item.swatch || item.palette.base) : item.palette.base}};"></view>
+        <view wx:if="{{item.premium && !isVip}}" class="tc-lock">🔒</view>
         <view class="tc-name">{{item.name}}</view>
       </view>
     </scroll-view>

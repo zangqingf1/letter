@@ -94,7 +94,7 @@ Page({
   },
 
   onTapMember() {
-    // 会员中心（纯 UI 演示入口）
+    // 会员中心（真实虚拟支付 · 个人道具直购）
     wx.navigateTo({ url: '/pages/member/member' });
   }
 });

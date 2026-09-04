@@ -201,6 +201,26 @@
       </view>
     </view>
 
+    <!-- 会员专属 premium：后台添加的专属版式，通用金线笺模板；颜色行内注入
+         （colors.bg/ink/gold），后台改配色即生效，无需改代码（与 share.js drawPremiumStyle 同构） -->
+    <view wx:elif="{{paper.premium}}" class="pl-paper pl-premium" style="background: {{paper.colors.bg}}; color: {{paper.colors.ink}};">
+      <view class="plpm-rule" style="background: {{paper.colors.gold}};"></view>
+      <view class="plpm-name" style="color: {{paper.colors.ink}};">{{v.name}}</view>
+      <view class="plpm-rule2" style="background: {{paper.colors.gold}};"></view>
+      <view class="plpm-q">
+        <view class="plpm-cap" style="color: {{paper.colors.gold}};">问</view>
+        <view class="plpm-txt" style="color: {{paper.colors.ink}};">{{v.question}}</view>
+      </view>
+      <view class="plpm-a">
+        <view class="plpm-cap" style="color: {{paper.colors.gold}};">答</view>
+        <view class="plpm-txt" style="color: {{paper.colors.ink}};">{{v.answer}}</view>
+      </view>
+      <view class="plpm-foot" style="border-top-color: {{paper.colors.gold}};">
+        <text class="plpm-f-l" style="color: {{paper.colors.gold}};">心灵信箱 · 会员专属</text>
+        <text class="plpm-f-r" style="color: {{paper.colors.ink}};">写于 {{v.dateLong}}</text>
+      </view>
+    </view>
+
     <!-- 黑胶唱片：盘芯印日期 -->
     <view wx:else class="pl-paper pl-vinyl">
       <view class="plv-disc">

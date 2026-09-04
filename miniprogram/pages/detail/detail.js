@@ -4,6 +4,7 @@
 
 const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 const analytics = require('../../services/analytics.js');
 // data 初始默认主题；实际主题在 loadLetter 中按信件 theme_id 经 theme 服务解析
 const THEMES = require('../write/themes.js');
@@ -88,13 +89,16 @@ Page({
   // 读取信件（经 letter 服务：真实寄出的信优先，否则演示数据预览态）并记录重读。
   // isRefresh：从编辑/分享返回后的内容刷新，不重复上报拆信埋点（BR-09 今日记录本就幂等）
   loadLetter(id, isRefresh) {
-    Promise.all([letterService.get(id), themeService.getThemes(), themeService.getPapers()]).then(([res, themes, papers]) => {
+    Promise.all([letterService.get(id), themeService.getThemes(), themeService.getPapers(), memberService.getMembership()]).then(([res, themes, papers, m]) => {
       const letter = res.letter;
+      const isVip = !!(m && m.state === 'vip');
       this.isDemo = res.isDemo;
 
-      const theme = themes.find((t) => t.id === letter.theme_id) || themes[0];
-      // 信纸版式解析（未知/缺失 paper_id 回落列表第一套）
-      const paper = themeService.paperOf(letter.paper_id, papers);
+      // 非 VIP 时专属主题按默认主题渲染（会员过期后老信回退，开通后自动恢复）
+      let theme = themes.find((t) => t.id === letter.theme_id) || themes[0];
+      if (theme.premium && !isVip) theme = themes[0] || theme;
+      // 信纸版式解析（未知/缺失 paper_id 回落列表第一套；非 VIP 专属版式同样回落默认）
+      const paper = themeService.paperOf(letter.paper_id, papers, isVip);
       const today = new Date();
 
       // BR-09：拆信一次即产生一条重读记录（仅日期，用户不可编辑/删除；同日不重复，

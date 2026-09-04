@@ -19,6 +19,7 @@ const USER_DATA_KEYS = [
   'demo_removed_ids',
   'recycle_demo_seeded',
   'member_demo_state',
+  'member_demo_expire_at',
   PROFILE_KEY
 ];
 
@@ -32,6 +33,18 @@ function getProfile() {
         avatar: p.avatar || '',
         wroteDays: (r && r.registerDays) || MOCK_USER.wroteDays
       };
+    }).catch((err) => {
+      // 后台封禁：user 云函数对 status='banned' 返回 { ok:false, error:'banned' }，
+      // 此处提示并阻断继续使用（封禁由 admin 后台 userBan 操作写入）
+      if (String(err && err.message).indexOf('banned') !== -1) {
+        wx.showModal({
+          title: '无法使用',
+          content: '该账号已被暂停使用。如有疑问请联系运营。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      }
+      throw err;
     });
   }
   const saved = wx.getStorageSync(PROFILE_KEY);

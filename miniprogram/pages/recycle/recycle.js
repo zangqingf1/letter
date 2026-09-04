@@ -5,6 +5,7 @@
 
 const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 const analytics = require('../../services/analytics.js');
 
 // 埋点统一走 analytics 服务（事件名见 PRD 第十三节）
@@ -38,7 +39,8 @@ Page({
 
   // 读取废纸篓（经 letter 服务，满 30 天自动清理 BR-11）
   loadItems() {
-    Promise.all([letterService.listRecycle(), themeService.getThemes()]).then(([res, themes]) => {
+    Promise.all([letterService.listRecycle(), themeService.getThemes(), memberService.getMembership()]).then(([res, themes, m]) => {
+      const isVip = !!(m && m.state === 'vip');
       const list = res.items || [];
       const now = Date.now();
       const items = list
@@ -50,7 +52,7 @@ Page({
           return {
             id: it.id,
             name: it.name,
-            env: themeService.envelopeThumbOf(it.theme_id, themes),
+            env: themeService.envelopeThumbOf(it.theme_id, themes, isVip),
             warn,
             daysText: warn ? '还有 ' + daysLeft + ' 天。再看看它，或者取回来。' : '还有 ' + daysLeft + ' 天将被处理',
             pill: daysLeft + ' 天',

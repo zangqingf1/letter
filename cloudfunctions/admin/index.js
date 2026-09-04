@@ -41,6 +41,25 @@ const SEED_PAPERS = [
   { paper_id: 'airmail2', name: '航空笺', desc: '全幅斜纹画框 · 邮票邮戳', version: 1, colors: { bg: '#FCFBF4', stripe1: '#C2452D', stripe2: '#F3EFE2', stripe3: '#33557E', ink: '#22303E', red: '#C2452D', blue: '#33557E', qGray: '#6B7B8A', aBlue: '#29405A', tan: '#A8A18C', dash: '#C9C2AC', stampPaper: '#F4F0E1', stampLine: '#CFC8B2' } }
 ];
 
+// 会员专属内容（member_items 集合 seed，与 miniprogram/pages/member/premium.js 同源手工同步）。
+// 本期后台预置 + 小程序端仍是演示态（premium.js 硬编码色样展示）；真实接入三端同构后，
+// 由本表驱动写信页专属版式/主题的解锁与下发。
+const SEED_MEMBER_ITEMS = [
+  { kind: 'paper', item_id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' } },
+  { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', version: 1, colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' } },
+  { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } },
+  { kind: 'theme', item_id: 'guiniao', name: '归鸟', desc: '归途晚照 · 专属', version: 1, swatch: '#D9C3B2', palette: { base: '#E9DCCF', title: '#5A4634', text: '#4A3B2C', tag: '#9C8B78' }, desk: '#DFD2C4' },
+  { kind: 'theme', item_id: 'xingxi', name: '星汐', desc: '夜海微光 · 专属', version: 1, swatch: '#B8C4CF', palette: { base: '#C8D2DC', title: '#2E3A46', text: '#27323C', tag: '#74808C' }, desk: '#BDC9D4' }
+];
+
+// 会员套餐中文名（memberGrant 写入 members.plan_name）
+const PLAN_NAMES = { month: '月卡', quarter: '季卡', year: '年卡', custom: '自定义' };
+
+// 正则转义，供昵称模糊搜索拼接（userList keyword）
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // 管理员密钥：优先读环境变量 ADMIN_KEY；若控制台配不了环境变量，把 FALLBACK_KEY
 // 改成你的强密钥并重新部署即可（两者都不配置时拒绝一切请求）。
 const FALLBACK_KEY = 'hb-9x7k2m-qwer8765';
@@ -73,6 +92,23 @@ async function upsertConfig(coll, idKey, data) {
   }
   doc.created_at = now;
   const added = await db.collection(coll).add({ data: doc });
+  return { id: added._id, updated: false };
+}
+
+// 按 (kind, item_id) upsert 一条会员专属版式/主题文档
+async function upsertMemberItem(data) {
+  const now = new Date();
+  const doc = Object.assign(pick(data, ['kind', 'item_id', 'name', 'desc', 'version', 'status', 'sort', 'colors', 'swatch', 'palette', 'desk']), {
+    updated_at: now
+  });
+  if (data.assets && typeof data.assets === 'object') doc.assets = data.assets;
+  const found = await db.collection('member_items').where({ kind: data.kind, item_id: data.item_id }).limit(1).get();
+  if (found.data.length) {
+    await db.collection('member_items').doc(found.data[0]._id).update({ data: doc });
+    return { id: found.data[0]._id, updated: true };
+  }
+  doc.created_at = now;
+  const added = await db.collection('member_items').add({ data: doc });
   return { id: added._id, updated: false };
 }
 
@@ -118,22 +154,49 @@ async function userDetail(openid) {
   const u = await db
     .collection('users')
     .where({ _openid: openid })
-    .field({ nickname: true, avatar_url: true, status: true, created_at: true })
+    .field({ nickname: true, avatar_url: true, status: true, banned_at: true, created_at: true })
     .limit(1)
     .get();
-  const [letters, recycled, opens, replies] = await Promise.all([
+  const [letters, recycled, opens, replies, drafts] = await Promise.all([
     db.collection('letters').where({ _openid: openid, status: 'active' }).count(),
     db.collection('letters').where({ _openid: openid, status: 'recycled' }).count(),
     db.collection('open_records').where({ _openid: openid }).count(),
-    db.collection('reply_records').where({ _openid: openid }).count()
+    db.collection('reply_records').where({ _openid: openid }).count(),
+    db.collection('drafts').where({ _openid: openid }).count()
   ]);
+  const m = await db.collection('members').where({ _openid: openid }).limit(1).get();
+  const member = m.data[0] || null;
   return {
     user: u.data[0] || null,
     letterTotal: letters.total,
     recycleTotal: recycled.total,
     rereadTotal: opens.total,
-    replyTotal: replies.total
+    replyTotal: replies.total,
+    draftTotal: drafts.total,
+    member: member
+      ? {
+          state: member.state || 'free',
+          level: member.level || '',
+          plan_name: member.plan_name || '',
+          expires_at: member.expires_at || null,
+          renew: !!member.renew,
+          granted_at: member.granted_at || null
+        }
+      : null
   };
+}
+
+// 一批 openid 在 members 集合里的会员状态（key=openid）
+async function memberMapByOpenid(openIds) {
+  if (!openIds.length) return {};
+  const res = await db
+    .collection('members')
+    .where({ _openid: _.in(openIds), state: 'vip', expires_at: _.gte(new Date()) })
+    .field({ _openid: true, state: true, level: true, expires_at: true, plan_name: true })
+    .get();
+  const map = {};
+  for (const row of res.data) map[row._openid] = row;
+  return map;
 }
 
 // HTTP 网关调用适配：路由直连本函数时，event 为 HTTP 请求结构（body 是 JSON 串），
@@ -318,41 +381,194 @@ async function handleAction(event) {
       case 'userList': {
         const pageSize = 20;
         const page = Math.max(1, Number(event.page) || 1);
-        const total = (await db.collection('users').count()).total;
-        const res = await db
-          .collection('users')
+        const where = {};
+        if (event.status && event.status !== 'all') where.status = event.status;
+        if (event.keyword && String(event.keyword).trim()) {
+          where.nickname = db.RegExp({ regexp: escapeRegExp(String(event.keyword).trim()), options: 'i' });
+        }
+        const base = Object.keys(where).length ? db.collection('users').where(where) : db.collection('users');
+        const total = (await base.count()).total;
+        const res = await base
           .orderBy('created_at', 'desc')
           .skip((page - 1) * pageSize)
           .limit(pageSize)
-          .field({ _openid: true, nickname: true, avatar_url: true, status: true, created_at: true })
+          .field({ _openid: true, nickname: true, avatar_url: true, status: true, banned_at: true, created_at: true })
           .get();
         const openIds = res.data.map((u) => u._openid);
-        const [letters, opens, replies] = await Promise.all([
+        const [letters, opens, replies, memberMap] = await Promise.all([
           countByOpenid('letters', openIds),
           countByOpenid('open_records', openIds),
-          countByOpenid('reply_records', openIds)
+          countByOpenid('reply_records', openIds),
+          memberMapByOpenid(openIds)
         ]);
         return {
           ok: true,
           page,
           pageSize,
           total,
-          users: res.data.map((u) => ({
-            openid: u._openid,
-            nickname: u.nickname || '',
-            avatar: u.avatar_url || '',
-            status: u.status || 'active',
-            created_at: u.created_at,
-            letterTotal: letters[u._openid] || 0,
-            rereadTotal: opens[u._openid] || 0,
-            replyTotal: replies[u._openid] || 0
-          }))
+          users: res.data.map((u) => {
+            const vip = memberMap[u._openid];
+            return {
+              openid: u._openid,
+              nickname: u.nickname || '',
+              avatar: u.avatar_url || '',
+              status: u.status || 'active',
+              banned_at: u.banned_at || null,
+              created_at: u.created_at,
+              letterTotal: letters[u._openid] || 0,
+              rereadTotal: opens[u._openid] || 0,
+              replyTotal: replies[u._openid] || 0,
+              memberState: vip ? 'vip' : 'free',
+              memberLevel: vip ? vip.level : ''
+            };
+          })
         };
+      }
+      case 'userBan': {
+        if (!event.openid) return { ok: false, error: 'openid 必填' };
+        await db.collection('users').where({ _openid: event.openid }).update({
+          data: { status: 'banned', banned_at: new Date() }
+        });
+        return { ok: true };
+      }
+      case 'userUnban': {
+        if (!event.openid) return { ok: false, error: 'openid 必填' };
+        await db.collection('users').where({ _openid: event.openid }).update({
+          data: { status: 'active', banned_at: null }
+        });
+        return { ok: true };
       }
       case 'userDetail': {
         if (!event.openid) return { ok: false, error: 'openid 必填' };
         const d = await userDetail(event.openid);
         return { ok: true, ...d };
+      }
+
+      // ── 会员管理（members 集合：VIP 用户状态，后台预置，小程序本期仍为演示态）──
+      case 'memberList': {
+        const pageSize = 20;
+        const page = Math.max(1, Number(event.page) || 1);
+        const where = {};
+        if (event.state && event.state !== 'all') where.state = event.state;
+        const base = Object.keys(where).length ? db.collection('members').where(where) : db.collection('members');
+        const total = (await base.count()).total;
+        const res = await base
+          .orderBy('updated_at', 'desc')
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .get();
+        const openIds = res.data.map((m) => m._openid);
+        const userRows = openIds.length
+          ? await db.collection('users')
+              .where({ _openid: _.in(openIds) })
+              .field({ _openid: true, nickname: true, avatar_url: true, created_at: true })
+              .get()
+          : { data: [] };
+        const userMap = {};
+        for (const u of userRows.data) userMap[u._openid] = u;
+        return {
+          ok: true,
+          page,
+          pageSize,
+          total,
+          members: res.data.map((m) => ({
+            openid: m._openid,
+            nickname: (userMap[m._openid] && userMap[m._openid].nickname) || '',
+            avatar: (userMap[m._openid] && userMap[m._openid].avatar_url) || '',
+            userCreatedAt: (userMap[m._openid] && userMap[m._openid].created_at) || null,
+            state: m.state || 'free',
+            level: m.level || '',
+            plan_name: m.plan_name || '',
+            expires_at: m.expires_at || null,
+            renew: !!m.renew,
+            granted_at: m.granted_at || null,
+            updated_at: m.updated_at || null,
+            granted_by: m.granted_by || ''
+          }))
+        };
+      }
+      case 'memberGrant': {
+        const openid = (event.openid || '').trim();
+        if (!openid) return { ok: false, error: 'openid 必填' };
+        const plan = event.plan || 'month';
+        const days = Number(event.days);
+        if (!(days > 0) || days > 3650) return { ok: false, error: '有效期天数需为 1–3650' };
+        const userExists = (await db.collection('users').where({ _openid: openid }).count()).total > 0;
+        if (!userExists) return { ok: false, error: '该 openid 未建档（无此用户）' };
+        const now = new Date();
+        const found = await db.collection('members').where({ _openid: openid }).limit(1).get();
+        let base = now.getTime();
+        if (found.data.length && found.data[0].state === 'vip' && found.data[0].expires_at) {
+          const t = new Date(found.data[0].expires_at).getTime();
+          if (t > base) base = t;
+        }
+        const expiresAt = new Date(base + days * DAY);
+        const doc = {
+          state: 'vip',
+          level: plan,
+          plan_name: PLAN_NAMES[plan] || '自定义',
+          expires_at: expiresAt,
+          renew: !!event.renew,
+          granted_at: now,
+          granted_by: 'admin',
+          updated_at: now
+        };
+        if (found.data.length) {
+          doc.total_days = (found.data[0].total_days || 0) + days;
+          await db.collection('members').doc(found.data[0]._id).update({ data: doc });
+          return { ok: true, updated: true };
+        }
+        doc.total_days = days;
+        await db.collection('members').add({ data: Object.assign({ _openid: openid }, doc) });
+        return { ok: true, updated: false };
+      }
+      case 'memberRevoke': {
+        if (!event.openid) return { ok: false, error: 'openid 必填' };
+        const r = await db.collection('members').where({ _openid: event.openid }).update({
+          data: { state: 'free', updated_at: new Date() }
+        });
+        return { ok: true, updated: (r.stats && r.stats.updated) || 0 };
+      }
+
+      // ── 会员专属内容（member_items 集合：专属版式/主题，后台增删改查）──
+      case 'memberItemList': {
+        const where = {};
+        if (event.kind && event.kind !== 'all') where.kind = event.kind;
+        const base = Object.keys(where).length ? db.collection('member_items').where(where) : db.collection('member_items');
+        const res = await base.orderBy('sort', 'asc').limit(200).get();
+        return { ok: true, items: res.data };
+      }
+      case 'memberItemSave': {
+        const item = event.item || {};
+        if (!item.kind || (item.kind !== 'paper' && item.kind !== 'theme')) {
+          return { ok: false, error: 'kind 必须为 paper / theme' };
+        }
+        if (!item.item_id || !item.name) return { ok: false, error: 'item_id 与 name 必填' };
+        const r = await upsertMemberItem(item);
+        return { ok: true, ...r };
+      }
+      case 'memberItemDelete': {
+        if (!event.kind || !event.item_id) return { ok: false, error: 'kind 与 item_id 必填' };
+        const r = await db.collection('member_items').where({ kind: event.kind, item_id: event.item_id }).remove();
+        return { ok: true, removed: r.stats.removed };
+      }
+      case 'memberItemSeed': {
+        let seeded = 0;
+        for (const it of SEED_MEMBER_ITEMS) {
+          const exists = await db.collection('member_items').where({ kind: it.kind, item_id: it.item_id }).limit(1).get();
+          if (!exists.data.length) {
+            await db.collection('member_items').add({
+              data: Object.assign({}, it, {
+                status: 'online',
+                sort: SEED_MEMBER_ITEMS.indexOf(it),
+                created_at: new Date(),
+                updated_at: new Date()
+              })
+            });
+            seeded++;
+          }
+        }
+        return { ok: true, seeded, skipped: SEED_MEMBER_ITEMS.length - seeded };
       }
 
       default:

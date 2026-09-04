@@ -92,7 +92,8 @@ const NAV_RENDER = {
   dashboard: renderDashboard,
   themes: renderThemes,
   papers: renderPapers,
-  users: renderUsers
+  users: renderUsers,
+  members: renderMembers
 };
 let currentNav = 'dashboard';
 
@@ -235,6 +236,30 @@ async function loadTrend(days) {
   }
 }
 
+// 上移/下移箭头按钮（用于主题/版式排序）
+function orderArrows(i, len) {
+  return `<button type="button" class="btn small arrow" data-order="${i}" data-dir="up" title="上移" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" class="btn small arrow" data-order="${i}" data-dir="down" title="下移" ${i === len - 1 ? 'disabled' : ''}>↓</button>`;
+}
+// 绑定排序按钮：与相邻行交换 sort 后各保存一次，再重渲染当前视图。
+// saveFn(item) 调对应 api；rerender 为当前列表渲染函数。
+function bindOrder(list, saveFn, rerender) {
+  content().querySelectorAll('[data-order]').forEach((b) => b.addEventListener('click', async () => {
+    const i = Number(b.dataset.order);
+    const j = b.dataset.dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= list.length) return;
+    const a = list[i], c = list[j];
+    const aSort = a.sort == null ? i : a.sort;
+    const cSort = c.sort == null ? j : c.sort;
+    await Promise.all([
+      saveFn(Object.assign({}, a, { sort: cSort })),
+      saveFn(Object.assign({}, c, { sort: aSort }))
+    ]);
+    toast('顺序已调整');
+    rerender();
+  }));
+}
+
 // ════════ 主题管理 ════════
 async function renderThemes() {
   content().innerHTML = '<p class="empty-tip">加载中…</p>';
@@ -252,14 +277,15 @@ async function renderThemes() {
       <div class="card">
         ${r.themes.length ? `<table>
           <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>信封素材</th><th style="text-align:right">操作</th></tr>
-          ${r.themes.map((t) => `<tr>
+          ${r.themes.map((t, i) => `<tr>
             <td class="num">${t.sort ?? ''}</td>
             <td>${esc(t.theme_id)}</td>
             <td>${esc(t.name)}</td>
             <td><span class="badge ${t.status === 'online' ? 'online' : 'offline'}">${t.status === 'online' ? '上架' : '下架'}</span></td>
             <td class="num">v${t.version || 1}</td>
             <td>${t.assets && t.assets.envelope ? '有' : '—'}</td>
-            <td style="text-align:right">
+            <td style="text-align:right;white-space:nowrap">
+              ${orderArrows(i, r.themes.length)}
               <button class="btn small" data-edit="${esc(t.theme_id)}">编辑</button>
               <button class="btn small" data-toggle="${esc(t.theme_id)}">${t.status === 'online' ? '下架' : '上架'}</button>
               <button class="btn small danger" data-del="${esc(t.theme_id)}">删除</button>
@@ -274,6 +300,7 @@ async function renderThemes() {
       toast(`已导入 ${res.seeded} 套，跳过 ${res.skipped} 套`);
       renderThemes();
     });
+    bindOrder(r.themes, (theme) => api('themeSave', { theme }), renderThemes);
     content().querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
       const t = r.themes.find((x) => x.theme_id === b.dataset.edit);
       themeDrawer(t);
@@ -378,7 +405,7 @@ async function renderPapers() {
       <div class="card">
         ${r.papers.length ? `<table>
           <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>配色数</th><th>底色</th><th style="text-align:right">操作</th></tr>
-          ${r.papers.map((p) => `<tr>
+          ${r.papers.map((p, i) => `<tr>
             <td class="num">${p.sort ?? ''}</td>
             <td>${esc(p.paper_id)}</td>
             <td>${esc(p.name)}</td>
@@ -386,7 +413,8 @@ async function renderPapers() {
             <td class="num">v${p.version || 1}</td>
             <td class="num">${Object.keys(p.colors || {}).length}</td>
             <td><span class="chip" style="display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:${esc(p.colors && p.colors.bg) || 'transparent'}"></span></td>
-            <td style="text-align:right">
+            <td style="text-align:right;white-space:nowrap">
+              ${orderArrows(i, r.papers.length)}
               <button class="btn small" data-edit="${esc(p.paper_id)}">编辑</button>
               <button class="btn small" data-toggle="${esc(p.paper_id)}">${p.status === 'online' ? '下架' : '上架'}</button>
               <button class="btn small danger" data-del="${esc(p.paper_id)}">删除</button>
@@ -401,6 +429,7 @@ async function renderPapers() {
       toast(`已导入 ${res.seeded} 套，跳过 ${res.skipped} 套`);
       renderPapers();
     });
+    bindOrder(r.papers, (paper) => api('paperSave', { paper }), renderPapers);
     content().querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
       const p = r.papers.find((x) => x.paper_id === b.dataset.edit);
       paperDrawer(p);
@@ -471,11 +500,15 @@ function paperDrawer(p, nextSort) {
 
 // ════════ 用户管理 ════════
 let userPage = 1;
+let userKeyword = '';
+let userStatus = 'all';
+
+const USER_STATUS_LABEL = { active: '正常', deactivated: '已注销', banned: '已封禁' };
 
 async function renderUsers() {
   content().innerHTML = '<p class="empty-tip">加载中…</p>';
   try {
-    const r = await api('userList', { page: userPage });
+    const r = await api('userList', { page: userPage, keyword: userKeyword, status: userStatus });
     // 头像多为 cloud:// fileID（需 js-sdk 换临时链接，本页不引入 SDK），显示首字占位；
     // 若是 http(s) 直链则正常显示。
     const avatarHtml = (u) => {
@@ -484,30 +517,75 @@ async function renderUsers() {
         ? `<img class="avatar" src="${esc(url)}" onerror="this.outerHTML='<span class=&quot;avatar-fallback&quot;>${esc((u.nickname || '客')[0])}</span>'">`
         : `<span class="avatar-fallback">${esc((u.nickname || '客')[0])}</span>`;
     };
+    const statusBadge = (status) =>
+      `<span class="badge ${status === 'active' ? 'online' : status === 'banned' ? 'banned' : 'deactivated'}">${USER_STATUS_LABEL[status] || status}</span>`;
+    const vipBadge = (u) =>
+      u.memberState === 'vip'
+        ? `<span class="badge vip" title="${esc(u.memberLevel || '')} 会员">👑 VIP</span>`
+        : '<span class="badge offline">普通</span>';
     content().innerHTML = `
       <h2 class="page-title">用户管理</h2>
-      <p class="page-sub">users 集合：仅昵称、注册时间与内容数量统计。依据产品原则，本后台不提供任何信件正文的查看能力。</p>
+      <p class="page-sub">users 集合：仅昵称、注册时间与内容数量统计；支持昵称搜索与状态筛选，可封禁/解封账号。依据产品原则，本后台不提供任何信件正文的查看能力。</p>
+      <div class="toolbar">
+        <input id="u-keyword" type="text" placeholder="按昵称搜索…" value="${esc(userKeyword)}" style="width:200px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff">
+        <select id="u-status" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff">
+          <option value="all" ${userStatus === 'all' ? 'selected' : ''}>全部状态</option>
+          <option value="active" ${userStatus === 'active' ? 'selected' : ''}>正常</option>
+          <option value="banned" ${userStatus === 'banned' ? 'selected' : ''}>已封禁</option>
+          <option value="deactivated" ${userStatus === 'deactivated' ? 'selected' : ''}>已注销</option>
+        </select>
+        <button class="btn" id="u-search">搜索</button>
+        <button class="btn ghost" id="u-reset">重置</button>
+        <span class="spacer"></span>
+        <span style="color:var(--muted);font-size:12px">共 ${r.total} 人</span>
+      </div>
       <div class="card">
         <table>
-          <tr><th>用户</th><th>状态</th><th>注册时间</th><th style="text-align:right">信件</th><th style="text-align:right">重读</th><th style="text-align:right">回信</th></tr>
+          <tr><th>用户</th><th>状态</th><th>会员</th><th>注册时间</th><th style="text-align:right">信件</th><th style="text-align:right">重读</th><th style="text-align:right">回信</th><th style="text-align:right">操作</th></tr>
           ${r.users.map((u) => `<tr class="clickable" data-openid="${esc(u.openid)}" title="点击查看统计详情">
             <td>${avatarHtml(u)} <span style="margin-left:6px">${esc(u.nickname || '（未设置昵称）')}</span></td>
-            <td><span class="badge ${u.status === 'active' ? 'online' : 'deactivated'}">${u.status === 'active' ? '正常' : '已注销'}</span></td>
+            <td>${statusBadge(u.status)}</td>
+            <td>${vipBadge(u)}</td>
             <td>${fmtDate(u.created_at)}</td>
             <td class="num">${u.letterTotal}</td>
             <td class="num">${u.rereadTotal}</td>
             <td class="num">${u.replyTotal}</td>
+            <td style="text-align:right">
+              ${u.status === 'banned'
+                ? `<button class="btn small" data-unban="${esc(u.openid)}">解封</button>`
+                : `<button class="btn small danger" data-ban="${esc(u.openid)}">封禁</button>`}
+            </td>
           </tr>`).join('')}
         </table>
-        ${r.users.length === 0 ? '<p class="empty-tip">暂无用户</p>' : ''}
+        ${r.users.length === 0 ? '<p class="empty-tip">暂无符合条件的用户</p>' : ''}
         <div class="toolbar" style="margin:14px 0 0">
           <button class="btn small" id="u-prev" ${r.page <= 1 ? 'disabled' : ''}>上一页</button>
-          <span style="font-size:12px;color:var(--muted)">第 ${r.page} 页 · 共 ${r.total} 人</span>
+          <span style="font-size:12px;color:var(--muted)">第 ${r.page} 页</span>
           <button class="btn small" id="u-next" ${r.page * r.pageSize >= r.total ? 'disabled' : ''}>下一页</button>
         </div>
       </div>`;
+    $('#u-search').addEventListener('click', () => { userKeyword = $('#u-keyword').value.trim(); userPage = 1; renderUsers(); });
+    $('#u-keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { userKeyword = $('#u-keyword').value.trim(); userPage = 1; renderUsers(); } });
+    $('#u-status').addEventListener('change', (e) => { userStatus = e.target.value; userPage = 1; renderUsers(); });
+    $('#u-reset').addEventListener('click', () => { userKeyword = ''; userStatus = 'all'; userPage = 1; renderUsers(); });
     $('#u-prev').addEventListener('click', () => { userPage--; renderUsers(); });
     $('#u-next').addEventListener('click', () => { userPage++; renderUsers(); });
+    content().querySelectorAll('[data-ban]').forEach((b) => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const u = r.users.find((x) => x.openid === b.dataset.ban);
+      if (!confirm(`封禁用户「${u.nickname || u.openid}」？该用户在小程序端将被拒绝使用（可在用户管理解封）。`)) return;
+      await api('userBan', { openid: u.openid });
+      toast('已封禁');
+      renderUsers();
+    }));
+    content().querySelectorAll('[data-unban]').forEach((b) => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const u = r.users.find((x) => x.openid === b.dataset.unban);
+      if (!confirm(`解封用户「${u.nickname || u.openid}」？该用户可恢复正常使用。`)) return;
+      await api('userUnban', { openid: u.openid });
+      toast('已解封');
+      renderUsers();
+    }));
     content().querySelectorAll('tr[data-openid]').forEach((tr) => {
       tr.addEventListener('click', () => toggleUserDetail(tr.dataset.openid, tr));
     });
@@ -523,21 +601,372 @@ async function toggleUserDetail(openid, tr) {
   try {
     const d = await api('userDetail', { openid });
     const u = d.user || {};
-    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="6">
+    const m = d.member;
+    const memberHtml = m
+      ? (m.state === 'vip'
+        ? `👑 ${esc(m.plan_name || '会员')} · 到期 ${fmtDate(m.expires_at)}${m.renew ? ' · 自动续费' : ''}`
+        : '已取消')
+      : '—（未开通）';
+    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="8">
       <div class="detail-grid">
         <span><b>昵称：</b>${esc(u.nickname || '（未设置）')}</span>
         <span><b>注册时间：</b>${fmtDate(u.created_at)}</span>
-        <span><b>状态：</b>${u.status === 'active' ? '正常' : '已注销'}</span>
+        <span><b>状态：</b>${USER_STATUS_LABEL[u.status] || u.status}</span>
         <span><b>在匣信件：</b>${d.letterTotal}</span>
         <span><b>废纸篓：</b>${d.recycleTotal}</span>
+        <span><b>草稿：</b>${d.draftTotal}</span>
         <span><b>重读：</b>${d.rereadTotal}</span>
         <span><b>回信：</b>${d.replyTotal}</span>
-        <span><b>openid：</b>${esc(openid)}</span>
+        <span><b>会员：</b>${memberHtml}</span>
+        <span><b>openid：</b><code>${esc(openid)}</code></span>
+      </div>
+      <div class="detail-actions">
+        ${m && m.state === 'vip'
+          ? `<button class="btn small" id="d-revoke">取消会员</button>`
+          : `<button class="btn small" id="d-grant">设为会员</button>`}
       </div>
     </td></tr>`);
+    const grantBtn = tr.nextElementSibling.querySelector('#d-grant');
+    if (grantBtn) grantBtn.addEventListener('click', () => memberGrantDrawer(null, openid));
+    const revokeBtn = tr.nextElementSibling.querySelector('#d-revoke');
+    if (revokeBtn) revokeBtn.addEventListener('click', async () => {
+      if (!confirm('取消该用户会员资格？')) return;
+      await api('memberRevoke', { openid });
+      toast('已取消会员');
+      renderUsers();
+    });
   } catch (e) {
     toast('获取详情失败：' + e.message);
   }
+}
+
+// ════════ 会员管理 ════════
+let memberTab = 'users';
+let memberPage = 1;
+let memberStateFilter = 'vip';
+let memberItemKind = 'paper';
+
+const MEMBER_KIND_LABEL = { paper: '信纸', theme: '信封' };
+
+const MEMBER_PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
+
+function avatarImg(avatar, nickname) {
+  const url = avatar && avatar.indexOf('http') === 0 ? avatar : '';
+  const ch = esc(((nickname || '客')[0] || '客'));
+  return url
+    ? `<img class="avatar" src="${esc(url)}" onerror="this.outerHTML='<span class=&quot;avatar-fallback&quot;>${ch}</span>'">`
+    : `<span class="avatar-fallback">${ch}</span>`;
+}
+
+async function renderMembers() {
+  content().innerHTML = `
+    <h2 class="page-title">会员管理</h2>
+    <p class="page-sub">members 集合维护 VIP 用户状态（后台开通/小程序发货推送共同写入），member_items 集合维护专属版式/主题内容。小程序端已接入真实虚拟支付，发货推送由 member 云函数写本表。</p>
+    <div class="tabs">
+      <button class="tab-btn ${memberTab === 'users' ? 'active' : ''}" data-mtab="users">VIP 用户</button>
+      <button class="tab-btn ${memberTab === 'items' ? 'active' : ''}" data-mtab="items">专属内容</button>
+    </div>
+    <div id="member-body"><p class="empty-tip">加载中…</p></div>`;
+  content().querySelectorAll('[data-mtab]').forEach((b) => {
+    b.addEventListener('click', () => { memberTab = b.dataset.mtab; renderMembers(); });
+  });
+  if (memberTab === 'users') renderMemberUsers();
+  else renderMemberItems();
+}
+
+async function renderMemberUsers() {
+  const box = $('#member-body');
+  try {
+    const r = await api('memberList', { page: memberPage, state: memberStateFilter });
+    box.innerHTML = `
+      <div class="toolbar">
+        <select id="m-state" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff">
+          <option value="vip" ${memberStateFilter === 'vip' ? 'selected' : ''}>仅 VIP</option>
+          <option value="all" ${memberStateFilter === 'all' ? 'selected' : ''}>全部</option>
+          <option value="free" ${memberStateFilter === 'free' ? 'selected' : ''}>仅已取消</option>
+        </select>
+        <button class="btn primary" id="m-grant-new">＋ 开通会员</button>
+        <span class="spacer"></span>
+        <span style="color:var(--muted);font-size:12px">共 ${r.total} 条</span>
+      </div>
+      <div class="card">
+        <table>
+          <tr><th>用户</th><th>状态</th><th>套餐</th><th>到期时间</th><th>开通时间</th><th style="text-align:right">操作</th></tr>
+          ${r.members.length ? r.members.map((m) => `<tr>
+            <td>${avatarImg(m.avatar, m.nickname)} <span style="margin-left:6px">${esc(m.nickname || '（未设置昵称）')}</span>
+              <div style="font-size:11px;color:var(--muted)"><code>${esc(m.openid)}</code></div></td>
+            <td>${m.state === 'vip' ? '<span class="badge vip">VIP</span>' : '<span class="badge offline">已取消</span>'}</td>
+            <td>${esc(m.plan_name || '—')}</td>
+            <td>${m.state === 'vip' ? fmtDate(m.expires_at) : '—'}</td>
+            <td>${fmtDate(m.granted_at)}</td>
+            <td style="text-align:right">
+              ${m.state === 'vip'
+                ? `<button class="btn small" data-renew="${esc(m.openid)}">续期</button>
+                   <button class="btn small danger" data-revoke="${esc(m.openid)}">取消</button>`
+                : `<button class="btn small" data-reopen="${esc(m.openid)}">重新开通</button>`}
+            </td>
+          </tr>`).join('') : '<tr><td colspan="6" class="empty-tip" style="padding:24px 0">暂无会员记录，可点「＋ 开通会员」按 openid 开通</td></tr>'}
+        </table>
+        <div class="toolbar" style="margin:14px 0 0">
+          <button class="btn small" id="m-prev" ${r.page <= 1 ? 'disabled' : ''}>上一页</button>
+          <span style="font-size:12px;color:var(--muted)">第 ${r.page} 页</span>
+          <button class="btn small" id="m-next" ${r.page * r.pageSize >= r.total ? 'disabled' : ''}>下一页</button>
+        </div>
+      </div>`;
+    $('#m-state').addEventListener('change', (e) => { memberStateFilter = e.target.value; memberPage = 1; renderMemberUsers(); });
+    $('#m-grant-new').addEventListener('click', () => memberGrantDrawer(null, ''));
+    $('#m-prev').addEventListener('click', () => { memberPage--; renderMemberUsers(); });
+    $('#m-next').addEventListener('click', () => { memberPage++; renderMemberUsers(); });
+    content().querySelectorAll('[data-renew]').forEach((b) => b.addEventListener('click', () => {
+      const m = r.members.find((x) => x.openid === b.dataset.renew);
+      memberGrantDrawer(m);
+    }));
+    content().querySelectorAll('[data-reopen]').forEach((b) => b.addEventListener('click', () => {
+      const m = r.members.find((x) => x.openid === b.dataset.reopen);
+      memberGrantDrawer(m);
+    }));
+    content().querySelectorAll('[data-revoke]').forEach((b) => b.addEventListener('click', async () => {
+      const m = r.members.find((x) => x.openid === b.dataset.revoke);
+      if (!confirm(`取消用户「${m.nickname || m.openid}」的会员资格？`)) return;
+      await api('memberRevoke', { openid: m.openid });
+      toast('已取消会员');
+      renderMemberUsers();
+    }));
+  } catch (e) {
+    box.innerHTML = `<p class="empty-tip">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+// 开通/续期抽屉。m 为已有 member（续期/重开），prefillOpenid 供用户管理详情页快捷传入。
+function memberGrantDrawer(m, prefillOpenid) {
+  const isEdit = !!(m && m.state === 'vip');
+  const openid = m ? m.openid : (prefillOpenid || '');
+  const plan = (m && m.level) || 'month';
+  let days = 30;
+  if (m && m.state === 'vip') {
+    days = Math.max(1, Math.ceil((new Date(m.expires_at) - Date.now()) / 86400000));
+  }
+  openDrawer(`
+    <h3>${isEdit ? '续期会员 · ' + esc(m.nickname || openid) : '开通会员'}</h3>
+    ${textField('openid', '用户 openid（可在用户管理点行展开复制）', openid, { disabled: !!m })}
+    ${field('套餐', `<select data-f="plan">
+      <option value="month" ${plan === 'month' ? 'selected' : ''}>月卡 · 30 天</option>
+      <option value="quarter" ${plan === 'quarter' ? 'selected' : ''}>季卡 · 90 天</option>
+      <option value="year" ${plan === 'year' ? 'selected' : ''}>年卡 · 365 天</option>
+      <option value="custom" ${plan === 'custom' ? 'selected' : ''}>自定义天数</option>
+    </select>`)}
+    ${numField('days', '有效期（天，1–3650）', days)}
+    ${field('自动续费标记', `<select data-f="renew">
+      <option value="0" ${!m || !m.renew ? 'selected' : ''}>否</option>
+      <option value="1" ${m && m.renew ? 'selected' : ''}>是（仅标记，本期无真实扣款）</option>
+    </select>`)}
+    <div class="form-actions">
+      <button class="btn ghost" id="drawer-cancel">取消</button>
+      <button class="btn primary" id="drawer-save">${isEdit ? '续期' : '开通'}</button>
+    </div>`);
+  const drawer = $('#drawer-body');
+  drawer.querySelector('[data-f="plan"]').addEventListener('change', (e) => {
+    const daysEl = drawer.querySelector('[data-f="days"]');
+    if (MEMBER_PLAN_DAYS[e.target.value]) daysEl.value = MEMBER_PLAN_DAYS[e.target.value];
+  });
+  $('#drawer-cancel').addEventListener('click', closeDrawer);
+  $('#drawer-save').addEventListener('click', async () => {
+    const v = formValues(drawer);
+    const oid = (v.openid || '').trim();
+    if (!oid) { alert('请填写 openid'); return; }
+    const days = Number(v.days);
+    if (!(days > 0) || days > 3650) { alert('有效期天数需为 1–3650'); return; }
+    try {
+      await api('memberGrant', { openid: oid, plan: v.plan, days, renew: isEdit ? v.renew === '1' : !!m && v.renew === '1' });
+      toast(isEdit ? '已续期' : '已开通会员');
+      closeDrawer();
+      // 从会员页进入则刷新会员列表；从用户管理详情进入则刷新用户列表（会员徽标同步）
+      if (currentNav === 'members') renderMemberUsers();
+      else renderUsers();
+    } catch (e) {
+      alert('保存失败：' + e.message);
+    }
+  });
+}
+
+async function renderMemberItems() {
+  const box = $('#member-body');
+  try {
+    const r = await api('memberItemList', { kind: memberItemKind });
+    const swatchOf = (it) => (it.kind === 'theme' ? it.swatch : (it.colors && it.colors.bg)) || '';
+    box.innerHTML = `
+      <div class="tabs">
+        <button class="tab-btn ${memberItemKind === 'paper' ? 'active' : ''}" data-mikind="paper">信纸</button>
+        <button class="tab-btn ${memberItemKind === 'theme' ? 'active' : ''}" data-mikind="theme">信封</button>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="mi-new">＋ 新建专属${MEMBER_KIND_LABEL[memberItemKind]}</button>
+        <button class="btn" id="mi-seed">导入官方 5 款</button>
+        <span class="spacer"></span>
+        <span style="color:var(--muted);font-size:12px">共 ${r.items.length} 款</span>
+      </div>
+      <div class="card">
+        ${r.items.length ? `<table>
+          <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>色样</th><th style="text-align:right">操作</th></tr>
+          ${r.items.map((it) => `<tr>
+            <td class="num">${it.sort ?? ''}</td>
+            <td>${esc(it.item_id)}</td>
+            <td>${esc(it.name)} <span style="color:var(--muted)">· ${esc(it.desc || '')}</span></td>
+            <td><span class="badge ${it.status === 'online' ? 'online' : 'offline'}">${it.status === 'online' ? '上架' : '下架'}</span></td>
+            <td><span class="chip" style="display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:${esc(swatchOf(it)) || 'transparent'}"></span></td>
+            <td style="text-align:right">
+              <button class="btn small" data-edit="${esc(it.kind)}|${esc(it.item_id)}">编辑</button>
+              <button class="btn small" data-toggle="${esc(it.kind)}|${esc(it.item_id)}">${it.status === 'online' ? '下架' : '上架'}</button>
+              <button class="btn small danger" data-del="${esc(it.kind)}|${esc(it.item_id)}">删除</button>
+            </td>
+          </tr>`).join('')}
+        </table>` : `<p class="empty-tip">暂无专属${MEMBER_KIND_LABEL[memberItemKind]}。可点「＋ 新建」手动创建，或从已有${MEMBER_KIND_LABEL[memberItemKind]}中挑选加入。</p>`}
+      </div>`;
+    box.querySelectorAll('[data-mikind]').forEach((b) => {
+      b.addEventListener('click', () => { memberItemKind = b.dataset.mikind; renderMemberItems(); });
+    });
+    $('#mi-new').addEventListener('click', () => memberItemDrawer(null, r.items.length, memberItemKind));
+    $('#mi-seed').addEventListener('click', async () => {
+      if (!confirm('导入官方 5 款专属内容（3 信纸 + 2 信封）？已存在的同 ID 会跳过。')) return;
+      const res = await api('memberItemSeed');
+      toast(`已导入 ${res.seeded} 款，跳过 ${res.skipped} 款`);
+      renderMemberItems();
+    });
+    box.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+      const [kind, id] = b.dataset.edit.split('|');
+      const it = r.items.find((x) => x.kind === kind && x.item_id === id);
+      memberItemDrawer(it);
+    }));
+    box.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', async () => {
+      const [kind, id] = b.dataset.toggle.split('|');
+      const it = r.items.find((x) => x.kind === kind && x.item_id === id);
+      await api('memberItemSave', { item: Object.assign({}, it, { status: it.status === 'online' ? 'offline' : 'online' }) });
+      toast(it.status === 'online' ? '已下架' : '已上架');
+      renderMemberItems();
+    }));
+    box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+      const [kind, id] = b.dataset.del.split('|');
+      const it = r.items.find((x) => x.kind === kind && x.item_id === id);
+      if (!confirm(`彻底删除专属款「${it.name}」？`)) return;
+      await api('memberItemDelete', { kind, item_id: id });
+      toast('已删除');
+      renderMemberItems();
+    }));
+  } catch (e) {
+    box.innerHTML = `<p class="empty-tip">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+// 专属内容抽屉。it 为已有项（编辑）；nextSort 为新建时的初始排序；
+// presetKind 由「信纸/信封」子 Tab 决定，新建时类型固定（与子 Tab 一致）。
+async function memberItemDrawer(it, nextSort, presetKind) {
+  const isNew = !it;
+  const kind = presetKind || (it && it.kind) || 'paper';
+  const kindLabel = MEMBER_KIND_LABEL[kind];
+  it = it || { kind, item_id: '', name: '', desc: '', version: 1, status: 'online', sort: nextSort || 0, colors: {}, swatch: '', assets: {} };
+  // 候选来源：从已有的 papers/themes 中挑选加入（失败则仅保留手动新建）
+  let candidates = [];
+  try {
+    const src = await api(kind === 'paper' ? 'paperList' : 'themeList');
+    candidates = (kind === 'paper' ? src.papers : src.themes) || [];
+  } catch (e) { /* 忽略，保留手动新建 */ }
+  const candidateIdOf = (c) => (kind === 'paper' ? c.paper_id : c.theme_id);
+  const candidateLabelOf = (c) => `${c.name}（${candidateIdOf(c)}）`;
+  openDrawer(`
+    <h3>${isNew ? '新建专属' + kindLabel : '编辑专属款 · ' + esc(it.name)}</h3>
+    ${field('类型', `<span style="font-size:13px;color:var(--ink)">专属${kindLabel}（${kind === 'paper' ? '信纸版式' : '主题信封'}）</span>`)}
+    ${isNew ? field('来源', `<select data-f="source">
+      <option value="">— 手动新建 —</option>
+      ${candidates.map((c) => `<option value="${esc(candidateIdOf(c))}">${esc(candidateLabelOf(c))}</option>`).join('')}
+    </select><p style="font-size:11px;color:var(--muted);margin-top:4px">从已有${kindLabel}中挑选，自动带入 ID/名称/配色，可修改后保存为会员专属款</p>`) : ''}
+    ${textField('item_id', 'ID（字母，创建后作为唯一键）', it.item_id, { disabled: !isNew })}
+    ${textField('name', '名称', it.name)}
+    ${textField('desc', '描述', it.desc)}
+    <div class="field-row">
+      ${numField('version', '版本号', it.version)}
+      ${numField('sort', '排序（小在前）', it.sort)}
+    </div>
+    ${field('状态', `<select data-f="status">
+      <option value="online" ${it.status === 'online' ? 'selected' : ''}>上架</option>
+      <option value="offline" ${it.status !== 'online' ? 'selected' : ''}>下架</option>
+    </select>`)}
+    <div id="mi-kind-body"></div>
+    <div class="form-actions">
+      <button class="btn ghost" id="drawer-cancel">取消</button>
+      <button class="btn primary" id="drawer-save">保存</button>
+    </div>`);
+  const drawer = $('#drawer-body');
+  const renderKindBody = () => {
+    const body = drawer.querySelector('#mi-kind-body');
+    if (kind === 'paper') {
+      body.innerHTML = '<p style="font-size:12px;color:var(--muted);margin:14px 0 8px">配色 colors（键名与该版式绘制代码一致）</p><div id="kv-box"></div>';
+      kvEditor('#kv-box', it.colors);
+    } else {
+      const a = it.assets || {};
+      const pal = it.palette || {};
+      body.innerHTML = `
+        <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">主题色样 swatch（无信封素材时选择卡片显示色样）</p>
+        <div id="mi-swatch"></div>
+        <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">桌面底色 desk（写信第二步预览区背景）与信纸基础底色 palette.base（卡片/拆信兜底色）</p>
+        <div id="mi-desk"></div>
+        <div id="mi-palette-base"></div>
+        <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信封素材（小程序包内路径或云存储 fileID，留空则回落默认信封；会员中心/写信页卡片显示真实信封图）</p>
+        <div id="mi-env-envelope"></div>
+        <div id="mi-env-thumb"></div>`;
+      document.querySelector('#mi-swatch').innerHTML = colorField('swatch', '色样 swatch', it.swatch);
+      document.querySelector('#mi-desk').innerHTML = colorField('desk', '桌面底色 desk', it.desk || '');
+      document.querySelector('#mi-palette-base').innerHTML = colorField('paletteBase', '信纸底色 palette.base', pal.base || '');
+      document.querySelector('#mi-env-envelope').innerHTML = textField('envEnvelope', '信封大图 envelope', a.envelope || '');
+      document.querySelector('#mi-env-thumb').innerHTML = textField('envThumb', '信封缩略图 envelopeThumb', a.envelopeThumb || '');
+      bindColorPairs(body);
+    }
+  };
+  renderKindBody();
+  const sourceSel = drawer.querySelector('[data-f="source"]');
+  if (sourceSel) {
+    sourceSel.addEventListener('change', (e) => {
+      const cand = candidates.find((c) => candidateIdOf(c) === e.target.value);
+      drawer.querySelector('[data-f="item_id"]').value = cand ? candidateIdOf(cand) : '';
+      drawer.querySelector('[data-f="name"]').value = cand ? (cand.name || '') : '';
+      drawer.querySelector('[data-f="desc"]').value = cand ? (cand.desc || '') : '';
+      it.colors = cand && kind === 'paper' ? (cand.colors || {}) : {};
+      it.swatch = cand && kind === 'theme' ? (cand.swatch || '') : '';
+      it.palette = cand && kind === 'theme' ? (cand.palette || {}) : {};
+      it.desk = cand && kind === 'theme' ? (cand.desk || '') : '';
+      it.assets = cand && kind === 'theme' ? (cand.assets || {}) : {};
+      renderKindBody();
+    });
+  }
+  $('#drawer-cancel').addEventListener('click', closeDrawer);
+  $('#drawer-save').addEventListener('click', async () => {
+    const v = formValues(drawer);
+    const item = {
+      kind,
+      item_id: (v.item_id || '').trim(),
+      name: (v.name || '').trim(),
+      desc: v.desc || '',
+      version: Number(v.version) || 1,
+      sort: Number(v.sort) || 0,
+      status: v.status
+    };
+    if (kind === 'paper') item.colors = kvValues('#kv-box');
+    else {
+      item.swatch = v.swatch || '';
+      item.desk = v.desk || '';
+      // 保留未在抽屉编辑的 palette 其余键（title/text/tag），只覆盖 base
+      const pal = (it && it.palette) || {};
+      item.palette = Object.assign({}, pal, v.paletteBase ? { base: v.paletteBase } : {});
+      item.assets = { envelope: v.envEnvelope || '', envelopeThumb: v.envThumb || '' };
+    }
+    try {
+      await api('memberItemSave', { item });
+      toast('已保存');
+      closeDrawer();
+      renderMemberItems();
+    } catch (e) {
+      alert('保存失败：' + e.message);
+    }
+  });
 }
 
 // ── 事件绑定与启动 ──

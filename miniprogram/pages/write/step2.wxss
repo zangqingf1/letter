@@ -111,6 +111,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+/* 会员专属信纸锁定角标（预览纸右上角，与主题卡 tc-lock 同款） */
+.pv-lock {
+  position: absolute;
+  top: 8rpx;
+  right: 20rpx;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  font-size: 26rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  box-shadow: 0 2rpx 8rpx rgba(80, 90, 85, 0.14);
+  z-index: 2;
 }
 /* 版式指示：当前版式名 + 圆点（点击直切） */
 .paper-ind {
@@ -163,6 +179,7 @@
   white-space: nowrap;
 }
 .theme-card {
+  position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -202,6 +219,19 @@
 }
 .theme-card.sel .tc-name {
   color: var(--color-accent-primary);
+}
+/* 会员专属主题锁定角标 */
+.tc-lock {
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
 }
 
 /* ── 底部火漆寄出栏 ── */

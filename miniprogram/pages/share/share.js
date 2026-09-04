@@ -11,6 +11,7 @@ const PAPERS = require('../write/papers.js');
 const { buildView } = require('../write/paper-view.js');
 const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 const analytics = require('../../services/analytics.js');
 const cloud = require('../../services/cloud.js');
 
@@ -140,6 +141,17 @@ const PAPER_SPECS = {
     a: { size: 28, face: FONT_HEI, weight: '', lh: 2.0, inset: 0 },
     postA: 56, // 页脚行
     bottomPad: 46
+  },
+  premium: {
+    // 会员专属通用金线笺（.pl-premium 同构）：顶部金线 60 + 题名 98；题名后短线与问 cap 90；答 cap 76；页脚 70
+    preTop: 98,
+    title: { size: 36, face: FONT_SONG, weight: '900 ', lh: 1.5, frac: 1 },
+    titleGap: 90,
+    q: { size: 28, face: FONT_HEI, weight: '', lh: 2.1, inset: 0 },
+    aGap: 76,
+    a: { size: 28, face: FONT_HEI, weight: '', lh: 2.1, inset: 0 },
+    postA: 70,
+    bottomPad: 48
   }
 };
 
@@ -161,6 +173,7 @@ function paperPads(paperId) {
     case 'suwen':
     case 'liubai':
     case 'moye':
+    case 'premium':
       return { left: rpx(48), right: rpx(48), top: rpx(spec.preTop), bottom: rpx(spec.bottomPad) };
     case 'airmail2':
       // 斜纹框 12 + 纸面内边距 36
@@ -190,16 +203,20 @@ Page({
     });
 
     // 与详情页同源：经 letter 服务读取（真实寄出的信优先，否则演示数据预览）；
-    // 版式经 theme 服务解析（未知 paper_id 回落第一套）。信纸取色只用 paper.colors。
-    Promise.all([letterService.get(options && options.id), themeService.getThemes(), themeService.getPapers()])
-      .then(([res, themes, papers]) => {
+    // 版式经 theme 服务解析（未知 paper_id 回落第一套；非 VIP 专属版式同样回落默认）。
+    // 信纸取色只用 paper.colors。
+    Promise.all([letterService.get(options && options.id), themeService.getThemes(), themeService.getPapers(), memberService.getMembership()])
+      .then(([res, themes, papers, m]) => {
         const letter = res.letter;
-        const theme = themes.find((t) => t.id === letter.theme_id) || themes[0] || THEMES[0];
+        const isVip = !!(m && m.state === 'vip');
+        // 非 VIP 时专属主题按默认主题渲染（会员过期后老信回退，开通后自动恢复）
+        let theme = themes.find((t) => t.id === letter.theme_id) || themes[0] || THEMES[0];
+        if (theme.premium && !isVip) theme = themes[0] || theme;
         this.setData({
           letter,
           theme,
           themeName: theme.name,
-          paper: themeService.paperOf(letter.paper_id, papers),
+          paper: themeService.paperOf(letter.paper_id, papers, isVip),
           view: buildView(letter, { created: letter.created_at })
         });
       })
@@ -450,7 +467,72 @@ Page({
     else if (id === 'liubai') this.drawLiubaiStyle(ctx, layout, colors, view);
     else if (id === 'moye') this.drawMoyeStyle(ctx, layout, colors, view);
     else if (id === 'airmail2') this.drawAirmailStyle(ctx, layout, colors, view);
+    else if (this.data.paper.premium) this.drawPremiumStyle(ctx, layout, colors, view);
     else this.drawExtraStyle(ctx, layout, colors, view);
+  },
+
+  // ── 会员专属 premium：通用金线笺（.pl-premium 同构，取色只用 colors.bg/ink/gold）──
+  drawPremiumStyle(ctx, layout, colors, view) {
+    const W = EXPORT_W;
+    const pads = layout.pads;
+    const x = pads.left;
+    const contentW = layout.contentW;
+    // 顶部金线
+    ctx.fillStyle = colors.gold;
+    ctx.fillRect(x, rpx(60), contentW, rpx(4));
+    // 题名（居中，可换行）
+    ctx.textAlign = 'center';
+    ctx.fillStyle = colors.ink;
+    ctx.font = layout.titleFont;
+    let y = pads.top;
+    layout.titleLines.forEach((ln) => {
+      ctx.fillText(ln, W / 2, y);
+      y += layout.titleLH;
+    });
+    // 题名下金短线
+    y += rpx(26);
+    ctx.fillStyle = colors.gold;
+    ctx.fillRect(W / 2 - rpx(48), y, rpx(96), rpx(2));
+    y += rpx(28);
+    // 问
+    ctx.textAlign = 'left';
+    ctx.fillStyle = colors.gold;
+    ctx.font = '700 ' + rpx(22) + 'px ' + FONT_HEI;
+    ctx.fillText('问', x, y);
+    y += rpx(36);
+    ctx.fillStyle = colors.ink;
+    ctx.font = layout.qFont;
+    layout.qLines.forEach((ln) => {
+      ctx.fillText(ln, x, y);
+      y += layout.qLH;
+    });
+    // 答
+    y += rpx(40);
+    ctx.fillStyle = colors.gold;
+    ctx.font = '700 ' + rpx(22) + 'px ' + FONT_HEI;
+    ctx.fillText('答', x, y);
+    y += rpx(36);
+    ctx.fillStyle = colors.ink;
+    ctx.font = layout.aFont;
+    layout.aItems.forEach((it) => {
+      ctx.fillText(it.text, x + it.dx, y);
+      y += layout.aLH;
+    });
+    // 页脚：金线 + 专属落款
+    y += rpx(16);
+    ctx.strokeStyle = colors.gold;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + contentW, y);
+    ctx.stroke();
+    y += rpx(30);
+    ctx.fillStyle = colors.gold;
+    ctx.font = rpx(20) + 'px ' + FONT_HEI;
+    ctx.fillText('心灵信箱 · 会员专属', x, y);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = colors.ink;
+    ctx.fillText('写于 ' + view.dateLong, W - x, y);
   },
 
   // ── 号外头版：报头双线 + 日期栏 + 首字下沉 + 答 毕 ──

@@ -8,6 +8,7 @@ const { buildView, longDate } = require('./paper-view.js');
 const letterService = require('../../services/letter.js');
 const draftService = require('../../services/draft.js');
 const themeService = require('../../services/theme.js');
+const memberService = require('../../services/member.js');
 const analytics = require('../../services/analytics.js');
 const { DATA_SOURCE } = require('../../config/env.js');
 const cloud = require('../../services/cloud.js');
@@ -26,6 +27,7 @@ Page({
     handwritingOff: false, // 无障碍开关：关闭手写体（与详情/分享同口径，此前预览未接）
     themes: THEMES,
     papers: PAPERS,
+    isVip: false,           // 会员态：决定专属版式/主题是否可解锁（云端读 members，本地读演示态）
     currentIndex: 0,
     currentTheme: THEMES[0],
     currentPaperIndex: 0,
@@ -84,16 +86,68 @@ Page({
     }
 
     // 主题统一经 theme 服务获取（云端主题更新后本页同步，与信匣/详情同口径）；
-    // 失败保留本地 THEMES 兜底。按当前选中主题 id 对齐新列表的序号。
-    themeService.getThemes().then((themes) => {
-      if (!themes || !themes.length) return;
-      const index = themes.findIndex((t) => t.id === this.data.currentTheme.id);
-      const current = index > -1 ? themes[index] : themes[0];
-      this.setData({ themes, currentIndex: index > -1 ? index : 0, currentTheme: current });
-    }).catch((err) => console.error('[step2] 主题列表读取失败', err));
+    // 信纸版式同样经 theme 服务（官方十款 + 会员专属款，premium 标记）；
+    // 会员态经 member 服务（决定专属款是否锁定）。失败保留本地 THEMES/PAPERS 兜底。
+    Promise.all([themeService.getThemes(), themeService.getPapers(), memberService.getMembership()])
+      .then(([themes, papers, m]) => {
+        const update = { isVip: !!(m && m.state === 'vip') };
+        if (themes && themes.length) {
+          const index = themes.findIndex((t) => t.id === this.data.currentTheme.id);
+          update.themes = themes;
+          update.currentIndex = index > -1 ? index : 0;
+          update.currentTheme = themes[index > -1 ? index : 0];
+        }
+        if (papers && papers.length) {
+          // 按当前选中版式 id 对齐云端列表序号（编辑态回选专用）
+          const pIndex = papers.findIndex((p) => p.id === this.data.currentPaper.id);
+          update.papers = papers;
+          update.currentPaperIndex = pIndex > -1 ? pIndex : 0;
+          update.currentPaper = papers[pIndex > -1 ? pIndex : 0];
+        }
+        // 编辑态对齐原信版式/主题（可能 eventChannel 早于会员态加载到达，在此修正）：
+        // VIP 恢复原选专属款；非 VIP 会员过期后一律回退默认（数据保留，开通后自动恢复）
+        if (this.data.editMode) {
+          if (update.isVip === false) {
+            if (update.currentPaper && update.currentPaper.premium) {
+              update.currentPaperIndex = 0;
+              update.currentPaper = update.papers[0];
+            }
+            if (update.currentTheme && update.currentTheme.premium) {
+              update.currentIndex = 0;
+              update.currentTheme = update.themes[0];
+            }
+          } else if (this._origPaperId || this._origThemeId) {
+            if (this._origPaperId) {
+              const pi = update.papers.findIndex((p) => p.id === this._origPaperId);
+              if (pi > -1) {
+                update.currentPaperIndex = pi;
+                update.currentPaper = update.papers[pi];
+              }
+            }
+            if (this._origThemeId) {
+              const ti = update.themes.findIndex((t) => t.id === this._origThemeId);
+              if (ti > -1) {
+                update.currentIndex = ti;
+                update.currentTheme = update.themes[ti];
+              }
+            }
+          }
+        }
+        this.setData(update);
+      })
+      .catch((err) => console.error('[step2] 列表/会员态读取失败', err));
 
     // 埋点：进入第二步
     track('letter_step2_view');
+  },
+
+  // 从会员中心返回后刷新会员态（可能刚开通，解锁专属款与寄出拦截）；失败忽略保留旧态
+  onShow() {
+    memberService.getMembership()
+      .then((m) => {
+        this.setData({ isVip: !!(m && m.state === 'vip') });
+      })
+      .catch(() => {});
   },
 
   // 应用第一步传入的信件内容；编辑态回选原主题与原信纸版式
@@ -107,17 +161,28 @@ Page({
     if (d.editMode) {
       update.editMode = true;
       update.editId = d.editId || '';
+      // 编辑态原选款快照：非 VIP 会员过期后保存时保留专属 id（开通后自动恢复）
+      this._origPaperId = d.paperId || '';
+      this._origThemeId = d.themeId || '';
+      const vip = !!this.data.isVip;
       if (d.themeId) {
         const index = this.data.themes.findIndex((t) => t.id === d.themeId);
-        if (index > -1) {
-          update.currentIndex = index;
-          update.currentTheme = this.data.themes[index];
+        const found = this.data.themes[index > -1 ? index : 0];
+        // 非 VIP 专属主题回退默认展示（数据保留，恢复会员后原样还原）
+        const tIndex = found && found.premium && !vip ? 0 : index;
+        if (tIndex > -1) {
+          update.currentIndex = tIndex;
+          update.currentTheme = this.data.themes[tIndex];
         }
       }
-      // 编辑态回选原信纸版式（未知 id 由 selectPaper 回落第一套）
+      // 编辑态回选原信纸版式（未知 id 回落第一套；非 VIP 专属版式回退默认）
       if (d.paperId) {
         const pIndex = this.data.papers.findIndex((p) => p.id === d.paperId);
-        this.selectPaper(pIndex > -1 ? pIndex : 0, false);
+        const found = this.data.papers[pIndex > -1 ? pIndex : 0];
+        const target = found && found.premium && !vip ? 0 : pIndex;
+        if (target > -1) {
+          this.setData({ currentPaperIndex: target, currentPaper: this.data.papers[target] });
+        }
       }
       if (d.createdAt) {
         // 落款：写于（创建日期，保留不变）
@@ -138,6 +203,7 @@ Page({
       wx.showToast({ title: '这套信纸还在路上，先挑一套能用的吧', icon: 'none' });
       return;
     }
+    // 会员专属主题非 VIP 也可选中预览，寄出时才引导开通
     if (index === this.data.currentIndex) return;
     // 埋点：切换信纸主题
     track('theme_select', { theme_id: theme.id });
@@ -153,6 +219,7 @@ Page({
   selectPaper(index, trackEvent) {
     const paper = this.data.papers[index];
     if (!paper || index === this.data.currentPaperIndex) return;
+    // 会员专属版式非 VIP 也可选中预览，寄出时才引导开通
     if (trackEvent) track('paper_select', { paper_id: paper.id });
     this.setData({ currentPaperIndex: index, currentPaper: paper });
   },
@@ -163,6 +230,20 @@ Page({
   },
   onTapPaperDot(e) {
     this.selectPaper(Number(e.currentTarget.dataset.index), true);
+  },
+
+  // 会员专属拦截（仅寄出时触发，选中与预览不拦）：非 VIP 用专属款封存需先开通
+  onLockedItem() {
+    wx.showModal({
+      title: '会员专属',
+      content: '这封信用了会员专属的信纸/主题，开通会员后即可封存寄出。',
+      confirmText: '去开通',
+      cancelText: '再想想',
+      confirmColor: '#6B8E85',
+      success: (res) => {
+        if (res.confirm) wx.navigateTo({ url: '/pages/member/member' });
+      }
+    });
   },
 
   // ── 返回修改：回到第一步，已填内容随页面栈保留 ──
@@ -177,6 +258,12 @@ Page({
     const d = this.data;
     if (!d.letter.name.trim() || !d.letter.question.trim() || !d.letter.answer.trim()) {
       wx.showToast({ title: '信还没写完整，回去补一补吧', icon: 'none' });
+      return;
+    }
+
+    // 会员专属：当前选中的信纸/主题为专属款且非 VIP 时，寄出前引导开通
+    if (!d.isVip && (d.currentPaper.premium || d.currentTheme.premium)) {
+      this.onLockedItem();
       return;
     }
 
@@ -218,6 +305,8 @@ Page({
             } else {
               draftService.clearAll();
             }
+            // 标记已封存：switchTab 回首页时 write 页 onUnload 不再自动重存草稿（防"幽灵草稿"）
+            getApp()._letterSealed = true;
             this.startSealFx(newLetterId);
           })
           .catch(() => {
@@ -269,8 +358,21 @@ Page({
   // 编辑保存：只更新内容/主题/信纸版式（写于保留、记改于），重读记录与回信静默原样保留（PRD 5.6）
   sealEdit() {
     const d = this.data;
-    const theme = d.currentTheme;
-    const paper = d.currentPaper;
+    let theme = d.currentTheme;
+    let paper = d.currentPaper;
+
+    // 非 VIP 编辑专属老信且仍在回退默认款（未主动更换版式/主题）时写回原专属 id，
+    // 保留专属身份：会员恢复后自动还原（会员专区「过期回退/开通恢复」）
+    if (!d.isVip) {
+      if (this._origPaperId && paper.id === d.papers[0].id) {
+        const origPaper = d.papers.find((p) => p.id === this._origPaperId);
+        if (origPaper && origPaper.premium) paper = origPaper;
+      }
+      if (this._origThemeId && theme.id === d.themes[0].id) {
+        const origTheme = d.themes.find((t) => t.id === this._origThemeId);
+        if (origTheme && origTheme.premium) theme = origTheme;
+      }
+    }
 
     letterService
       .update(d.editId, {
@@ -286,7 +388,7 @@ Page({
         // 埋点：寄出/保存信件（核心转化，编辑走同一转化口径，落库成功才计量）
         track('letter_save', { letter_id: d.editId, mode: 'edit' });
         // 演示数据（不在信匣存储中）不持久化，仅完成动效返回
-        // 编辑草稿完成使命；标记一次性抑制，避免返回详情途中 write 页 onHide 又把过期草稿写回
+        // 编辑草稿完成使命；标记一次性抑制，让返回详情途中 write 页 onHide 重置该标志，避免误判编辑态
         draftService.clearEdit();
         getApp()._editSealed = true;
         this.startSealFx('');
