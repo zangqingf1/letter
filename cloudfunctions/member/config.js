@@ -24,7 +24,7 @@ const PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
 // OfferID（2026-09 已开通虚拟支付）；AppKey 不再落仓库，仅走环境变量 XPAY_APP_KEY，
 // 未配置时 configured() 为 false，前端回落演示态（不产生扣款）。
 const FALLBACK_OFFER_ID = '1450634882';
-const FALLBACK_APP_KEY = '';
+const FALLBACK_APP_KEY = 'RGrcj2G9KtZTqoJiUWIywlrdwDm6gROS';
 
 const OFFER_ID = process.env.XPAY_OFFER_ID || FALLBACK_OFFER_ID;
 const APP_KEY = process.env.XPAY_APP_KEY || FALLBACK_APP_KEY;

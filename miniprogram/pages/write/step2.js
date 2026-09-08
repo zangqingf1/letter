@@ -51,12 +51,16 @@ Page({
     const ch = this.getOpenerEventChannel && this.getOpenerEventChannel();
     if (ch && ch.on) {
       ch.on('letterData', (d) => {
+        // 标记正式数据已到达：兜底回读（网络返回更晚）不得再覆盖（尤其 _draftId，
+        // 否则寄出时会误判为"无草稿"而 clearAll 清掉全部草稿）
+        this._letterDataApplied = true;
         if (d) this.applyLetterData(d);
       });
     }
     // 兜底：编辑模式按 id 经 letter 服务回读（直接编译预览本页时用）
     if (options && options.mode === 'edit' && options.id) {
       letterService.get(options.id).then((res) => {
+        if (this._letterDataApplied) return;
         if (res.isDemo || !res.letter) return;
         const found = res.letter;
         this.applyLetterData({
@@ -74,6 +78,7 @@ Page({
     } else if (!(options && options.mode === 'edit')) {
       // 兜底：开发者工具直接预览本页时读取最新一条草稿（编辑模式不得读"新信"草稿）
       draftService.list().then((drafts) => {
+        if (this._letterDataApplied) return;
         if (drafts.length) {
           const draft = drafts[0];
           this.applyLetterData({
@@ -157,7 +162,6 @@ Page({
     const letter = { name: d.name || '', question: d.question || '', answer: d.answer || '' };
     const update = { letter };
     let created = new Date();
-    const dateText = longDate(created);
     if (d.editMode) {
       update.editMode = true;
       update.editId = d.editId || '';
@@ -189,8 +193,9 @@ Page({
         created = new Date(d.createdAt);
       }
     }
-    // 信纸渲染数据（三端同构：票面日期/编号/首字下沉等全部由此派生）
-    update.view = buildView(letter, { created: created, dateText: dateText });
+    // 信纸渲染数据（三端同构：票面日期/编号/首字下沉等全部由此派生）；
+    // 落款长日期在 created 确定后生成：新写信=今天，编辑态=创建日期「写于」（与详情/分享同口径）
+    update.view = buildView(letter, { created: created, dateText: longDate(created) });
     this.setData(update);
   },
 

@@ -307,13 +307,14 @@ Page({
     return draftService
       .save(Object.assign({ id: draftId }, content))
       .then((saved) => {
+        if (!saved) return null;
         // 只有当前草稿指针未变时才回写 id（避免切去写另一封时被旧保存覆盖）
-        if (saved && saved.id && this.currentDraftId === draftId) {
+        if (saved.id && this.currentDraftId === draftId) {
           this.currentDraftId = saved.id;
         }
         this.loadDraftShelf();
-        if (!silent) {
-          // 埋点：保存草稿
+        if (!silent && !saved._cloudFailed) {
+          // 埋点：保存草稿（云端落库成功才计量）
           track('draft_save');
           wx.showToast({ title: '已存草稿', icon: 'success' });
         }
@@ -405,8 +406,13 @@ Page({
       return;
     }
     // 落草稿后返回信匣：「已存草稿」Toast 跨页面保留；草稿横条由首页 onShow 刷新。
+    // 云端保存失败（本机兜底保留内容）时不退出，让用户重试，避免误以为已存上而丢内容。
     // 程序化 navigateBack 也会被 enableAlertBeforeUnload 拦截（部分基础库），已存草稿不再打扰，先禁用
-    this.saveDraft(false).then(() => {
+    this.saveDraft(false).then((saved) => {
+      if (!saved || saved._cloudFailed) {
+        wx.showToast({ title: '草稿没存上，再试一次', icon: 'none' });
+        return;
+      }
       wx.disableAlertBeforeUnload();
       const pages = getCurrentPages();
       if (pages.length > 1) {

@@ -60,12 +60,10 @@ function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// 管理员密钥：优先读环境变量 ADMIN_KEY；若控制台配不了环境变量，把 FALLBACK_KEY
-// 改成你的强密钥并重新部署即可（两者都不配置时拒绝一切请求）。
-const FALLBACK_KEY = 'hb-9x7k2m-qwer8765';
-
+// 管理员密钥：只读环境变量 ADMIN_KEY（在 CloudBase 控制台配置）。
+// 未配置时 checkKey 直接拒绝一切请求（密钥不得落入仓库，历史泄露的密钥须视为已失效并轮换）。
 function checkKey(event) {
-  const key = process.env.ADMIN_KEY || FALLBACK_KEY;
+  const key = process.env.ADMIN_KEY || '';
   if (!key) return false;
   return typeof event.key === 'string' && event.key === key;
 }

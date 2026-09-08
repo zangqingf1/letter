@@ -146,10 +146,15 @@ function requestVirtualPayment(payData) {
 }
 
 // 纯 UI 演示开通：仅落本地演示标记（不真实扣款）。仅未配置/本地模式兜底用。
+// 叠加语义与云端 deliverGoods 对齐：base = max(现在, 当前到期时间)，再往后加天数，
+// 避免 VIP 期内再次开通时把剩余时长清零。
 function demoSubscribe(plan) {
   const days = PLAN_DAYS[plan] || 30;
+  const now = Date.now();
+  const saved = wx.getStorageSync(EXPIRE_KEY);
+  const base = saved && saved > now ? saved : now;
   wx.setStorageSync(STATE_KEY, 'vip');
-  wx.setStorageSync(EXPIRE_KEY, Date.now() + days * DAY_MS);
+  wx.setStorageSync(EXPIRE_KEY, base + days * DAY_MS);
   return Promise.resolve({ ok: true, plan: plan || '', demo: true });
 }
 

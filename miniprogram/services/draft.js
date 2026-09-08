@@ -69,10 +69,27 @@ function list() {
   return Promise.resolve(listLocal());
 }
 
+// 本地 upsert（local 模式主路径；云端保存失败时也回落此处，尽量不丢内容）
+function upsertLocal(item) {
+  const drafts = listLocal();
+  if (item.id) {
+    const i = drafts.findIndex((d) => d.id === item.id);
+    if (i > -1) drafts[i] = Object.assign({}, drafts[i], item);
+    else drafts.push(item);
+  } else {
+    item.id = newId();
+    drafts.push(item);
+  }
+  wx.setStorageSync(DRAFTS_KEY, drafts);
+  return item;
+}
+
 // 保存草稿（upsert：带 id 更新对应项，无 id 追加新项）。
 // 调用时机由页面决定（点「存草稿」、退出确认、切草稿/进第二步前静默落草稿），无自动保存；
 // 失败静默（草稿最佳努力，不打扰用户）。
 // 返回 Promise<含 id 的草稿项>，调用方据此回写 currentDraftId（寄出后精确清除）。
+// 云端保存失败时回落本机 letter_drafts 兜底（内容不丢），但返回项带 _cloudFailed 标记，
+// 调用方不得视为保存成功（不应提示「已存草稿」并退出）。
 function save(draft) {
   const item = {
     id: (draft && draft.id) || '',
@@ -85,19 +102,9 @@ function save(draft) {
     return cloud
       .call('draft', 'save', { draft: item })
       .then((r) => (r && r.ok ? Object.assign({}, item, { id: (r && r.id) || item.id }) : null))
-      .catch(() => null);
+      .catch(() => Object.assign(upsertLocal(item), { _cloudFailed: true }));
   }
-  const drafts = listLocal();
-  if (item.id) {
-    const i = drafts.findIndex((d) => d.id === item.id);
-    if (i > -1) drafts[i] = Object.assign({}, drafts[i], item);
-    else drafts.push(item);
-  } else {
-    item.id = newId();
-    drafts.push(item);
-  }
-  wx.setStorageSync(DRAFTS_KEY, drafts);
-  return Promise.resolve(item);
+  return Promise.resolve(upsertLocal(item));
 }
 
 // 删除单条草稿：直接移除，不进废纸篓（草稿未寄出，无重读/回信可恢复）

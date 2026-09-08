@@ -10,6 +10,7 @@ exports.main = async () => {
     const res = await db
       .collection('letters')
       .where({ status: 'recycled', purge_at: _.lte(new Date()) })
+      .limit(1000) // 云数据库 get() 默认只返回 20 条，积压时单次最多清 20 封
       .get();
 
     let purged = 0;

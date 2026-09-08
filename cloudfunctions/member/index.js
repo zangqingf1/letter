@@ -77,10 +77,24 @@ async function findMembership(openid) {
 }
 
 exports.main = async (event) => {
-  // 虚拟支付消息推送回调（云开发「消息推送」→ 云函数模式，事件对象直接透传，无 action 字段）
+  // 虚拟支付消息推送回调（云开发「消息推送」→ 云函数模式，事件对象直接透传，无 action 字段）。
+  // 来源校验：wx.cloud.callFunction（小程序端）可以携带任意 event 字段伪造 Event，
+  // 而平台推送的调用上下文不带用户 OPENID —— 客户端调用一律拒绝，防伪造发货。
   if (event && event.Event) {
     try {
       if (event.Event === 'xpay_goods_deliver_notify') {
+        const ctxOpenid = cloud.getWXContext().OPENID;
+        // 平台发货推送与客户端 callFunction 都会带 OPENID 上下文，不能以「有无 OPENID」区分；
+        // 门槛改为正文必须携带平台支付信息（WeChatPayInfo.MchOrderNo，客户端不可见），
+        // 且上下文 OPENID（若有）必须与 OpenId 一致，防止把他人的单号指向自己。
+        if (!event.OpenId || !event.WeChatPayInfo || !event.WeChatPayInfo.MchOrderNo) {
+          console.warn('[member] 拒绝伪造/缺字段的发货推送', event.Event, 'ctxOpenid=', ctxOpenid);
+          return { ErrCode: 1, ErrMsg: 'forbidden' };
+        }
+        if (ctxOpenid && ctxOpenid !== event.OpenId) {
+          console.warn('[member] 拒绝 openid 不一致的发货推送', event.Event, 'ctxOpenid=', ctxOpenid, 'OpenId=', event.OpenId);
+          return { ErrCode: 1, ErrMsg: 'forbidden' };
+        }
         await deliverGoods(event);
       } else {
         console.log('[member] 未处理推送事件', event.Event);
@@ -194,13 +208,19 @@ async function deliverGoods(ev) {
   if (!plan) {
     throw new Error('[member] 发货：未知道具 productId=' + productId);
   }
-  const paidPrice = (ev.GoodsInfo && ev.GoodsInfo.ActualPrice) || 0;
+  // 推送正文 GoodsInfo.ActualPrice 是字符串（如 "100"），必须先转数字再与道具价（分）比较，
+  // 否则 "100" !== 100 恒真、每次发货都被误拦。缺省（无该字段）时放行，伪造防护靠上方校验与订单校验。
+  const paidPrice = Number(ev.GoodsInfo && ev.GoodsInfo.ActualPrice) || 0;
   if (paidPrice && paidPrice !== PRODUCTS[plan].priceFen) {
     throw new Error('[member] 发货：实付金额与道具价格不一致 productId=' + productId + ' paid=' + paidPrice + ' expect=' + PRODUCTS[plan].priceFen);
   }
 
   const orderRes = await db.collection('member_orders').where({ out_trade_no: outTradeNo }).limit(1).get();
   const orderId = orderRes.data[0] ? orderRes.data[0]._id : null;
+  // 正常订单必由 subscribe 落库（status='created'）；查无订单即拒绝，堵死伪造 out_trade_no 的投递
+  if (!orderId) {
+    throw new Error('[member] 发货：订单不存在 out_trade_no=' + outTradeNo);
+  }
   const memberRes = await db.collection('members').where({ _openid: openid }).limit(1).get();
   const memberId = memberRes.data[0] ? memberRes.data[0]._id : null;
 

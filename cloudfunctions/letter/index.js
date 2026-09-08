@@ -191,6 +191,7 @@ function assemble(letter, opens, replies) {
 async function purgeExpired(openid) {
   const res = await letters
     .where({ _openid: openid, status: 'recycled', purge_at: _.lte(new Date()) })
+    .limit(1000) // 云数据库 get() 默认只返回 20 条，积压时每次只清 20 封
     .get();
   for (const l of res.data) {
     await removeLetterDeep(openid, l._id);

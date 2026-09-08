@@ -38,8 +38,15 @@ exports.main = async (event) => {
           updated_at: db.serverDate()
         };
         if (draft.id) {
-          // _openid 一并约束：只允许更新本人的草稿文档
-          await db.collection('drafts').where({ _openid: OPENID, _id: draft.id }).update({ data });
+          // _openid 一并约束：只允许更新本人的草稿文档。
+          // 匹配 0 条（草稿已在其他设备被清/注销）时降级为新增，避免静默"保存成功"实际丢稿
+          const updated = await db.collection('drafts').where({ _openid: OPENID, _id: draft.id }).update({ data });
+          if (updated.stats && updated.stats.updated === 0) {
+            const added = await db
+              .collection('drafts')
+              .add({ data: Object.assign({ _openid: OPENID }, data) });
+            return { ok: true, id: added._id };
+          }
           return { ok: true, id: draft.id };
         }
         const added = await db
