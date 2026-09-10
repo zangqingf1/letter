@@ -167,3 +167,54 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   background: var(--deep); color: #F5EFE0; padding: 10px 22px; border-radius: 999px;
   font-size: 13px; z-index: 99; box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
+
+/* ── 问题反馈 ── */
+.badge.new { background: #F8EBD7; color: #A2701D; }
+.fb-snip {
+  display: block; max-width: 340px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.fb-box { padding: 6px 2px; }
+.fb-kv {
+  display: flex; gap: 26px; flex-wrap: wrap; font-size: 13px; margin-bottom: 10px;
+}
+.fb-kv b, .fb-label b { color: var(--deep); }
+.fb-label { font-size: 13px; margin: 10px 0 4px; }
+.fb-full {
+  white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.8;
+  margin: 0; color: var(--ink);
+}
+.fb-none { color: var(--muted); font-size: 12px; margin: 2px 0; }
+.fb-fileid { font-size: 11px; color: var(--muted); word-break: break-all; }
+.fb-shots { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.fb-shots img {
+  width: 120px; height: 120px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--line); background: #EFE9DA; display: block; cursor: zoom-in;
+}
+.fb-shots img:hover { border-color: var(--accent); }
+
+/* ── 截图灯箱预览 ── */
+.lightbox {
+  position: fixed; inset: 0; z-index: 120; background: rgba(20, 16, 10, 0.86);
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox img {
+  max-width: 92vw; max-height: 88vh; border-radius: 8px; display: block;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); background: #EFE9DA;
+}
+.lightbox-close {
+  position: absolute; top: 18px; right: 26px; color: #F5EFE0; font-size: 24px;
+  cursor: pointer; line-height: 1; user-select: none;
+}
+.lightbox-close:hover { opacity: 0.75; }
+.lightbox-prev, .lightbox-next {
+  position: absolute; top: 50%; transform: translateY(-50%); color: #F5EFE0;
+  font-size: 42px; line-height: 1; cursor: pointer; padding: 0 22px; user-select: none;
+}
+.lightbox-prev { left: 8px; }
+.lightbox-next { right: 8px; }
+.lightbox-prev:hover, .lightbox-next:hover { opacity: 0.75; }
+.lightbox-count {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  color: #F5EFE0; font-size: 13px; letter-spacing: 1px;
+}

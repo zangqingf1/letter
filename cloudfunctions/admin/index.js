@@ -569,6 +569,101 @@ async function handleAction(event) {
         return { ok: true, seeded, skipped: SEED_MEMBER_ITEMS.length - seeded };
       }
 
+      // ── 问题反馈管理（feedback 集合：用户主动提交给开发者的内容，属隐私红线例外；
+      //    其余内容字段红线照旧 —— letters/reply_records 永不读取）──
+      case 'feedbackList': {
+        const pageSize = 20;
+        const page = Math.max(1, Number(event.page) || 1);
+        const where = {};
+        if (event.status === 'new' || event.status === 'done') where.status = event.status;
+        const base = Object.keys(where).length
+          ? db.collection('feedback').where(where)
+          : db.collection('feedback');
+        const total = (await base.count()).total;
+        const res = await base
+          .orderBy('created_at', 'desc')
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .get();
+        return {
+          ok: true,
+          page,
+          pageSize,
+          total,
+          items: res.data.map((f) => ({
+            id: f._id,
+            openid: f._openid || '',
+            content: f.content || '',
+            contact: f.contact || '',
+            imageCount: Array.isArray(f.images) ? f.images.length : 0,
+            device: f.device || '',
+            status: f.status || 'new',
+            handled_at: f.handled_at || null,
+            created_at: f.created_at
+          }))
+        };
+      }
+      case 'feedbackDetail': {
+        const id = (event.id || '').trim();
+        if (!id) return { ok: false, error: 'id 必填' };
+        const doc = await db.collection('feedback').doc(id).get().catch(() => null);
+        if (!doc || !doc.data) return { ok: false, error: '反馈不存在或已被删除' };
+        const f = doc.data;
+        // 截图是 cloud:// fileID，Web 端 <img> 无法直显，换取临时可访问 URL
+        const fileList = Array.isArray(f.images) ? f.images.slice(0, 9) : [];
+        let urlMap = {};
+        if (fileList.length) {
+          const r = await cloud.getTempFileURL({ fileList }).catch(() => ({ fileList: [] }));
+          for (const it of r.fileList || []) {
+            if (it && it.tempFileURL) urlMap[it.fileID] = it.tempFileURL;
+          }
+        }
+        return {
+          ok: true,
+          detail: {
+            id: doc._id,
+            openid: f._openid || '',
+            content: f.content || '',
+            contact: f.contact || '',
+            device: f.device || '',
+            status: f.status || 'new',
+            created_at: f.created_at,
+            handled_at: f.handled_at || null,
+            images: fileList.map((fileID) => ({ fileID, url: urlMap[fileID] || '' }))
+          }
+        };
+      }
+      case 'feedbackUpdate': {
+        const id = (event.id || '').trim();
+        if (!id) return { ok: false, error: 'id 必填' };
+        if (event.status !== 'new' && event.status !== 'done') {
+          return { ok: false, error: 'status 需为 new / done' };
+        }
+        const now = new Date();
+        const data = { status: event.status, updated_at: now };
+        if (event.status === 'done') {
+          data.handled_at = now;
+          data.handled_by = 'admin';
+        } else {
+          data.handled_at = null;
+          data.handled_by = '';
+        }
+        const r = await db.collection('feedback').doc(id).update({ data });
+        return { ok: true, updated: (r.stats && r.stats.updated) || 0 };
+      }
+      case 'feedbackDelete': {
+        const id = (event.id || '').trim();
+        if (!id) return { ok: false, error: 'id 必填' };
+        const doc = await db.collection('feedback').doc(id).get().catch(() => null);
+        const images =
+          doc && doc.data && Array.isArray(doc.data.images) ? doc.data.images.slice(0, 50) : [];
+        if (images.length) {
+          await cloud.deleteFile({ fileList: images }).catch(() => {});
+        }
+        const r = await db.collection('feedback').doc(id).remove();
+        return { ok: true, removed: (r.stats && r.stats.removed) || 0 };
+      }
+
       default:
         return { ok: false, error: 'unknown action' };
     }

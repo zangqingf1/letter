@@ -31,15 +31,17 @@ function call(name, action, data) {
     });
 }
 
-// 上传本地文件到云存储（头像等），成功返回 fileID（云端档案只收 cloud:// 路径）。
+// 上传本地文件到云存储（头像、问题反馈截图等），成功返回 fileID（云端档案只收 cloud:// 路径）。
+// dir 指定云存储子目录（默认 'avatars' 头像；反馈截图传 'feedback'），默认值保持既有调用不变。
 // 与 call() 一致：未初始化时也以拒绝态返回，保证调用方的 .catch 能拿到反馈。
-function uploadFile(filePath) {
+function uploadFile(filePath, dir) {
   if (!wx.cloud) {
     return Promise.reject(new Error('cloud 未初始化'));
   }
   ensureInit();
+  const folder = (typeof dir === 'string' && dir) ? dir : 'avatars';
   const ext = (filePath.match(/\.[a-zA-Z0-9]+$/) || ['.png'])[0];
-  const cloudPath = 'avatars/a' + Date.now() + '-' + Math.floor(Math.random() * 10000) + ext;
+  const cloudPath = folder + '/f' + Date.now() + '-' + Math.floor(Math.random() * 10000) + ext;
   return wx.cloud.uploadFile({ cloudPath, filePath }).then((res) => res.fileID);
 }
 

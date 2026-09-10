@@ -62,6 +62,10 @@
 
   <!-- 底部功能列表：无硬体分割，浅色信纸下划线分隔，无多余图标 -->
   <view class="menu">
+    <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapFeedback">
+      <text class="menu-text">问题反馈</text>
+      <text class="menu-arrow">›</text>
+    </view>
     <view class="menu-item" hover-class="menu-item-hover" bindtap="onTapAbout">
       <text class="menu-text">关于心灵信箱</text>
       <text class="menu-arrow">›</text>

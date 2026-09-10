@@ -20,7 +20,7 @@
 
 ## 页面与信息架构
 
-共 11 个页面（app.json），全部 `navigationStyle: custom`。底部 TabBar 仅两项：**信箱（home）/ 我的（mine）**；"写一封新信"为首页悬浮/底部主入口，不占 Tab。
+共 12 个页面（app.json），全部 `navigationStyle: custom`。底部 TabBar 仅两项：**信箱（home）/ 我的（mine）**；"写一封新信"为首页悬浮/底部主入口，不占 Tab。
 
 1. **信匣 home（Tab1）**：三状态 empty/few/normal，本地模式由 `pages/home/mock.js` 的 `DEMO_STATE` 切换演示池。今日来信每日随机一次、当日固定（本地按日期种子确定性随机；云端由 `today` 云函数按「用户+日期」种子计算并写回 `today_letter_of`，跨设备同日一致）。few 态 1–6 封 ±2° 伪随机倾斜（按 id 种子），超过 8 封切三列整齐网格且回形针信件前置。条件性草稿横条（显示真实草稿数）。冷启动骨架：`home.json initialRenderingCache: static` + data.loading 首帧色块；数据统一在 onShow 拉（onLoad 不拉，避免双请求）。寄出回传 `letter_just_arrived`（storage，消费即清除）触发新信约 800ms「落格」动效。
 2. **写信第一步 write**：一页信纸完成名称/问题/答案（均必填，字数上限常量 20/500/2000）。进入时空白新信，不自动预填；未写完的草稿以卡片陈列在书写区下方（「没写完的信」，点击载入续写，卡片可删除——二次确认后**彻底删除、不进废纸篓**，删当前正在写的同时清空表单）。保存时机仅两处：点「💾 存草稿」（成功即返回首页，Toast「已存草稿」跨页保留）或退出点系统弹窗「确定」（`enableAlertBeforeUnload`，message「这封信还没写完。」，仅表单有内容时触发）；**无自动保存**（无 10s/失焦/onHide）。多草稿 upsert（storage 键 `letter_drafts`，`currentDraftId` 跟踪）。
@@ -30,15 +30,16 @@
 6. **分享 share**：进入即全屏预览（固定纸色版式明信片，`styles/paper.wxml` 共享模板渲染；名称/问题/答案/写信日期四项固定全展示；**重读记录与回信永不入图**），底部小程序条（火漆 Logo 环 + 「心灵信箱 · 把答案寄给未来」+ 小程序码 `assets/qrcode.jpg`，加载失败回落暗格占位）。离屏 Canvas 2d 导出：宽 1080 固定、高按换行实测自适应（超长按字号²比例缩小字号、极端超长截断答案兜底），十款版式装饰由 `drawXxxStyle` 按 `paper.colors` 完整重绘（与 WXSS 同一套 rpx 值）；生成图不入云端历史。操作 = 保存到相册（权限拒绝引导 openSetting）/ 发给微信好友（`showShareImageMenu`，低版本 previewImage 兜底）。
 7. **废纸篓 recycle**：30 天保留（`KEEP_DAYS=30`，临近 `WARN_DAYS=3` 天强调态）；左滑（跟手拖动、过半吸附、单行展开）露「↩️ 取回」（原样恢复，含重读与回信）与「🗑️ 彻底」（二次确认后物理删除）。首查且为空时一次性落演示数据（`recycle_demo_seeded` 标记）。云端另有 cleaner 定时清理 + listRecycle 兜底双通道。
 8. **回形针 clips**：「我的」页回形针数量行进入；与信匣同源数据筛 `pinned`，纸条交替 ±0.5° 微倾 + 金色 clip.png 角标，轻触直达详情。回形针点亮/取下只在详情页底部操作栏做。
-9. **我的 mine（Tab2）**：品牌区 + 名片（点击进账号管理）+ 2×2 微倾便签统计（信件总数/被重读总次数/回信条数/注册天数，本地演示值、云端 stats 实数）+ 回形针/废纸篓数量行（本地实时计算）+ 功能列表（关闭手写体开关项、用户协议/隐私/关于——后三项均为 TODO 占位）。
+9. **我的 mine（Tab2）**：品牌区 + 名片（点击进账号管理）+ 2×2 微倾便签统计（信件总数/被重读总次数/回信条数/注册天数，本地演示值、云端 stats 实数）+ 回形针/废纸篓数量行（本地实时计算）+ 功能列表（问题反馈、关于心灵信箱已落地；关闭手写体开关项、用户协议/隐私仍为 TODO 占位）。
 10. **账号管理 account**：微信官方头像（`open-type="chooseAvatar"`）与昵称（`type="nickname"`）填写能力；资料存 `account_profile`（云端头像先 uploadFile 换 cloud:// fileID），「我的」名片 onShow 读同源数据。注销 = 页内二次确认（「仍要注销/再想想」），确认后按 `user.js` 的 `USER_DATA_KEYS` 清单清除全部用户数据（`handwriting_off` 设备偏好保留），Toast 告别文案后 reLaunch 回首页；云端走 user 云函数 deactivate 物理删除。
 11. **关于 about**：静态品牌介绍页（「我的」页功能列表「关于心灵信箱」进入），长卷式图文——Hero（logo + 标语）+ 壹贰叁肆四章（写下/封存/重逢/安放，全部插画为 WXSS 手绘：迷你信纸、信封火漆、CSS 逐字旋转邮戳、便签卡）+ 火漆印收尾；零数据依赖、不接 services（仅 statusBarHeight + 返回）。设计源文件：根目录 `心灵信箱-关于页设计提案.html`。
 12. **会员中心 member**：付费 VIP 会员页（「我的」页金调入口行进入）——会员状态卡（free 虚线引导 / vip 金色火漆卡）+ 权益清单（专属信纸版式 / 专属主题信封 / 专属内容全解锁）+ 会员专属主题与版式展示（`premium.js` 色样卡 + 🔒，数据与写信页同源）+ 订阅半屏拉手（**一次性月卡 ¥1 / 季卡 ¥25.9 / 年卡 ¥99.9**）+ 开通成功完成幕。**已接入真实微信虚拟支付（个人·道具直购）**：`member` 云函数下单（signData+paySig+signature，`crypto` HMAC-SHA256）→ 前端 `wx.requestVirtualPayment` 拉起支付 → 支付成功后平台经云开发「消息推送」把 `xpay_goods_deliver_notify` 推回 member 云函数发货（写 `members` 集合，按 out_trade_no 幂等），前端轮询会员状态翻成 vip。OfferID / 现网 AppKey / 小程序 AppSecret 走云函数环境变量 `XPAY_OFFER_ID`/`XPAY_APP_KEY`/`XPAY_APP_SECRET`（code2Session 不支持云调用，用 AppSecret 经 HTTPS 直调 `sns/jscode2session` 换 sessionKey），道具 productId 在 `cloudfunctions/member/config.js` 填（与 MP 后台「道具管理」一致）；**未配置或本地模式回落演示态**（`member_demo_state` 本地标记，不产生扣款）。**会员专属内容已真实落地**：后台 `member_items`（kind=paper/theme）由 admin 增删改查，`theme` 云函数下发时并入主题/版式列表（`premium:true` 标记），写信第二步/详情/分享三端通用专属模板渲染（`styles/paper` pl-premium + `share.js drawPremiumStyle`，取色 bg/ink/gold，后台改配色即生效）；非 VIP 在写信页见锁定款（🔒，可自由预览/选中，点「封存寄出」时才引导开通），VIP 解锁；**会员过期回退**：非 VIP 时专属款在所有渲染端（首页/回形针/废纸篓缩略图、详情、分享、编辑预览）一律按默认款展示（`services/theme.js` paperOf/envelopeOf/envelopeThumbOf 按 isVip 回落 list[0]，数据不动），编辑保存未主动更换时保留原专属 id，开通后自动恢复；会员页点击专属信纸弹出真实版式模板渲染的示例预览，专属主题可配信封素材（member_items.assets，后台可填）展示真实信封图。**VIP 等级称号按累计会员天数分档**（members.total_days：寄字 <30 / 守候 <180 / 长情 ≥180，`member` 云函数 get 返回）。后台已预置 `members`（VIP 状态）/`member_items`（专属内容）集合与会员管理界面；`member_orders` 为订单集合（待支付/已发货）。
+13. **问题反馈 feedback**：「我的」页功能列表入口进入。文字描述（必填，≤1000）+ 联系方式（选填，≤40）+ 多张截图（选填，最多 9 张，`wx.chooseMedia` 低版本回落 `wx.chooseImage`）。提交经 `services/feedback.js`：云端先把本地截图逐张 `cloud.uploadFile(path, 'feedback')` 换 fileID，再调 `feedback` 云函数 add 落 `feedback` 集合（`{_openid, content, contact, images[], device, status:'new', created_at}`），可附带脱敏环境信息（平台/系统/微信版本）便于复现；本地演示模式写 storage `feedback_local`（保留最近 20 条）。注销清空已纳入 `cloudfunctions/user` deactivate 与 `USER_DATA_KEYS`。`feedback` 集合由 **admin 后台「问题反馈」板块**维护（分页 + 状态筛选、行展开看全文/截图预览、`status` new/done 标记、删除单条连同云存储截图）；小程序端只提交不读回。
 
 ## 数据模型与业务规则
 
-### 云数据库集合（11 个）
-`users` / `letters`（信件主集合，含 status 控制在匣/废纸篓） / `open_records`（重读邮戳） / `reply_records`（回信） / `drafts`（多草稿，一草稿一文档） / `themes`（Web 后台维护，status='online' 才下发） / `papers`（信纸版式配色，Web 后台维护，status='online' 才经 theme/papers 下发） / `events`（埋点） / `members`（会员状态，后台 memberGrant / 小程序发货推送共同写入） / `member_items`（会员专属版式/主题内容，admin 增删改查，theme 云函数并入下发 premium 标记，与 premium.js 同源） / `member_orders`（会员订单：待支付/已发货，member 云函数订阅下单 + 发货推送更新）。本地模式对应 storage 键见「目录登记」services 一节。
+### 云数据库集合（12 个）
+`users` / `letters`（信件主集合，含 status 控制在匣/废纸篓） / `open_records`（重读邮戳） / `reply_records`（回信） / `drafts`（多草稿，一草稿一文档） / `themes`（Web 后台维护，status='online' 才下发） / `papers`（信纸版式配色，Web 后台维护，status='online' 才经 theme/papers 下发） / `events`（埋点） / `members`（会员状态，后台 memberGrant / 小程序发货推送共同写入） / `member_items`（会员专属版式/主题内容，admin 增删改查，theme 云函数并入下发 premium 标记，与 premium.js 同源） / `member_orders`（会员订单：待支付/已发货，member 云函数订阅下单 + 发货推送更新） / `feedback`（问题反馈：content/contact/images/device/status/handled_at/handled_by，用户主动提交给开发者的内容，feedback 云函数只写（status 默认 new），admin 后台查看/标记 new|done/删除连同云存储截图，注销随 user deactivate 清除）。本地模式对应 storage 键见「目录登记」services 一节。
 
 ### 信件字段
 `id, name, question, answer, theme_id, theme_version, paper_id, paper_version, pinned, created_at, updated_at, opens[], replies[], deleted_at`。
@@ -67,6 +68,7 @@
 - **theme.js**：主题与信纸版式统一出口——getThemes/envelopeOf/envelopeThumbOf/paletteOf/getPapers/paperOf；云端走 theme 云函数（storage `theme_cache` TTL 24h），归一化兜底信封/palette/desk 与 `ownEnvelope`；getPapers 云端调 theme/papers action（papers 集合由 Web 后台维护），空/失败回落本地 papers.js。
 - **analytics.js**：track(event, data)；cloud 攒批（5 条或 15s，失败重试 3 次）调 analytics 云函数 batch，不采集正文。现有事件名：`letter_open, reply_add, letter_delete, letter_restore, letter_permanent_delete, letter_content_complete, draft_save, letter_step2_view, theme_select, paper_select, letter_save, share_image_generate, share_image_save, share_send`。
 - **member.js**：会员中心（真实虚拟支付）——getMembership/subscribe/checkIosVersion。getMembership 云端调 member/get（members 集合，与后台 memberGrant 同源），云函数未部署/未配置回落本地演示态；subscribe 云端调 member/subscribe 下单 → wx.requestVirtualPayment 拉起支付（失败含 cancel 时页面提示已取消），未配置 xpay（'not configured'）或本地模式回落 `member_demo_state` 演示开通（不产生扣款）。iOS 需微信 ≥ 8.0.68（checkIosVersion 前置校验）。
+- **feedback.js**：问题反馈提交——submit({ content, contact, images, device })；云端先把 images（本地临时路径）逐张 `cloud.uploadFile(path, 'feedback')` 换 fileID 再调 feedback 云函数 add 落 `feedback` 集合，local 写 storage `feedback_local`（保留最近 20 条）。导出 `FEEDBACK_KEY`（已纳入 `USER_DATA_KEYS` 注销清除）。
 
 ## 云函数清单（cloudfunctions/，Node.js + wx-server-sdk，action 分发，返回 `{ok, ...}`）
 
@@ -79,9 +81,10 @@
 | reply | add / remove | 回信日期服务端生成；remove 按 created_at 定位单条物理删除 |
 | draft | list / save / remove / clearAll | 多草稿 v2（VER=2 供部署校验），MAX_LIST=50 |
 | theme | list / papers | 只读下发 status='online' 的主题（palette/desk/envelope/swatch）与信纸版式（paper_id/name/desc/colors），并**并入上架中的会员专属款**（member_items kind='paper'/'theme'，premium:true）；写操作一律走 Web 后台 admin 云函数 |
-| admin | auth / themeList / themeSave / themeDelete / themeSeed / paperList / paperSave / paperDelete / paperSeed / statsOverview / statsTrend / eventsSummary / userList / userDetail / userBan / userUnban / memberList / memberGrant / memberRevoke / memberItemList / memberItemSave / memberItemDelete / memberItemSeed | Web 后台（admin/ 静态托管）专用：环境变量 ADMIN_KEY 密钥鉴权（未配置默认拒绝）；用户管理支持昵称搜索/状态筛选与封禁解封（users.status='banned'）；会员管理维护 members 集合（VIP 状态）与 member_items 集合（专属版式/主题）；**隐私红线——任何 action 不读取信件正文与回信内容，仅 count 聚合与 users projection** |
+| admin | auth / themeList / themeSave / themeDelete / themeSeed / paperList / paperSave / paperDelete / paperSeed / statsOverview / statsTrend / eventsSummary / userList / userDetail / userBan / userUnban / memberList / memberGrant / memberRevoke / memberItemList / memberItemSave / memberItemDelete / memberItemSeed / feedbackList / feedbackDetail / feedbackUpdate / feedbackDelete | Web 后台（admin/ 静态托管）专用：环境变量 ADMIN_KEY 密钥鉴权（未配置默认拒绝）；用户管理支持昵称搜索/状态筛选与封禁解封（users.status='banned'）；会员管理维护 members 集合（VIP 状态）与 member_items 集合（专属版式/主题）；问题反馈管理维护 feedback 集合（分页 + 状态筛选，查看全文/截图临时 URL，status new|done 标记，删除单条连同云存储截图）；**隐私红线——任何 action 不读取信件正文与回信内容，仅 count 聚合与 users projection；唯一例外是 feedback（用户主动提交给开发者的问题反馈正文）** |
 | stats | get | 一次聚合 letterTotal/rereadTotal/replyTotal/registerDays/pinnedCount/recycleCount |
 | analytics | batch | 埋点批量入库（单批 ≤50） |
+| feedback | add | 问题反馈提交：只写不读、无跨用户查询；校验 content 非空 ≤1000、contact ≤60、images 为 cloud:// fileID 数组（≤9）、device ≤120，落 `feedback` 集合（status:'new'，前端先上传云存储换 fileID） |
 | member | get / subscribe（+ 虚拟支付发货推送回调 xpay_goods_deliver_notify） | 会员中心真实虚拟支付（个人·道具直购）：get 读 members 集合并按累计天数 total_days 分档返回 level（寄字/守候/长情）；subscribe 用 OfferID/AppKey/sessionKey 算 paySig+signature 下单返回 payData，落 member_orders（待支付）；发货推送回调按 out_trade_no 幂等发货写 members（granted_by='xpay'，累计 total_days），返回 `{ErrCode:0}`。配置走环境变量 XPAY_OFFER_ID/XPAY_APP_KEY/XPAY_APP_SECRET + config.js 道具表，未配置返回 'not configured' 前端回落演示态 |
 | cleaner | （无 action，定时触发） | config.json 定时触发器 `recycle-clean-daily`，每日 03:00 物理清理到期废纸篓信件及其邮戳/回信 |
 
@@ -98,16 +101,17 @@ D:\vibeCoding\j\                     # 开发者工具打开此根目录
 ├── project.config.json              # 项目主配置（miniprogramRoot + cloudfunctionRoot）
 ├── project.private.config.json      # 开发者工具本地私有配置（不入库语义）
 ├── 技术架构文档.md                   # 云开发架构单一事实来源（集合设计/云函数/迁移/埋点/Web 后台）
-├── admin/                           # ★ Web 管理后台（静态托管部署）：数据看板/主题/版式/用户管理；部署手册见 admin/README.md
+├── admin/                           # ★ Web 管理后台（静态托管部署）：数据看板/主题/版式/用户/会员/问题反馈；部署手册见 admin/README.md
 ├── 心灵信箱-信纸样式提案（6套）.html    # 信纸样式设计提案一（仅设计参考）
 ├── 心灵信箱-信纸样式提案二（6套·大胆版）.html  # 信纸样式设计提案二（07–12 号外/蓝图/票根/标语/几何/黑胶，已落码）
 ├── 心灵信箱-信纸样式重设计（原四款）.html  # 原四款重设计提案（仅设计参考，未落码）
 ├── picture/                         # 素材原图（logo、mailbox、回形针.png、小王子主题等，勿直接引用）
-├── cloudfunctions/                  # 12 个云函数（清单见上节），各含 index.js + package.json
+├── cloudfunctions/                  # 13 个云函数（清单见上节），各含 index.js + package.json
 │   ├── member/                      # ★ 会员中心支付：config.js 里填道具 productId；OfferID/AppKey 走环境变量
+│   ├── feedback/                    # 问题反馈提交：action add，落 feedback 集合（index.js + package.json）
 │   └── cleaner/config.json          # 每日 03:00 定时触发器
 └── miniprogram/
-    ├── app.json / app.js / app.wxss # 10 页注册 + tabBar；app.js 云模式下 wx.cloud.init + 静默建档；app.wxss 是 Design Tokens 唯一样式来源
+    ├── app.json / app.js / app.wxss # 12 页注册 + tabBar；app.js 云模式下 wx.cloud.init + 静默建档；app.wxss 是 Design Tokens 唯一样式来源
     ├── config/env.js                # 数据源切换（USE_CLOUD 当前 true / CLOUD_ENV）
     ├── project.config.json / project.private.config.json / sitemap.json
     ├── styles/                       # ★ 信纸共享渲染层：paper.wxml（十款版式唯一标记来源，三页 import）+ paper.wxss（装饰与排版唯一来源；配色与 papers.js colors 对应）
@@ -126,7 +130,8 @@ D:\vibeCoding\j\                     # 开发者工具打开此根目录
         ├── account/                 # 10 账号管理：官方头像昵称填写 + 注销（USER_DATA_KEYS 清除清单）
         ├── about/                   # 11 关于心灵信箱：静态品牌介绍页（WXSS 手绘插画长卷，零数据依赖）
         ├── member/                  # 12 会员中心：付费 VIP（真实虚拟支付：个人·道具直购）——状态卡/权益清单/专属主题版式锁定/订阅半屏拉手；mock.js + premium.js（专属版式与主题色样，不接入三端同构）
-        └── mine/                    # 09 我的（Tab2）：名片 + 2×2 便签统计 + 回形针/废纸篓行 + 会员中心金调入口 + 功能列表；mock.js 演示值
+        ├── feedback/                # 13 问题反馈：文字 + 联系方式 + 多图截图，云端落 feedback 集合（含 _openid/images fileID）；本地落 feedback_local
+        └── mine/                    # 09 我的（Tab2）：名片 + 2×2 便签统计 + 回形针/废纸篓行 + 会员中心金调入口 + 功能列表（问题反馈/关于）；mock.js 演示值
 ```
 
 ## 当前已知遗留（接手时先看）

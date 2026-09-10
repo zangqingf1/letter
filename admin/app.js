@@ -93,7 +93,8 @@ const NAV_RENDER = {
   themes: renderThemes,
   papers: renderPapers,
   users: renderUsers,
-  members: renderMembers
+  members: renderMembers,
+  feedback: renderFeedback
 };
 let currentNav = 'dashboard';
 
@@ -969,12 +970,215 @@ async function memberItemDrawer(it, nextSort, presetKind) {
   });
 }
 
+// ════════ 问题反馈 ════════
+let fbPage = 1;
+let fbStatus = 'all';
+
+const FB_STATUS_LABEL = { new: '待处理', done: '已处理' };
+
+function fbStatusBadge(status) {
+  return `<span class="badge ${status === 'done' ? 'online' : 'new'}">${FB_STATUS_LABEL[status] || status}</span>`;
+}
+
+async function renderFeedback() {
+  content().innerHTML = '<p class="empty-tip">加载中…</p>';
+  try {
+    const r = await api('feedbackList', { page: fbPage, status: fbStatus });
+    content().innerHTML = `
+      <h2 class="page-title">问题反馈</h2>
+      <p class="page-sub">feedback 集合：用户主动提交给开发者的问题反馈（非信件正文，属隐私红线例外），可查看全文与截图、标记已处理/恢复待处理，或删除单条（连同云端截图）。</p>
+      <div class="toolbar">
+        <select id="fb-status" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff">
+          <option value="all" ${fbStatus === 'all' ? 'selected' : ''}>全部状态</option>
+          <option value="new" ${fbStatus === 'new' ? 'selected' : ''}>待处理</option>
+          <option value="done" ${fbStatus === 'done' ? 'selected' : ''}>已处理</option>
+        </select>
+        <span class="spacer"></span>
+        <span style="color:var(--muted);font-size:12px">共 ${r.total} 条</span>
+      </div>
+      <div class="card">
+        <table>
+          <tr><th>状态</th><th>内容摘要</th><th>联系方式</th><th style="text-align:center">截图</th><th>提交时间</th><th style="text-align:right">操作</th></tr>
+          ${r.items.map((it) => `<tr class="clickable" data-fid="${esc(it.id)}" title="点击查看详情">
+            <td>${fbStatusBadge(it.status)}</td>
+            <td style="max-width:340px"><span class="fb-snip">${esc(it.content)}</span></td>
+            <td>${esc(it.contact || '—')}</td>
+            <td style="text-align:center">${it.imageCount ? '📷 ' + it.imageCount : '—'}</td>
+            <td>${fmtDate(it.created_at)}</td>
+            <td style="text-align:right;white-space:nowrap">
+              ${it.status === 'new'
+                ? `<button class="btn small" data-fb-done="${esc(it.id)}">标记已处理</button>`
+                : `<button class="btn small" data-fb-pending="${esc(it.id)}">恢复待处理</button>`}
+              <button class="btn small danger" data-fb-del="${esc(it.id)}">删除</button>
+            </td>
+          </tr>`).join('')}
+        </table>
+        ${r.items.length === 0 ? '<p class="empty-tip">暂无反馈</p>' : ''}
+        <div class="toolbar" style="margin:14px 0 0">
+          <button class="btn small" id="fb-prev" ${r.page <= 1 ? 'disabled' : ''}>上一页</button>
+          <span style="font-size:12px;color:var(--muted)">第 ${r.page} 页</span>
+          <button class="btn small" id="fb-next" ${r.page * r.pageSize >= r.total ? 'disabled' : ''}>下一页</button>
+        </div>
+      </div>`;
+    $('#fb-status').addEventListener('change', (e) => { fbStatus = e.target.value; fbPage = 1; renderFeedback(); });
+    $('#fb-prev').addEventListener('click', () => { if (fbPage > 1) { fbPage--; renderFeedback(); } });
+    $('#fb-next').addEventListener('click', () => { fbPage++; renderFeedback(); });
+    bindFeedbackActions(r.items);
+    content().querySelectorAll('tr[data-fid]').forEach((tr) => {
+      tr.addEventListener('click', () => toggleFeedbackDetail(tr.dataset.fid, tr));
+    });
+  } catch (e) {
+    content().innerHTML = `<p class="empty-tip">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+// 行内操作：标记已处理 / 恢复待处理 / 删除（数据即当页 items，按 id 反查对象）
+function bindFeedbackActions(items) {
+  content().querySelectorAll('[data-fb-done]').forEach((b) => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      await api('feedbackUpdate', { id: b.dataset.fbDone, status: 'done' });
+      toast('已标记为已处理');
+      renderFeedback();
+    } catch (err) { toast(err.message); }
+  }));
+  content().querySelectorAll('[data-fb-pending]').forEach((b) => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      await api('feedbackUpdate', { id: b.dataset.fbPending, status: 'new' });
+      toast('已恢复为待处理');
+      renderFeedback();
+    } catch (err) { toast(err.message); }
+  }));
+  content().querySelectorAll('[data-fb-del]').forEach((b) => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const it = items.find((x) => x.id === b.dataset.fbDel);
+    if (!confirm(`删除这条反馈？将连同其云端截图一并删除，不可恢复。${it && it.contact ? '\n联系线索：' + it.contact : ''}`)) return;
+    try {
+      await api('feedbackDelete', { id: it.id });
+      toast('已删除');
+      renderFeedback();
+    } catch (err) { toast(err.message); }
+  }));
+}
+
+async function toggleFeedbackDetail(id, tr) {
+  const existed = tr.nextElementSibling;
+  if (existed && existed.classList.contains('detail-row')) { existed.remove(); return; }
+  document.querySelectorAll('.detail-row').forEach((el) => el.remove());
+  try {
+    const d = await api('feedbackDetail', { id });
+    const f = d.detail;
+    const viewable = f.images.filter((img) => img.url);
+    const shotsHtml = f.images.length
+      ? `<div class="fb-shots">${f.images.map((img) => img.url
+        ? `<img class="fb-thumb" src="${esc(img.url)}" data-lb="${viewable.indexOf(img)}" alt="反馈截图" title="点击放大预览">`
+        : `<span class="fb-fileid" title="${esc(img.fileID)}">${esc(img.fileID)}</span>`).join('')}</div>`
+      : '<p class="fb-none">未附截图</p>';
+    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="6">
+      <div class="fb-box">
+        <div class="fb-kv">
+          <span>${fbStatusBadge(f.status)}</span>
+          <span><b>提交时间：</b>${fmtDate(f.created_at)}</span>
+          ${f.status === 'done' ? `<span><b>处理时间：</b>${fmtDate(f.handled_at)}</span>` : ''}
+          <span><b>联系方式：</b>${esc(f.contact || '（未填）')}</span>
+          <span><b>设备：</b>${esc(f.device || '—')}</span>
+          <span><b>openid：</b><code>${esc(f.openid)}</code></span>
+        </div>
+        <p class="fb-label"><b>反馈全文：</b></p>
+        <p class="fb-full">${esc(f.content)}</p>
+        <p class="fb-label"><b>截图预览（${f.images.length} 张，点击放大）：</b></p>
+        ${shotsHtml}
+      </div>
+      <div class="detail-actions">
+        ${f.status === 'new'
+          ? `<button class="btn small" id="fb-d-done">标记已处理</button>`
+          : `<button class="btn small" id="fb-d-pending">恢复待处理</button>`}
+        <button class="btn small danger" id="fb-d-del">删除这条反馈</button>
+      </div>
+    </td></tr>`);
+    const row = tr.nextElementSibling;
+    const act = (btnId, status, msg) => {
+      const btn = row.querySelector(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        try {
+          await api('feedbackUpdate', { id, status });
+          toast(msg);
+          renderFeedback();
+        } catch (err) { toast(err.message); }
+      });
+    };
+    act('#fb-d-done', 'done', '已标记为已处理');
+    act('#fb-d-pending', 'new', '已恢复为待处理');
+    row.querySelector('#fb-d-del').addEventListener('click', async () => {
+      if (!confirm('删除这条反馈？将连同其云端截图一并删除，不可恢复。')) return;
+      try {
+        await api('feedbackDelete', { id });
+        toast('已删除');
+        renderFeedback();
+      } catch (err) { toast(err.message); }
+    });
+    // 截图点击 → 页内灯箱放大预览（不再新开标签，避免云端临时链接被浏览器直接下载）
+    row.querySelectorAll('.fb-thumb').forEach((im) => im.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openLightbox(viewable, Number(im.dataset.lb));
+    }));
+  } catch (e) {
+    toast('获取详情失败：' + e.message);
+  }
+}
+
+// ── 截图灯箱预览 ──
+let lightboxList = [];
+let lightboxIndex = 0;
+
+function openLightbox(list, index) {
+  lightboxList = (list || []).filter((im) => im && im.url);
+  if (!lightboxList.length) return;
+  lightboxIndex = Math.min(Math.max(0, index || 0), lightboxList.length - 1);
+  renderLightbox();
+  $('#lightbox').classList.remove('hidden');
+}
+
+function renderLightbox() {
+  const cur = lightboxList[lightboxIndex];
+  if (!cur) return;
+  $('#lightbox-img').src = cur.url;
+  $('#lightbox-count').textContent = `${lightboxIndex + 1} / ${lightboxList.length}`;
+  const multi = lightboxList.length > 1;
+  $('#lightbox-prev').style.display = multi ? '' : 'none';
+  $('#lightbox-next').style.display = multi ? '' : 'none';
+}
+
+function closeLightbox() {
+  $('#lightbox').classList.add('hidden');
+  $('#lightbox-img').src = '';
+}
+
+function lightboxStep(step) {
+  if (lightboxList.length < 2) return;
+  lightboxIndex = (lightboxIndex + step + lightboxList.length) % lightboxList.length;
+  renderLightbox();
+}
+
 // ── 事件绑定与启动 ──
 document.querySelectorAll('#nav a').forEach((a) => {
   a.addEventListener('click', () => switchNav(a.dataset.nav));
 });
 $('#logout-btn').addEventListener('click', logout);
 $('#drawer-mask').addEventListener('click', closeDrawer);
+// 灯箱：点遮罩或 ✕ 关闭；←/→ 翻图；Esc 关闭
+$('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
+$('#lightbox-close').addEventListener('click', closeLightbox);
+$('#lightbox-prev').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(-1); });
+$('#lightbox-next').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(1); });
+document.addEventListener('keydown', (e) => {
+  if ($('#lightbox').classList.contains('hidden')) return;
+  if (e.key === 'Escape') closeLightbox();
+  else if (e.key === 'ArrowLeft') lightboxStep(-1);
+  else if (e.key === 'ArrowRight') lightboxStep(1);
+});
 $('#login-btn').addEventListener('click', doLogin);
 $('#login-key').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
@@ -988,7 +1192,7 @@ async function doLogin() {
     await tryLogin(input);
   } catch (e) {
     err.textContent = e.message === 'unauthorized' || /密钥/.test(e.message)
-      ? '密钥不正确，请检查 admin 云函数里的 FALLBACK_KEY'
+      ? '密钥不正确：请检查控制台里 admin 云函数的环境变量 ADMIN_KEY'
       : '连接失败：' + e.message;
   }
   $('#login-btn').disabled = false;

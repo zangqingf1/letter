@@ -1,0 +1,55 @@
+<!-- 12 · 问题反馈：文字 + 联系方式 + 多张截图（从「我的」页功能列表进入） -->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 顶部轻导航：‹ 我的 + 居中标题（与账号管理页同款） -->
+  <view class="nav">
+    <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
+    <view class="nav-title">问题反馈</view>
+  </view>
+  <view class="page-note">遇到了问题或建议？写下来告诉我，会尽快处理。</view>
+
+  <!-- 反馈表单卡 -->
+  <view class="card">
+
+    <view class="field-label">想反馈的问题<text class="required">*</text></view>
+    <textarea
+      class="content-input"
+      value="{{content}}"
+      maxlength="{{contentMax}}"
+      auto-height
+      show-confirm-bar="{{false}}"
+      placeholder="请描述你遇到的问题，越具体越好…"
+      placeholder-class="ph"
+      bindinput="onContentInput"
+    ></textarea>
+    <view class="count">{{contentLen}} / {{contentMax}}</view>
+
+    <view class="field-label">联系方式（选填）</view>
+    <input
+      class="contact-input"
+      value="{{contact}}"
+      maxlength="{{contactMax}}"
+      placeholder="微信 / 手机号 / 邮箱，便于联系你"
+      placeholder-class="ph"
+      bindinput="onContactInput"
+    />
+
+    <view class="field-label">问题截图（选填，最多 {{shotsMax}} 张）</view>
+    <view class="shots">
+      <view class="shot" wx:for="{{shots}}" wx:key="*this">
+        <image class="shot-img" src="{{item}}" mode="aspectFill" />
+        <view class="shot-del" data-index="{{index}}" catchtap="onRemoveShot">✕</view>
+      </view>
+      <view wx:if="{{shots.length < shotsMax}}" class="shot-add" hover-class="shot-add-hover" bindtap="onAddShot">＋</view>
+    </view>
+    <view wx:if="{{shots.length}}" class="shot-tip">已选 {{shots.length}} 张，点 ✕ 可移除</view>
+
+  </view>
+
+  <view
+    class="btn-primary submit-btn {{submitting ? 'submit-disabled' : ''}}"
+    hover-class="btn-primary"
+    bindtap="onTapSubmit"
+  >{{submitting ? '提交中…' : '提交反馈'}}</view>
+
+</view>

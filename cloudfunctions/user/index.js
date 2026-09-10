@@ -65,6 +65,7 @@ exports.main = async (event) => {
         await db.collection('events').where({ _openid: OPENID }).remove();
         await db.collection('members').where({ _openid: OPENID }).remove();
         await db.collection('member_orders').where({ _openid: OPENID }).remove();
+        await db.collection('feedback').where({ _openid: OPENID }).remove();
         await db.collection('users').where({ _openid: OPENID }).remove();
         return { ok: true };
       }

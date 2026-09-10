@@ -20,6 +20,7 @@ const USER_DATA_KEYS = [
   'recycle_demo_seeded',
   'member_demo_state',
   'member_demo_expire_at',
+  'feedback_local',
   PROFILE_KEY
 ];
 

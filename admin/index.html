@@ -30,6 +30,7 @@
       <a data-nav="papers">✉️ 版式管理</a>
       <a data-nav="users">👥 用户管理</a>
       <a data-nav="members">👑 会员管理</a>
+      <a data-nav="feedback">💬 问题反馈</a>
     </nav>
     <div class="sidebar-foot">
       <p class="privacy-note">本后台不接触任何信件正文</p>
@@ -42,6 +43,15 @@
 <!-- 编辑抽屉 -->
 <div id="drawer-mask" class="drawer-mask hidden"></div>
 <aside id="drawer" class="drawer hidden"><div id="drawer-body"></div></aside>
+
+<!-- 截图灯箱预览（后台查看反馈截图用，点击遮罩/Esc 关闭） -->
+<div id="lightbox" class="lightbox hidden">
+  <span id="lightbox-close" class="lightbox-close" title="关闭（Esc）">✕</span>
+  <span id="lightbox-prev" class="lightbox-prev" title="上一张（←）">‹</span>
+  <img id="lightbox-img" src="" alt="反馈截图">
+  <span id="lightbox-next" class="lightbox-next" title="下一张（→）">›</span>
+  <span id="lightbox-count" class="lightbox-count"></span>
+</div>
 
 <div id="toast" class="toast hidden"></div>
 

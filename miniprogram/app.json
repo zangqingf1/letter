@@ -10,7 +10,8 @@
     "pages/clips/clips",
     "pages/account/account",
     "pages/about/about",
-    "pages/member/member"
+    "pages/member/member",
+    "pages/feedback/feedback"
   ],
   "window": {
     "navigationBarTextStyle": "black",
