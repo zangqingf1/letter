@@ -109,6 +109,50 @@
   margin-top: 32rpx;
 }
 
+/* 会员态未定（首帧无缓存）：中性骨架 —— 与未开通卡同形同高，回源落地后原位替换，版面不跳动 */
+.status-card.loading {
+  background: var(--color-base-surface);
+  border: 2rpx dashed var(--color-disabled);
+  box-sizing: border-box;
+}
+.skeleton {
+  background: var(--color-base-light);
+  border-radius: 8rpx;
+  animation: skeleton-breath 1.4s ease-in-out infinite;
+}
+.sk-title {
+  width: 320rpx;
+  height: 46rpx;
+  border-radius: 12rpx;
+}
+.sk-seal {
+  flex: none;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+}
+.sk-desc {
+  margin-top: 20rpx;
+  width: 460rpx;
+  height: 26rpx;
+}
+.sk-point {
+  flex: none;
+  width: 200rpx;
+  height: 24rpx;
+  border-radius: 6rpx;
+}
+.sk-btn {
+  margin-top: 32rpx;
+  width: 100%;
+  height: 96rpx;
+  border-radius: 52rpx;
+}
+@keyframes skeleton-breath {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 /* 已开通：暖金光影卡面 */
 .status-card.vip {
   background: linear-gradient(135deg, #C4A482, #A98C68 55%, #8F7350);

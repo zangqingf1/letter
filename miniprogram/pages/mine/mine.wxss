@@ -95,6 +95,31 @@
   font-weight: 700;
 }
 
+/* ── 首屏骨架：资料/统计未就位时的占位块（呼吸式明暗，撑住版面不跳动） ── */
+.skeleton {
+  background: var(--color-base-light);
+  border-radius: 8rpx;
+  animation: skeleton-breath 1.4s ease-in-out infinite;
+}
+.profile-card .skeleton-avatar {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+}
+.profile-card .skeleton-nickname {
+  width: 220rpx;
+  height: 36rpx;
+}
+.profile-card .skeleton-days {
+  margin-top: 12rpx;
+  width: 320rpx;
+  height: 24rpx;
+}
+@keyframes skeleton-breath {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 /* ── 区块小标签 ── */
 .section-label {
   margin: 40rpx 40rpx 0;
@@ -142,6 +167,13 @@
   font-weight: 700;
   color: var(--color-text-primary);
   margin-right: 8rpx;
+}
+/* 数值未就位：占位横杠用次要色与小一号字，与真实数字（手写体主色）明确区分，不会误读成 0 */
+.note .note-value-pending {
+  font-family: var(--font-heading);
+  font-size: 40rpx;
+  color: var(--color-text-secondary);
+  opacity: 0.6;
 }
 
 /* ── 回形针与废纸篓数量行（别着回形针的纸条） ── */

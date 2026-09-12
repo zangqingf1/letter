@@ -196,11 +196,6 @@
 .hand-answer {
   min-height: 232rpx; /* 答案区至少 4 行 */
 }
-/* 无障碍：关闭手写体开关生效时回落到系统字体 */
-.hand-off {
-  font-family: var(--font-ui);
-  letter-spacing: 0;
-}
 
 /* 字数计数：各输入区右下角轻淡 mono 编目式显示 */
 .count {

@@ -35,7 +35,7 @@
       <!-- 当时的问题：编号引导语 + 信纸横线手写区 -->
       <view class="field-label"><text class="label-no">其一</text><text>遇到了什么问题？</text></view>
       <textarea
-        class="hand-input hand-question {{handwritingOff ? 'hand-off' : ''}}"
+        class="hand-input hand-question"
         value="{{question}}"
         maxlength="{{QUESTION_MAX}}"
         auto-height
@@ -54,7 +54,7 @@
       <!-- 想明白的答案：纵深更长的手写区 -->
       <view class="field-label"><text class="label-no">其二</text><text>你可以怎么做？</text></view>
       <textarea
-        class="hand-input hand-answer {{handwritingOff ? 'hand-off' : ''}}"
+        class="hand-input hand-answer"
         value="{{answer}}"
         maxlength="{{ANSWER_MAX}}"
         auto-height

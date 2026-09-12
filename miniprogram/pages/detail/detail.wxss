@@ -42,12 +42,6 @@
 .body-inner .pl {
   padding-top: 8rpx;
 }
-/* 无障碍：关闭手写体开关时回信便签/输入框回落系统字体（信纸由共享样式处理） */
-.hand-off .rb,
-.hand-off .reply-input {
-  font-family: var(--font-ui);
-  letter-spacing: 0;
-}
 
 /* ── 桌面区块（戳痕成行：开放式桌面布局，邮戳墙 / 回信便签直接落在页面上） ── */
 .sect {

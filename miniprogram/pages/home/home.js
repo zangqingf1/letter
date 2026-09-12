@@ -108,6 +108,11 @@ Page({
           ? letters.find((l) => l.id === box.todayId) || pickTodayLetter(letters)
           : pickTodayLetter(letters);
 
+        // 进详情的动画首帧提示（名称 + 主题）：列表投影刻意只带渲染所需字段（见上），
+        // 这里另存一份按 id 取用，点开信封时经事件通道带给详情页
+        this._hints = {};
+        for (const l of sorted) this._hints[String(l.id)] = { name: l.name, theme_id: l.theme_id };
+
         this.setData({
           loading: false,
           letters,
@@ -134,13 +139,24 @@ Page({
       return;
     }
     // 今日来信直接进入拆信/详情页
-    wx.navigateTo({ url: '/pages/detail/detail?id=' + this.data.todayLetter.id });
+    this.openDetail(this.data.todayLetter.id);
   },
 
   onTapLetter(e) {
-    const id = e.currentTarget.dataset.id;
     // 跳转拆信/详情页（每次拆信产生一条重读记录 BR-09，在详情页内自动记录）
-    wx.navigateTo({ url: '/pages/detail/detail?id=' + id });
+    this.openDetail(e.currentTarget.dataset.id);
+  },
+
+  // 进入拆信/详情页：把列表里已知的名称与主题带上，详情页拆信动画首帧就画对信封与名字，
+  // 不必等云调用回来（emit 在 navigateTo 的 success 中，早于详情页监听时由事件通道缓冲）
+  openDetail(id) {
+    const hint = this._hints && this._hints[String(id)];
+    wx.navigateTo({
+      url: '/pages/detail/detail?id=' + encodeURIComponent(id),
+      success: (res) => {
+        if (hint && res.eventChannel) res.eventChannel.emit('letterHint', hint);
+      }
+    });
   },
 
   onTapDrafts() {

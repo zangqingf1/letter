@@ -20,7 +20,7 @@
         <swiper-item>
           <view class="pv-item">
             <view wx:if="{{item.premium && !isVip}}" class="pv-lock">🔒</view>
-            <template is="paper-letter" data="{{ v: view, paper: item, handOff: handwritingOff, mode: flipping ? 'pl-flip' : '' }}" />
+            <template is="paper-letter" data="{{ v: view, paper: item, mode: flipping ? 'pl-flip' : '' }}" />
           </view>
         </swiper-item>
       </block>
@@ -48,7 +48,7 @@
       <view
         wx:for="{{themes}}"
         wx:key="id"
-        class="theme-card {{index === currentIndex ? 'sel' : ''}} {{item.pending ? 'pending' : ''}}"
+        class="theme-card {{index === currentIndex ? 'sel' : ''}}"
         data-index="{{index}}"
         bindtap="onSelectTheme"
       >

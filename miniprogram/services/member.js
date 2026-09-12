@@ -1,13 +1,13 @@
 // 会员服务（2026-09 会员中心接入真实虚拟支付：个人 · 道具直购）
-// getMembership：云端读 member 云函数（members 集合）；云函数未部署或未配置（OfferID/AppKey
-//   缺失返回 ok:false）时回落本地演示态。subscribe：云端走 member.subscribe 下单 →
-//   wx.requestVirtualPayment 拉起支付；未配置 xpay 或本地模式回落演示开通（不产生扣款）。
+// getMembership：云端读 member 云函数（members 集合）为唯一事实来源，读取失败按未开通处理。
+// subscribe：云端走 member.subscribe 下单 → wx.requestVirtualPayment 拉起支付；未配置支付时
+//   明确报错（不产生扣款、不发本地会员）。演示态仅在本地模式（DATA_SOURCE !== 'cloud'）生效。
 // 约定与其它 service 一致：页面不直读 storage 键。
 const { DATA_SOURCE } = require('../config/env.js');
 const cloud = require('./cloud.js');
 const { MOCK_MEMBER } = require('../pages/member/mock.js');
 
-// 仅演示：开通一次后本地保持 vip 态，用于预览（真实支付落地后仅作为未配置/本地模式兜底）
+// 仅演示（本地模式）：开通一次后本地保持 vip 态，用于预览；云端模式一律不读取此标记
 const STATE_KEY = 'member_demo_state';
 // 演示开通时记录到期时间戳，用于计算「会员剩余天数」
 const EXPIRE_KEY = 'member_demo_expire_at';
@@ -15,6 +15,26 @@ const EXPIRE_KEY = 'member_demo_expire_at';
 // 各档位演示有效期天数（真实支付到期时间由云端 members.expires_at 驱动）
 const PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
 const DAY_MS = 86400000;
+
+// 进程内会员态缓存（仅内存，绝不落 storage）：首页/详情/回形针/废纸篓/写信第二步、
+// 分享页都在进入时读会员态，每次都打一次 member 云函数（含 users 封禁校验 + members 查询）。
+// 会员态变化极少，一次会话内用短 TTL 复用即可。
+// 注意：不能像 theme_cache 那样写 storage —— 那等于把「本地可写标记」重新当作会员凭据，
+// 会重开「不付款自封会员」的口子。内存变量在小程序 JS 沙箱内，用户无法通过 storage 伪造。
+const MEM_TTL = 30 * 1000;
+let memCache = null; // { at, value }
+
+function clearCache() {
+  memCache = null;
+}
+
+// 同步读会员态缓存（不发云调用、不落 storage）：会员中心进入首帧要立刻画对状态卡，
+// 而 getMembership 是异步的。返回 null 表示本会话还没有服务端结果（页面停在骨架态）。
+// 刻意不管 TTL：这里只当首帧占位值用，页面随后一律 force 回源校正（否则会一直吃旧值）；
+// 且缓存只存在于进程内存，用户无法经 storage 伪造会员凭据。
+function cachedMembership() {
+  return memCache ? memCache.value : null;
+}
 
 // iOS 需微信客户端 ≥ 8.0.68（虚拟支付官方要求）；非 iOS 直接放行
 function checkIosVersion() {
@@ -32,26 +52,45 @@ function checkIosVersion() {
   return true;
 }
 
-function getMembership() {
-  // 云端：读 member 云函数（members 集合，与后台 memberGrant 同源）。
-  // 回落优先级：member 函数未部署/未配置（get 失败），或本机留有演示开通标记
-  // （subscribe 曾回落演示态）→ 读本地 member_demo_state，保证演示预览与页面不因配置缺失打挂。
+// 未开通会员的干净状态（与 member 云函数 get 的 FREE 同形）
+function freeMembership() {
+  return { state: 'free', level: '', renew: false, expireDate: '', planName: '', remainingDays: 0 };
+}
+
+// force=true 绕过内存缓存强刷（会员中心页与支付后轮询使用）。
+function getMembership(force) {
+  // 云端：读 member 云函数（members 集合，与后台 memberGrant 同源）—— 服务端结果是唯一事实来源。
+  // 安全口径：本地演示标记 member_demo_state 绝不允许覆盖或伪造服务端结果；读取失败也只回落
+  // free（旧版会回落本地 vip，等于不付款就自封会员）。演示态只在本地模式下生效。
   if (DATA_SOURCE === 'cloud') {
+    if (!force && memCache && Date.now() - memCache.at < MEM_TTL) {
+      return Promise.resolve(memCache.value);
+    }
     return cloud
       .call('member', 'get', {})
       .then((r) => {
         const m = normalize(r && r.membership);
-        if (m.state === 'vip') return m;
-        // 云端未开通，但本机有演示开通标记（未配置期 subscribe 回落）→ 沿用演示 vip
-        if (wx.getStorageSync(STATE_KEY) === 'vip') return demoMembership();
-        return m;
+        let value;
+        if (m.state !== 'vip') {
+          // 服务端明确 free：顺手清掉历史遗留的演示标记，避免其它入口又把它读回来
+          resetDemo();
+          value = freeMembership();
+        } else {
+          value = m;
+        }
+        memCache = { at: Date.now(), value };
+        return value;
       })
-      .catch(() => demoMembership());
+      .catch((err) => {
+        // 读取失败不写缓存：一次网络抖动不该让页面在 TTL 内一直按未开通处理
+        console.error('[member] 会员状态读取失败，按未开通处理', err);
+        return freeMembership();
+      });
   }
   return Promise.resolve(demoMembership());
 }
 
-// 本地/回落演示态：读 member_demo_state 演示标记（仅未配置或本地模式生效）
+// 本地演示态（仅 DATA_SOURCE !== 'cloud' 生效）：读 member_demo_state 演示标记
 function demoMembership() {
   const saved = wx.getStorageSync(STATE_KEY);
   const expiresAt = wx.getStorageSync(EXPIRE_KEY);
@@ -78,9 +117,8 @@ function normalize(r) {
 
 // 订阅（真实支付）：返回 Promise。
 // 云端：member.subscribe 下单得 payData → wx.requestVirtualPayment 拉起支付。
-// 仅「未配置/未部署」场景回落演示开通（不产生扣款）：member 函数未部署、或返回
-// xpay/plan not configured、或旧版本无 subscribe action。其余错误（网络/签名等）原样抛出，
-// 由页面提示，避免支付流程中静默翻成演示 vip。
+// 未配置支付时明确报错（err.unconfigured），不再回落演示开通 —— 旧版会在云端模式下静默
+// 写入本地 vip 标记，等于把「支付能力故障」变成「免费会员」。
 function subscribe(plan) {
   if (DATA_SOURCE === 'cloud') {
     return wxLogin()
@@ -89,25 +127,30 @@ function subscribe(plan) {
         if (!r || !r.payData) throw new Error('payData missing');
         return requestVirtualPayment(r.payData);
       })
+      .then((v) => {
+        // 支付已成功：清掉内存里的旧会员态，否则支付后的轮询会被 30s 缓存挡住而翻不亮
+        clearCache();
+        return v;
+      })
       .catch((err) => {
         if (err && err._payment) throw err;
-        if (isUnconfiguredError(err)) return demoSubscribe(plan);
+        if (isUnconfiguredError(err)) {
+          const e = new Error('虚拟支付未配置');
+          e.unconfigured = true;
+          throw e;
+        }
         throw err;
       });
   }
   return demoSubscribe(plan);
 }
 
-// 仅当错误表明「支付能力未就绪」（未部署/未配置/旧版本）时才回落演示开通
+// 仅认服务端「明确的未配置」信号（member.subscribe 的 'xpay not configured'、
+// code2Session 的 'app secret not configured'）。旧版把 'FunctionName'、'-501000'、
+// 'unknown action' 等泛化云调用错误也当作未配置并静默开通，会把一次故障变成免费会员，已收窄。
 function isUnconfiguredError(err) {
   const msg = String((err && err.message) || (err && err.errMsg) || '');
-  return (
-    msg.indexOf('not configured') !== -1 ||
-    msg.indexOf('unknown action') !== -1 ||
-    msg.indexOf('FunctionName') !== -1 ||
-    msg.indexOf('function not found') !== -1 ||
-    msg.indexOf('-501000') !== -1
-  );
+  return msg.indexOf('not configured') !== -1;
 }
 
 // wx.login 取 code（云端下单时换取 sessionKey 计算 signature）
@@ -145,7 +188,7 @@ function requestVirtualPayment(payData) {
   });
 }
 
-// 纯 UI 演示开通：仅落本地演示标记（不真实扣款）。仅未配置/本地模式兜底用。
+// 纯 UI 演示开通：仅落本地演示标记（不真实扣款）。仅本地模式（DATA_SOURCE !== 'cloud'）使用。
 // 叠加语义与云端 deliverGoods 对齐：base = max(现在, 当前到期时间)，再往后加天数，
 // 避免 VIP 期内再次开通时把剩余时长清零。
 function demoSubscribe(plan) {
@@ -158,10 +201,20 @@ function demoSubscribe(plan) {
   return Promise.resolve({ ok: true, plan: plan || '', demo: true });
 }
 
-// 注销时清除会员演示标记（避免重新注册后仍是 vip 演示态），供 user 服务 URL 清单复用
+// 注销时清除会员演示标记（避免重新注册后仍是 vip 演示态），供 user 服务 URL 清单复用。
+// 同时丢弃内存缓存，避免注销后同一会话内仍读到上一个账号的会员态。
 function resetDemo() {
+  clearCache();
   wx.removeStorageSync(STATE_KEY);
   wx.removeStorageSync(EXPIRE_KEY);
 }
 
-module.exports = { getMembership, subscribe, checkIosVersion, resetDemo, STATE_KEY };
+module.exports = {
+  getMembership,
+  cachedMembership,
+  subscribe,
+  checkIosVersion,
+  resetDemo,
+  invalidate: clearCache,
+  STATE_KEY
+};

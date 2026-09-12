@@ -11,7 +11,9 @@ const CONFIG = {
 };
 
 const KEY_STORAGE = 'hb_admin_key';
-let key = localStorage.getItem(KEY_STORAGE) || '';
+// 密钥存 sessionStorage（仅当前标签页会话有效），不用 localStorage：
+// 缩小窗口期，降低 XSS/共用电脑下密钥被长期读取的风险。
+let key = sessionStorage.getItem(KEY_STORAGE) || '';
 
 const $ = (sel) => document.querySelector(sel);
 const content = () => $('#content');
@@ -35,6 +37,18 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
 }
+
+// 头像加载失败回落：图片 error 事件不冒泡，必须用捕获阶段监听。
+// 取代原来的内联 onerror —— 本页启用了 CSP script-src 'self'，内联事件处理器会被浏览器拦截。
+// 用 textContent 写入首字（不解析 HTML），即使昵称含特殊字符也不会形成注入。
+document.addEventListener('error', (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== 'IMG' || !el.dataset || el.dataset.fallback === undefined) return;
+  const span = document.createElement('span');
+  span.className = 'avatar-fallback';
+  span.textContent = el.dataset.fallback || '客';
+  if (el.parentNode) el.parentNode.replaceChild(span, el);
+}, true);
 
 // ── 云调用（fetch 直连 HTTP 网关路由）──
 async function api(action, data) {
@@ -70,7 +84,7 @@ function showMain() {
   $('#view-main').classList.remove('hidden');
 }
 function logout() {
-  localStorage.removeItem(KEY_STORAGE);
+  sessionStorage.removeItem(KEY_STORAGE);
   key = '';
   showLogin();
 }
@@ -79,7 +93,7 @@ async function tryLogin(inputKey) {
   key = inputKey;
   try {
     await api('auth');
-    localStorage.setItem(KEY_STORAGE, key);
+    sessionStorage.setItem(KEY_STORAGE, key);
     showMain();
     switchNav('dashboard');
   } finally {
@@ -271,7 +285,7 @@ async function renderThemes() {
       <p class="page-sub">themes 集合：主题绑定信封素材与桌面底色；信纸配色由版式（papers）自持。上架中的主题在写信页横滑卡片可见。</p>
       <div class="toolbar">
         <button class="btn primary" id="theme-new">＋ 新建主题</button>
-        <button class="btn" id="theme-seed">导入官方 7 套</button>
+        <button class="btn" id="theme-seed">导入官方 1 套</button>
         <span class="spacer"></span>
         <span style="color:var(--muted);font-size:12px">共 ${r.themes.length} 套</span>
       </div>
@@ -292,11 +306,11 @@ async function renderThemes() {
               <button class="btn small danger" data-del="${esc(t.theme_id)}">删除</button>
             </td>
           </tr>`).join('')}
-        </table>` : '<p class="empty-tip">themes 集合为空。可点「导入官方 7 套」一键建立，或手动新建。</p>'}
+        </table>` : '<p class="empty-tip">themes 集合为空。可点「导入官方 1 套」一键建立，或手动新建。</p>'}
       </div>`;
     $('#theme-new').addEventListener('click', () => themeDrawer(null, r.themes.length));
     $('#theme-seed').addEventListener('click', async () => {
-      if (!confirm('导入官方 7 套主题？已存在的同 ID 主题会跳过。')) return;
+      if (!confirm('导入官方 1 套主题？已存在的同 ID 主题会跳过。')) return;
       const res = await api('themeSeed');
       toast(`已导入 ${res.seeded} 套，跳过 ${res.skipped} 套`);
       renderThemes();
@@ -513,10 +527,13 @@ async function renderUsers() {
     // 头像多为 cloud:// fileID（需 js-sdk 换临时链接，本页不引入 SDK），显示首字占位；
     // 若是 http(s) 直链则正常显示。
     const avatarHtml = (u) => {
-      const url = u.avatar && u.avatar.indexOf('http') === 0 ? u.avatar : '';
+      // 仅接受 https 直链（cloud:// 需 js-sdk，本页不引入）：避免向任意 http 主机发请求泄露管理员 IP。
+      // 加载失败由全局捕获监听回落到 data-fallback 首字，不用内联 onerror（CSP script-src 'self'）。
+      const url = u.avatar && u.avatar.indexOf('https://') === 0 ? u.avatar : '';
+      const ch = (u.nickname || '客')[0] || '客';
       return url
-        ? `<img class="avatar" src="${esc(url)}" onerror="this.outerHTML='<span class=&quot;avatar-fallback&quot;>${esc((u.nickname || '客')[0])}</span>'">`
-        : `<span class="avatar-fallback">${esc((u.nickname || '客')[0])}</span>`;
+        ? `<img class="avatar" src="${esc(url)}" data-fallback="${esc(ch)}" referrerpolicy="no-referrer">`
+        : `<span class="avatar-fallback">${esc(ch)}</span>`;
     };
     const statusBadge = (status) =>
       `<span class="badge ${status === 'active' ? 'online' : status === 'banned' ? 'banned' : 'deactivated'}">${USER_STATUS_LABEL[status] || status}</span>`;
@@ -652,11 +669,12 @@ const MEMBER_KIND_LABEL = { paper: '信纸', theme: '信封' };
 const MEMBER_PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
 
 function avatarImg(avatar, nickname) {
-  const url = avatar && avatar.indexOf('http') === 0 ? avatar : '';
-  const ch = esc(((nickname || '客')[0] || '客'));
+  // 同 avatarHtml：仅 https 直链 + data-fallback，加载失败由全局捕获监听回落（无内联 onerror）
+  const url = avatar && avatar.indexOf('https://') === 0 ? avatar : '';
+  const ch = ((nickname || '客')[0] || '客');
   return url
-    ? `<img class="avatar" src="${esc(url)}" onerror="this.outerHTML='<span class=&quot;avatar-fallback&quot;>${ch}</span>'">`
-    : `<span class="avatar-fallback">${ch}</span>`;
+    ? `<img class="avatar" src="${esc(url)}" data-fallback="${esc(ch)}" referrerpolicy="no-referrer">`
+    : `<span class="avatar-fallback">${esc(ch)}</span>`;
 }
 
 async function renderMembers() {

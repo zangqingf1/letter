@@ -1,6 +1,6 @@
 <!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层） -->
 <import src="../../styles/paper.wxml" />
-<view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：返回信匣 -->
   <view class="nav">
@@ -13,7 +13,7 @@
 
       <!-- 主信纸区：信纸自持版式（十款，papers.js 配置），
            共享模板与写信预览/分享图完全同构；写于落款 -->
-      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
+      <template is="paper-letter" data="{{ v: view, paper: paper }}" />
 
       <!-- 重读记录（邮戳墙 · 戳痕成行）：系统自动产生，不可编辑/删除单条（BR-09） -->
       <view class="sect">
@@ -102,14 +102,15 @@
 
 <!-- 回信弹层：半屏便签抽屉（40% 遮罩，日期固定不可改，手写体多行输入） -->
 <view wx:if="{{replyOpen}}" class="overlay" bindtap="onCloseReply">
-  <view class="drawer {{handwritingOff ? 'hand-off' : ''}}" catchtap="noop"
+  <view class="drawer" catchtap="noop"
         style="padding-bottom: calc({{keyboardHeight}}px + 28rpx + env(safe-area-inset-bottom));">
     <view class="handle"></view>
     <view class="drawer-date">📅 今天 · {{todayLongText}}</view>
+    <!-- 输入内容不受 data 控制（不绑 value）：内容由文本域自己持有，逐键回写 data 会让
+         每次按键都过一次渲染层；提交时由 JS 侧读输入事件存下的草稿 -->
     <view class="reply-editor">
       <textarea
         class="reply-input"
-        value="{{replyText}}"
         placeholder="这一次用起来，感觉怎么样？"
         placeholder-class="reply-ph"
         maxlength="300"

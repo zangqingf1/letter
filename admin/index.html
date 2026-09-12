@@ -2,6 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<!-- CSP：脚本只允许本站 app.js（无 CDN / 无内联脚本，杜绝第三方脚本窃取管理员密钥）；
+     样式允许内联（大量 style="" 属性）；图片仅 https（云端临时链接与 https 头像）；
+     连接仅本站与 CloudBase 网关；禁止被 iframe 嵌套。部署域名不同请同步调整 connect-src。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.tcloudbase.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>心灵信箱 · 管理后台</title>
 <link rel="stylesheet" href="style.css">

@@ -118,6 +118,34 @@
   padding: 12rpx 0 32rpx;
 }
 
+/* ── 加载骨架：与真实纸条行同几何（信封 120×80rpx + 名称/日期条），
+     骨架直接复用 .clip-row 卡片样式，数据到达后原地替换、零位移。
+     色块与呼吸动效对齐首页冷启动骨架（仅 opacity 淡入淡出） ── */
+.sk {
+  background: rgba(125, 133, 128, 0.18);
+  border-radius: 8rpx;
+  animation: sk-breath 1.4s ease-in-out infinite alternate;
+}
+@keyframes sk-breath {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+.sk-env {
+  flex: none;
+  width: 120rpx;
+  height: 80rpx;
+  border-radius: 10rpx;
+}
+.sk-name {
+  width: 62%;
+  height: 28rpx;
+}
+.sk-line {
+  width: 38%;
+  height: 22rpx;
+  margin-top: 18rpx;
+}
+
 /* ── 空状态 ── */
 .empty-illust {
   display: flex;

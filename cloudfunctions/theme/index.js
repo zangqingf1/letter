@@ -56,7 +56,6 @@ exports.main = async (event) => {
       name: t.name,
       desc: t.desc || '',
       version: t.version || 1,
-      pending: !!t.pending,
       envelope: t.assets && t.assets.envelope,
       // 方案B：信纸 = 配色排版（无纸张图片），下发 palette（base/title/text/tag）
       palette: t.palette || '',
@@ -68,7 +67,6 @@ exports.main = async (event) => {
       name: t.name,
       desc: t.desc || '',
       version: t.version || 1,
-      pending: false,
       envelope: (t.assets && t.assets.envelope) || '',
       palette: t.palette || '',
       desk: t.desk || '',
@@ -77,6 +75,8 @@ exports.main = async (event) => {
     }));
     return { ok: true, themes: mergeLists(themes, premium) };
   } catch (e) {
-    return { ok: false, error: e.message };
+    // 错误详情只进日志：不回传 DB/SDK 原始 message
+    console.error('[theme] 读取失败', event.action, e);
+    return { ok: false, error: 'internal error' };
   }
 };

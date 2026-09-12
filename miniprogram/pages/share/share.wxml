@@ -1,6 +1,6 @@
 <!-- 04 · 分享图 · 明信片预览（信纸自持版式 + 底部小程序条，与导出图同构；名称/问题/答案/写信日期固定全入图，重读记录与回信永不入图 BR-15） -->
 <import src="../../styles/paper.wxml" />
-<view class="page {{handwritingOff ? 'hand-off' : ''}}" style="padding-top: {{statusBarHeight}}px;">
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
   <view class="nav">
@@ -12,7 +12,7 @@
        高度随内容自适应，长信可滚动预览）+ 底部小程序条，与导出图同构 -->
   <view class="stage">
     <view class="postcard">
-      <template is="paper-letter" data="{{ v: view, paper: paper, handOff: handwritingOff }}" />
+      <template is="paper-letter" data="{{ v: view, paper: paper }}" />
 
       <!-- 底部小程序条：火漆 Logo + 品牌文案 + 小程序码 -->
       <view class="pc-brand">

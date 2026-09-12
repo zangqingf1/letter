@@ -19,6 +19,19 @@ const DAY_MS = 86400000;
 // 会员套餐中文名（与 admin 云函数 PLAN_NAMES 同口径，subscribe/发货写入 members.plan_name）
 const PLAN_NAMES = { month: '月卡', quarter: '季卡', year: '年卡', custom: '自定义' };
 
+// 发货推送来源白名单（云函数环境变量 XPAY_NOTIFY_SOURCE，逗号分隔）。
+// 微信云开发把「平台消息推送」与「客户端 wx.cloud.callFunction」都送进同一个 main 入口，
+// 且两边的 event 正文都能带 Event/OpenId/WeChatPayInfo 字段，仅凭正文无法区分 —— 这是
+// 伪造发货的根因。客户端伪造整个正文即可给自己免费发货，因此**唯一有效的代码侧封堵**
+// 就是拒绝非平台来源的调用：平台真实推送的 getWXContext().SOURCE 取值以线上实测为准，
+// 本函数每次回调都会打印 source，运维确认后把该值配进 XPAY_NOTIFY_SOURCE 即可生效。
+// 未配置时只记录不拦截（避免误伤真实推送）—— 此时伪造链条仍可自用，务必尽快配置，
+// 或改用「服务端向微信支付查询订单」作为最终事实校验。
+const NOTIFY_SOURCES = (process.env.XPAY_NOTIFY_SOURCE || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 // vip 等级称号：按累计会员天数分档（寄字 <30 / 守候 <180 / 长情 ≥180）；
 // 老数据无 total_days 时按剩余天数兜底，与 mock 默认「守候」同口径
 function levelOf(totalDays, remainingDays) {
@@ -62,31 +75,43 @@ function code2Session(jsCode, appid) {
   });
 }
 
-// 道具 productId 反查档位（发货推送按 GoodsInfo.ProductId 定位套餐）
-function planByProductId(pid) {
-  if (!pid) return '';
-  for (const plan of Object.keys(PRODUCTS)) {
-    if (PRODUCTS[plan].productId === pid) return plan;
-  }
-  return '';
-}
-
 async function findMembership(openid) {
   const res = await db.collection('members').where({ _openid: openid }).limit(1).get();
   return res.data[0] || null;
 }
 
+// 封禁拦截：后台把 users.status 置为 'banned' 后，本函数与 user 云函数一致拒绝服务。
+// 只作用于 get/subscribe 两个用户态 action；平台发货推送回调不受影响（订单已付款须履约）。
+// 查询失败按「未封禁」处理（可用性优先；封禁属运营管控，不作为数据安全边界）。
+async function isBanned(openid) {
+  if (!openid) return false;
+  try {
+    const res = await db.collection('users').where({ _openid: openid }).limit(1).get();
+    return !!(res.data[0] && res.data[0].status === 'banned');
+  } catch (e) {
+    console.error('[ban] users 查询失败，按未封禁处理', e);
+    return false;
+  }
+}
+
 exports.main = async (event) => {
   // 虚拟支付消息推送回调（云开发「消息推送」→ 云函数模式，事件对象直接透传，无 action 字段）。
-  // 来源校验：wx.cloud.callFunction（小程序端）可以携带任意 event 字段伪造 Event，
-  // 而平台推送的调用上下文不带用户 OPENID —— 客户端调用一律拒绝，防伪造发货。
+  // 来源校验：客户端 wx.cloud.callFunction 可携带任意 event 字段伪造 Event，故不能只看正文。
+  // 两道门：① 环境变量 XPAY_NOTIFY_SOURCE 白名单比对调用来源 SOURCE（推荐配置，彻底封堵伪造）；
+  //        ② 正文与「已落库订单」严格绑定（见 deliverGoods），正文不能决定档位与金额。
   if (event && event.Event) {
     try {
       if (event.Event === 'xpay_goods_deliver_notify') {
-        const ctxOpenid = cloud.getWXContext().OPENID;
-        // 平台发货推送与客户端 callFunction 都会带 OPENID 上下文，不能以「有无 OPENID」区分；
-        // 门槛改为正文必须携带平台支付信息（WeChatPayInfo.MchOrderNo，客户端不可见），
-        // 且上下文 OPENID（若有）必须与 OpenId 一致，防止把他人的单号指向自己。
+        const ctx = cloud.getWXContext();
+        const ctxOpenid = ctx.OPENID;
+        const source = ctx.SOURCE || '';
+        // 记录真实来源，供运维确认后配置白名单（不含敏感正文）
+        console.log('[member] 发货推送来源 source=', source, 'hasOpenid=', !!ctxOpenid, 'outTradeNo=', event.OutTradeNo || '');
+        if (NOTIFY_SOURCES.length && NOTIFY_SOURCES.indexOf(source) === -1) {
+          console.warn('[member] 拒绝非白名单来源的发货推送 source=', source);
+          return { ErrCode: 1, ErrMsg: 'forbidden' };
+        }
+        // 付款人自洽：上下文 OPENID（若有）必须与推送 OpenId 一致，防止把他人的单号指向自己
         if (!event.OpenId || !event.WeChatPayInfo || !event.WeChatPayInfo.MchOrderNo) {
           console.warn('[member] 拒绝伪造/缺字段的发货推送', event.Event, 'ctxOpenid=', ctxOpenid);
           return { ErrCode: 1, ErrMsg: 'forbidden' };
@@ -103,7 +128,8 @@ exports.main = async (event) => {
       return { ErrCode: 0, ErrMsg: 'success' };
     } catch (e) {
       console.error('[member] 推送处理失败', e);
-      return { ErrCode: 1, ErrMsg: e.message || 'internal error' };
+      // 应答文案不回传内部错误细节（下方订单/金额校验抛出的 message 只进日志）
+      return { ErrCode: 1, ErrMsg: 'deliver failed' };
     }
   }
 
@@ -111,11 +137,15 @@ exports.main = async (event) => {
   const action = event.action;
 
   try {
+    // subscribe 会写 member_orders 下单，保持「先过封禁门禁」的串行校验；
+    // get 只是读取会员态（每个页面进入都读一次），把封禁校验与会员查询并发，省一个往返。
+    if (action !== 'get' && (await isBanned(OPENID))) return { ok: false, error: 'banned' };
     switch (action) {
       // 读会员状态：members 集合（后台 memberGrant/发货推送共用这张表）
       case 'get': {
         const FREE = { state: 'free', level: '', planName: '', expireDate: '', remainingDays: 0, renew: false };
-        const m = await findMembership(OPENID);
+        const [banned, m] = await Promise.all([isBanned(OPENID), findMembership(OPENID)]);
+        if (banned) return { ok: false, error: 'banned' };
         if (!m || m.state !== 'vip') {
           return { ok: true, membership: FREE };
         }
@@ -190,47 +220,74 @@ exports.main = async (event) => {
         return { ok: false, error: 'unknown action: ' + action };
     }
   } catch (e) {
-    console.error('[member] action 失败', action, e.message);
-    return { ok: false, error: e.message };
+    // 错误详情只进日志：不回传原始 message。
+    // 例外：'not configured' 是前端契约（services/member.js 据此提示「支付暂未开通」），
+    // 统一归一为稳定的 'xpay not configured' 文案，避免前端依赖内部错误细节。
+    console.error('[member] action 失败', action, e);
+    const msg = String((e && e.message) || '');
+    if (msg.indexOf('not configured') !== -1) return { ok: false, error: 'xpay not configured' };
+    return { ok: false, error: 'internal error' };
   }
 };
 
 // ── 发货（xpay_goods_deliver_notify）──
-// 幂等：同一订单（out_trade_no）重复通知只发一次货；以已置 status='delivered' 为准。
-// 发货与订单置为已发货在同一事务内提交：任一步失败整体回滚并抛错（平台按非 0 ErrCode 重试），
-// 避免「已发会员但未记订单」导致的重试双倍发放。事务内不支持 where 查询，先按 _id 单文档定位。
+// 安全口径：订单（member_orders）是唯一事实来源，推送正文只用于「找到订单」，不决定档位与金额。
+//   · 订单必须存在，且 _openid 与推送 OpenId 一致（付款人 = 订单归属人）；
+//   · 订单必须处于 created（delivered 视为平台重试，幂等返回；其它状态拒绝）；
+//   · 推送 ProductId 必须与订单 product_id 一致，有效期天数取订单 plan；
+//   · 正文 ActualPrice 存在时必须与订单 goods_price 一致（弱一致性校验）。
+// 注意：整个推送正文都可被客户端伪造，上述绑定只能把影响限制在「攻击者给自己」，
+// 无法阻止「给自己免费发货」。真正的门是 XPAY_NOTIFY_SOURCE 来源白名单（见文件顶部说明）；
+// 未配置时，仍需以服务端订单查询（微信支付侧）作为最终事实校验。
+// 幂等：同一订单重复通知只发一次货；发货与订单置已发货在同一事务内提交，任一步失败整体回滚
+// 并抛错（平台按非 0 ErrCode 重试），避免「已发会员但未记订单」导致的重试双倍发放。
+// 事务内不支持 where 查询，先按 _id 单文档定位。
 async function deliverGoods(ev) {
   const openid = ev.OpenId;
   const outTradeNo = ev.OutTradeNo;
   const wxOrderId = (ev.WeChatPayInfo && ev.WeChatPayInfo.MchOrderNo) || '';
   const productId = (ev.GoodsInfo && ev.GoodsInfo.ProductId) || '';
-  const plan = planByProductId(productId);
-  if (!plan) {
-    throw new Error('[member] 发货：未知道具 productId=' + productId);
-  }
-  // 推送正文 GoodsInfo.ActualPrice 是字符串（如 "100"），必须先转数字再与道具价（分）比较，
-  // 否则 "100" !== 100 恒真、每次发货都被误拦。缺省（无该字段）时放行，伪造防护靠上方校验与订单校验。
-  const paidPrice = Number(ev.GoodsInfo && ev.GoodsInfo.ActualPrice) || 0;
-  if (paidPrice && paidPrice !== PRODUCTS[plan].priceFen) {
-    throw new Error('[member] 发货：实付金额与道具价格不一致 productId=' + productId + ' paid=' + paidPrice + ' expect=' + PRODUCTS[plan].priceFen);
-  }
 
   const orderRes = await db.collection('member_orders').where({ out_trade_no: outTradeNo }).limit(1).get();
-  const orderId = orderRes.data[0] ? orderRes.data[0]._id : null;
-  // 正常订单必由 subscribe 落库（status='created'）；查无订单即拒绝，堵死伪造 out_trade_no 的投递
-  if (!orderId) {
+  const order = orderRes.data[0] || null;
+  if (!order) {
     throw new Error('[member] 发货：订单不存在 out_trade_no=' + outTradeNo);
   }
+  if (order._openid !== openid) {
+    throw new Error('[member] 发货：订单归属人与推送 OpenId 不一致');
+  }
+  // 已发货订单的重复推送属平台正常重试，直接返回（金额/道具以订单为准，无需再校验正文）
+  if (order.status === 'delivered') return;
+  if (order.status !== 'created') {
+    throw new Error('[member] 发货：订单状态异常 status=' + order.status);
+  }
+  if (order.product_id !== productId) {
+    throw new Error('[member] 发货：推送道具与订单不一致 productId=' + productId + ' expect=' + order.product_id);
+  }
+  const plan = order.plan;
+  const days = PLAN_DAYS[plan];
+  if (!days) {
+    throw new Error('[member] 发货：订单档位无效 plan=' + plan);
+  }
+  // 正文金额一致性：ActualPrice 存在时（字符串，如 "100"）必须与订单金额（分）一致；
+  // 字段缺省不阻断 —— 平台推送字段集以线上实测为准，误拦会让已付款用户拿不到会员。
+  const rawPrice = ev.GoodsInfo ? ev.GoodsInfo.ActualPrice : undefined;
+  if (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') {
+    const paidPrice = Number(rawPrice);
+    if (!Number.isFinite(paidPrice) || paidPrice !== order.goods_price) {
+      throw new Error('[member] 发货：实付金额与订单金额不一致 paid=' + rawPrice + ' expect=' + order.goods_price);
+    }
+  }
+
+  const orderId = order._id;
   const memberRes = await db.collection('members').where({ _openid: openid }).limit(1).get();
   const memberId = memberRes.data[0] ? memberRes.data[0]._id : null;
 
   await db.runTransaction(async (transaction) => {
     const now = new Date();
-    if (orderId) {
-      const orderSnap = await transaction.collection('member_orders').doc(orderId).get();
-      const order = orderSnap.data;
-      if (order && order.status === 'delivered') return;
-    }
+    const orderSnap = await transaction.collection('member_orders').doc(orderId).get();
+    const cur = orderSnap.data;
+    if (cur && cur.status === 'delivered') return;
 
     let member = null;
     if (memberId) {
@@ -238,7 +295,6 @@ async function deliverGoods(ev) {
       member = memberSnap.data;
     }
 
-    const days = PLAN_DAYS[plan] || 30;
     let base = now.getTime();
     if (member && member.state === 'vip' && member.expires_at) {
       const t = new Date(member.expires_at).getTime();
@@ -264,26 +320,9 @@ async function deliverGoods(ev) {
       await transaction.collection('members').add({ data: Object.assign({ _openid: openid }, doc) });
     }
 
-    if (orderId) {
-      await transaction.collection('member_orders').doc(orderId).update({
-        data: { status: 'delivered', wx_order_id: wxOrderId, paid_at: now, delivered_at: now, updated_at: now }
-      });
-    } else {
-      await transaction.collection('member_orders').add({
-        data: {
-          _openid: openid,
-          out_trade_no: outTradeNo,
-          wx_order_id: wxOrderId,
-          plan,
-          product_id: productId,
-          goods_price: paidPrice,
-          status: 'delivered',
-          created_at: now,
-          paid_at: now,
-          delivered_at: now
-        }
-      });
-    }
+    await transaction.collection('member_orders').doc(orderId).update({
+      data: { status: 'delivered', wx_order_id: wxOrderId, paid_at: now, delivered_at: now, updated_at: now }
+    });
   });
   console.log('[member] 已发货 openid=', openid, 'outTradeNo=', outTradeNo, 'plan=', plan);
 }

@@ -195,10 +195,6 @@
 .center-cta {
   padding: 48rpx 40rpx 0;
 }
-.btn-primary-hover {
-  transform: scale(0.97);
-  box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
-}
 
 /* ── 信匣桌面网格区（50% 屏高，可滚动） ── */
 .desk {

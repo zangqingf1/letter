@@ -9,7 +9,25 @@
   <view class="page-note">别上回形针的信，会排在信匣最前面。</view>
 
   <!-- 状态一：有内容态（别着回形针的纸条列表） -->
-  <block wx:if="{{hasItems}}">
+  <block wx:if="{{loading}}">
+    <!-- 加载骨架：几何与真实纸条行一致（信封槽位 + 两行文字条），避免数据到达前先闪一屏空状态 -->
+    <view class="clip-list">
+      <view
+        class="clip-row"
+        wx:for="{{[0, 1, 2]}}"
+        wx:key="*this"
+        style="transform: rotate({{item % 2 ? 0.5 : -0.5}}deg);"
+      >
+        <view class="sk sk-env"></view>
+        <view class="row-info">
+          <view class="sk sk-name"></view>
+          <view class="sk sk-line"></view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{hasItems}}">
     <view class="clip-list">
       <view
         class="clip-row"
@@ -21,7 +39,7 @@
         bindtap="onTapRow"
       >
         <view class="env-wrap">
-          <image class="env-img" src="{{item.env}}" mode="aspectFill" lazy-load />
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
           <view class="clip-wrap">
             <image class="clip" src="/assets/clip.png" mode="aspectFit" />
           </view>

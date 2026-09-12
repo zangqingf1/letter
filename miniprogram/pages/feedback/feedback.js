@@ -5,6 +5,20 @@ const feedbackService = require('../../services/feedback.js');
 const CONTENT_MAX = 1000;
 const CONTACT_MAX = 40;
 const SHOTS_MAX = 9;
+// 单张截图上限 5MB：客户端预检（服务端只能拿到 fileID，无法便捷校验字节数），
+// 避免超大图长期占用云存储配额。
+const SHOT_MAX_BYTES = 5 * 1024 * 1024;
+
+// 读取本地临时文件字节数（低版本 chooseImage 不返回 size，用文件系统 statSync 兜底）
+function fileSizeOf(path) {
+  try {
+    const fs = wx.getFileSystemManager && wx.getFileSystemManager();
+    if (fs && fs.statSync) return fs.statSync(path).size || 0;
+  } catch (e) {
+    // 读取失败按未知处理（放行，不因预检失败阻断提交）
+  }
+  return 0;
+}
 
 Page({
   data: {
@@ -44,8 +58,21 @@ Page({
       wx.showToast({ title: '最多 ' + SHOTS_MAX + ' 张截图', icon: 'none' });
       return;
     }
-    const append = (paths) => {
-      this.setData({ shots: this.data.shots.concat(paths) });
+    const append = (items) => {
+      const ok = [];
+      let skipped = 0;
+      for (const it of items) {
+        const path = typeof it === 'string' ? it : it.tempFilePath;
+        if (!path) continue;
+        const size = typeof it === 'string' ? fileSizeOf(path) : it.size || 0;
+        if (size > SHOT_MAX_BYTES) {
+          skipped += 1;
+          continue;
+        }
+        ok.push(path);
+      }
+      if (skipped) wx.showToast({ title: skipped + ' 张超过 5MB，已跳过', icon: 'none' });
+      if (ok.length) this.setData({ shots: this.data.shots.concat(ok) });
     };
     if (wx.chooseMedia) {
       wx.chooseMedia({
@@ -53,7 +80,7 @@ Page({
         mediaType: ['image'],
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
-        success: (res) => append((res.tempFiles || []).map((f) => f.tempFilePath))
+        success: (res) => append(res.tempFiles || [])
       });
     } else {
       wx.chooseImage({

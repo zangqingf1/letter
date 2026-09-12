@@ -1,7 +1,7 @@
 /* ============================================================
    信纸共享样式（styles/paper.wxml 模板专用；三端同构的唯一装饰来源）
    引用方：pages/write/step2.wxss（选主题预览）、pages/detail/detail.wxss（拆信后阅读）、
-           pages/share/share.wxss（分享明信片预览；导出装饰在 share.js drawXxxStyle 重绘）。
+           pages/share/share.wxss（分享明信片预览；导出装饰由 share.js 按 paper-specs.js 重绘）。
    配色与 pages/write/papers.js 的 colors 一一对应（唯一事实来源在 papers.js，改色请三处同步）。
    版式基准：纸卡统一宽 630rpx 居中；分享 Canvas（K = 1080/630）按同一套 rpx 数值换算绘制，
    保证选主题预览 / 拆信阅读 / 分享图三者渲染完全相同。
@@ -23,27 +23,13 @@
   box-shadow: 0 8rpx 24rpx rgba(40, 35, 25, 0.16);
 }
 
-/* 手写体无障碍开关（handwriting_off）：楷体正文回落系统黑体，三端口径一致 */
-.pl.hand-off .plv-name,
-.pl.hand-off .plv-q,
-.pl.hand-off .plv-a,
-.pl.hand-off .pls-name,
-.pl.hand-off .pls-q,
-.pl.hand-off .pls-a,
-.pl.hand-off .plm-name,
-.pl.hand-off .plm-txt,
-.pl.hand-off .plpm-name,
-.pl.hand-off .plpm-txt {
-  font-family: var(--plf-hei);
-}
-
 /* ────────────────────────────────────────────────
    07 号外头版 extra —— 报纸头版：双线报头 + 首字下沉
    ──────────────────────────────────────────────── */
 .pl-extra {
   background: #F5EFDE;
   color: #262219;
-  /* 顶部留白：报头双线不顶纸边（与 share.js drawExtraStyle 的 mastOff 同步） */
+  /* 顶部留白：报头双线不顶纸边（与 paper-specs.js extra 规格的 pad[0] 同步） */
   padding: 50rpx 44rpx 36rpx;
 }
 .plx-rule-h { height: 6rpx; background: #262219; }
@@ -546,7 +532,7 @@
 
 /* ────────────────────────────────────────────────
    13 素问笺 suwen —— 问/答朱印对帖 + 右上斜盖邮戳
-   （配色 papers.js suwen；Canvas 见 share.js drawSuwenStyle）
+   （配色 papers.js suwen；导出见 paper-specs.js 的 suwen 规格）
    ──────────────────────────────────────────────── */
 .pl-suwen {
   position: relative;
@@ -597,7 +583,7 @@
 
 /* ────────────────────────────────────────────────
    14 留白志 liubai —— 编辑部极简：短线 + 页脚线
-   （配色 papers.js liubai；Canvas 见 share.js drawLiubaiStyle）
+   （配色 papers.js liubai；导出见 paper-specs.js 的 liubai 规格）
    ──────────────────────────────────────────────── */
 .pl-liubai {
   background: #FEFEFC;
@@ -633,7 +619,7 @@
 
 /* ────────────────────────────────────────────────
    15 墨夜笺 moye —— 暗夜纸 + 暖金细线
-   （配色 papers.js moye；Canvas 见 share.js drawMoyeStyle）
+   （配色 papers.js moye；导出见 paper-specs.js 的 moye 规格）
    ──────────────────────────────────────────────── */
 .pl-moye {
   background: radial-gradient(ellipse at 50% 20%, #2A2F3A 0%, #22262E 60%, #1D2027 100%);
@@ -677,7 +663,7 @@
 
 /* ────────────────────────────────────────────────
    16 航空笺 airmail2 —— 全幅斜纹画框 + 签条邮票邮戳
-   （配色 papers.js airmail2；Canvas 见 share.js drawAirmailStyle）
+   （配色 papers.js airmail2；导出见 paper-specs.js 的 airmail2 规格）
    ──────────────────────────────────────────────── */
 .pl-airmail {
   /* 全幅 45° 四段斜纹：红 13 / 米 9 / 蓝 13 / 米 9（周期 44rpx） */
@@ -766,7 +752,7 @@
 /* ────────────────────────────────────────────────
    会员专属 premium —— 通用金线笺（后台添加的专属版式）
    结构固定，颜色行内注入 colors.bg/ink/gold（paper.wxml 分支同构），
-   后台改配色即生效，无需改代码；与 share.js drawPremiumStyle 同 rpx 值。
+   后台改配色即生效，无需改代码；与 paper-specs.js 的 premium 规格同 rpx 值。
    ──────────────────────────────────────────────── */
 .pl-premium {
   padding: 60rpx 56rpx 48rpx;

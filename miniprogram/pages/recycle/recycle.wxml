@@ -9,7 +9,24 @@
   <view class="page-note">放进这里的信，30 天后会自动离开。</view>
 
   <!-- 状态一：有内容态 -->
-  <block wx:if="{{hasItems}}">
+  <block wx:if="{{loading}}">
+    <!-- 加载骨架：几何与真实废纸篓行一致（信封槽位 + 名称/天数条 + 胶囊），
+         避免数据到达前先闪一屏「废纸篓里什么也没有」 -->
+    <view class="rc-list">
+      <view class="rc-item" wx:for="{{[0, 1, 2]}}" wx:key="*this">
+        <view class="rc-row">
+          <view class="sk sk-env-grey"></view>
+          <view class="rc-info">
+            <view class="sk sk-name"></view>
+            <view class="sk sk-line"></view>
+          </view>
+          <view class="sk sk-pill"></view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{hasItems}}">
     <view class="rc-list">
       <view class="rc-item" wx:for="{{items}}" wx:key="id">
         <!-- 左滑露出的操作区：陶土色取回 + 深灰彻底删除 -->

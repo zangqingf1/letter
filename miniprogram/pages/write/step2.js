@@ -24,7 +24,6 @@ function track(event, data) {
 Page({
   data: {
     statusBarHeight: 20,
-    handwritingOff: false, // 无障碍开关：关闭手写体（与详情/分享同口径，此前预览未接）
     themes: THEMES,
     papers: PAPERS,
     isVip: false,           // 会员态：决定专属版式/主题是否可解锁（云端读 members，本地读演示态）
@@ -43,8 +42,7 @@ Page({
   onLoad(options) {
     const win = wx.getWindowInfo();
     this.setData({
-      statusBarHeight: win.statusBarHeight || 20,
-      handwritingOff: wx.getStorageSync('handwriting_off') === true
+      statusBarHeight: win.statusBarHeight || 20
     });
 
     // 第一步经事件通道传入信件内容（避免长文走 URL）；编辑模式额外带信件 id / 原主题 / 创建时间
@@ -146,8 +144,13 @@ Page({
     track('letter_step2_view');
   },
 
-  // 从会员中心返回后刷新会员态（可能刚开通，解锁专属款与寄出拦截）；失败忽略保留旧态
+  // 从会员中心返回后刷新会员态（可能刚开通，解锁专属款与寄出拦截）；失败忽略保留旧态。
+  // 首次显示由 onLoad 负责（其 Promise.all 已含 getMembership），避免进入本页即重复请求一次。
   onShow() {
+    if (!this._shownOnce) {
+      this._shownOnce = true;
+      return;
+    }
     memberService.getMembership()
       .then((m) => {
         this.setData({ isVip: !!(m && m.state === 'vip') });
@@ -203,11 +206,6 @@ Page({
   onSelectTheme(e) {
     const index = Number(e.currentTarget.dataset.index);
     const theme = this.data.themes[index];
-    // 素材未就绪的主题只展示占位色样，不可选中
-    if (theme.pending) {
-      wx.showToast({ title: '这套信纸还在路上，先挑一套能用的吧', icon: 'none' });
-      return;
-    }
     // 会员专属主题非 VIP 也可选中预览，寄出时才引导开通
     if (index === this.data.currentIndex) return;
     // 埋点：切换信纸主题

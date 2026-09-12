@@ -8,19 +8,23 @@
   </view>
 
   <!-- 顶部用户资料区：贴在最顶部的「个人名片信封」，点击进入账号管理 -->
+  <!-- 资料未就位（冷启动且预热未完成）时用等宽占位条撑住版面，不显示空名片 -->
   <view class="profile-card" hover-class="profile-card-hover" bindtap="onTapAccount">
     <view class="avatar">
       <image wx:if="{{user.avatar}}" class="avatar-img" src="{{user.avatar}}" mode="aspectFill" />
-      <text wx:else class="avatar-char">{{avatarChar}}</text>
+      <text wx:elif="{{profileReady}}" class="avatar-char">{{avatarChar}}</text>
+      <view wx:else class="skeleton skeleton-avatar"></view>
     </view>
     <view class="profile-info">
-      <view class="nickname">{{user.nickname}}</view>
-      <view class="wrote-days">在这个匣子里写了 <text class="days-num">{{user.wroteDays}}</text> 天</view>
+      <view wx:if="{{profileReady}}" class="nickname">{{user.nickname}}</view>
+      <view wx:else class="skeleton skeleton-nickname"></view>
+      <view wx:if="{{profileReady}}" class="wrote-days">在这个匣子里写了 <text class="days-num">{{user.wroteDays}}</text> 天</view>
+      <view wx:else class="skeleton skeleton-days"></view>
     </view>
     <text class="profile-arrow">›</text>
   </view>
 
-  <!-- 2×2 手作便签统计区 -->
+  <!-- 2×2 手作便签统计区（数值未就位时显示 — 占位，版面不跳动） -->
   <view class="section-label">统计概览</view>
   <view class="notes">
     <view
@@ -31,7 +35,7 @@
     >
       <view class="note-name">{{item.name}}</view>
       <view class="note-line"></view>
-      <view class="note-num"><text class="note-value">{{item.value}}</text> {{item.unit}}</view>
+      <view class="note-num"><text class="note-value{{statsReady ? '' : ' note-value-pending'}}">{{item.value}}</text> {{item.unit}}</view>
     </view>
   </view>
 
@@ -40,17 +44,17 @@
     <view class="count-item" hover-class="count-item-hover" bindtap="onTapPaperclip">
       <text class="count-emoji">📎</text>
       <text class="count-text">回形针优先展示</text>
-      <text class="count-num">({{pinnedCount}})</text>
+      <text class="count-num">({{statsReady ? pinnedCount : '—'}})</text>
     </view>
     <view class="count-divider"></view>
     <view class="count-item" hover-class="count-item-hover" bindtap="onTapRecycle">
       <text class="count-emoji">🗑️</text>
       <text class="count-text">废纸篓</text>
-      <text class="count-num">({{recycleCount}})</text>
+      <text class="count-num">({{statsReady ? recycleCount : '—'}})</text>
     </view>
   </view>
 
-  <!-- 会员中心：金调高亮入口行（付费会员，纯演示态） -->
+  <!-- 会员中心：金调高亮入口行（付费 VIP，真实虚拟支付） -->
   <view class="member-entry" hover-class="member-entry-hover" bindtap="onTapMember">
     <view class="member-entry-icon">VIP</view>
     <view class="member-entry-body">

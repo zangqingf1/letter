@@ -35,12 +35,23 @@ const PLANS = [
   { id: 'year', name: '年卡', price: 99.9, unit: '¥', period: '/365 天', tag: '最划算 · 约合 8.3 元/月' }
 ];
 
+// 从 theme 服务下发的列表里挑出会员专属款（后台 member_items 标记 premium:true）。
+// 主题与版式分别判定：两份缓存版本错位时（一份有一份没有）不至于把已有的也一并丢掉。
+function pickPremium(papers, themes) {
+  const update = {};
+  const premiumPapers = (papers || []).filter((p) => p.premium);
+  const premiumThemes = (themes || []).filter((t) => t.premium);
+  if (premiumPapers.length) update.premiumPapers = premiumPapers;
+  if (premiumThemes.length) update.premiumThemes = premiumThemes;
+  return update;
+}
+
 Page({
   data: {
     statusBarHeight: 20,
     user: { nickname: '', avatar: '' },
     avatarChar: '',
-    state: 'free',            // free / vip
+    state: 'loading',         // loading（会员态未定，骨架）/ free / vip
     level: '守候',
     renew: false,
     remainingDays: 0,         // 会员剩余天数（云端按 members.expires_at 计算）
@@ -51,7 +62,6 @@ Page({
     agreed: false,
     premiumPapers: PREMIUM.papers,
     premiumThemes: PREMIUM.themes,
-    handwritingOff: false,       // 示例信纸无障碍字体（与写信/详情同口径）
     showPaperPreview: false,     // 专属信纸真实样式示例预览
     previewPaper: null,
     previewView: null,
@@ -64,10 +74,19 @@ Page({
   onLoad() {
     const win = wx.getWindowInfo();
     this.setData({
-      statusBarHeight: win.statusBarHeight || 20,
-      handwritingOff: wx.getStorageSync('handwriting_off') === true
+      statusBarHeight: win.statusBarHeight || 20
     });
-    this.loadMembership();
+
+    // 首帧同步渲染：会员态与专属款都先读本会话缓存（信匣/写信/分享等页面早已备好），
+    // 命中就直接画对的值；未命中就停在骨架态 —— 绝不拿 free 或本地兜底款当默认值画出来，
+    // 否则 VIP 用户进页面会先闪一屏「还未开通会员」，专属款也会先闪一版本地占位。
+    const cached = memberService.cachedMembership();
+    if (cached) this.applyMembership(cached);
+    const cachedPremium = pickPremium(themeService.cachedPapers(), themeService.cachedThemes());
+    if (Object.keys(cachedPremium).length) this.setData(cachedPremium);
+
+    // 随后照旧 force 回源校正：force 口径不变，只是从「阻塞首帧」改成「后台刷新」
+    this.loadMembership(true);
     this.loadPremiumItems();
   },
 
@@ -90,15 +109,12 @@ Page({
   },
 
   // 专属版式/主题：与写信页同源（theme 服务下发，含 member_items 专属款 premium 标记），
-  // 后台增删改的专属款在此即时展示（force 强刷，绕过 1h 缓存）；空则回落本地 premium.js。
+  // 后台增删改的专属款在此即时展示（force 强刷，绕过 1h 缓存）；
+  // 首帧已用同步缓存画过一版，这里只做后台校正；两边都拿不到时才留本地 premium.js 兜底。
   loadPremiumItems() {
     Promise.all([themeService.getThemes(true), themeService.getPapers(true)])
       .then(([themes, papers]) => {
-        const update = {};
-        const premiumPapers = (papers || []).filter((p) => p.premium);
-        const premiumThemes = (themes || []).filter((t) => t.premium);
-        if (premiumPapers.length) update.premiumPapers = premiumPapers;
-        if (premiumThemes.length) update.premiumThemes = premiumThemes;
+        const update = pickPremium(papers, themes);
         if (Object.keys(update).length) this.setData(update);
       })
       .catch((err) => console.error('[member] 专属内容读取失败', err));
@@ -106,23 +122,36 @@ Page({
 
   onUnload() {
     clearTimeout(this._pollTimer);
+    // 离开会员页即丢弃会员态内存缓存：发货推送是异步的，若到账晚于用户离开本页，
+    // 缓存里可能还是「未开通」，会让其它页最多 30s 仍按未开通渲染专属信封/信纸。
+    memberService.invalidate();
   },
 
+  // silent：支付后轮询的重试读取，失败不刷错误日志。
+  // force=true：会员中心是会员态的第一现场（进入时、支付后轮询），必须取服务端实时值，
+  // 不吃其它页面留下的 30s 内存缓存（否则刚开通后回到本页会短暂仍显示未开通）。
   loadMembership(silent) {
     return memberService
-      .getMembership()
-      .then((m) => {
-        this.setData({
-          state: m.state,
-          level: m.level,
-          renew: m.renew,
-          remainingDays: m.remainingDays,
-          benefits: this.decorateBenefits(m.state)
-        });
-      })
+      .getMembership(true)
+      .then((m) => this.applyMembership(m))
       .catch((err) => {
+        // 失败也要收掉骨架：一直停在「正在读取」看起来像卡死（与「我的」页同口径）
+        if (this.data.state === 'loading') {
+          this.applyMembership({ state: 'free', level: '', renew: false, remainingDays: 0 });
+        }
         if (!silent) console.error('[member] 会员状态读取失败', err);
       });
+  },
+
+  // 会员态落地：首帧缓存占位与回源结果走同一入口，避免两处 setData 字段漂移
+  applyMembership(m) {
+    this.setData({
+      state: m.state,
+      level: m.level,
+      renew: m.renew,
+      remainingDays: m.remainingDays,
+      benefits: this.decorateBenefits(m.state)
+    });
   },
 
   // 按会员态给权益标注「已解锁 / 未解锁」，信封上限文案随态切换
@@ -174,6 +203,8 @@ Page({
   },
   // 示例预览底部按钮：vip 提示可在写信页使用；free 引导开通
   onUnlockFromPreview() {
+    // 会员态未定（骨架期）：不引导开通也不谎称已解锁，等回源落地即可
+    if (this.data.state === 'loading') return;
     if (this.data.state === 'vip') {
       wx.showToast({ title: '写信第二步可选这款版式', icon: 'none' });
       return;
@@ -184,6 +215,7 @@ Page({
 
   // 专属主题卡片点按：vip 态已解锁给反馈；free 态弹订阅拉手
   onTapTheme() {
+    if (this.data.state === 'loading') return;
     if (this.data.state === 'vip') {
       wx.showToast({ title: '已解锁，写信时可在主题里用', icon: 'none' });
       return;
@@ -201,7 +233,7 @@ Page({
   },
 
   // 确认支付：云端真实下单 → wx.requestVirtualPayment 拉起支付 → 成功后轮询会员状态翻成 vip。
-  // 未配置 xpay 或本地演示态时，member 服务自动回落演示开通（不产生扣款）。
+  // 未配置支付时明确提示「暂未开通」，云端模式下不会回落成免费会员（演示态仅本地模式生效）。
   onConfirmPay() {
     if (!this.data.agreed) {
       wx.showToast({ title: '请先勾选《会员服务协议》', icon: 'none' });
@@ -221,10 +253,13 @@ Page({
         const errCode = err && (err.errCode || err.errno);
         const hint = PAY_ERROR_HINTS[String(errCode)];
         console.error('[member] 支付失败', err && (err.message || err.errMsg), 'errCode=', errCode);
+        let title = hint || '支付未完成，请重试';
+        if (err && err.unconfigured) title = '支付功能暂未开通，请稍后再试';
+        else if (err && err.cancel) title = '已取消支付';
         wx.showToast({
-          title: err && err.cancel ? '已取消支付' : hint || '支付未完成，请重试',
+          title,
           icon: 'none',
-          duration: hint ? 2500 : 1500
+          duration: hint || (err && err.unconfigured) ? 2500 : 1500
         });
         this.setData({ paying: false });
       });

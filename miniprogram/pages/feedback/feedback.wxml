@@ -48,7 +48,7 @@
 
   <view
     class="btn-primary submit-btn {{submitting ? 'submit-disabled' : ''}}"
-    hover-class="btn-primary"
+    hover-class="btn-primary-hover"
     bindtap="onTapSubmit"
   >{{submitting ? '提交中…' : '提交反馈'}}</view>
 

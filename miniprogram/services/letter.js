@@ -106,9 +106,13 @@ function getAll() {
 // 演示回落时保留请求 id：后续对该信的写操作可落成真实信（ensureReal）。
 // cloud 下取不到（不存在/不属于当前用户/已进废纸篓）时显式失败，
 // 由页面提示「取不出来」，不再回落演示数据（云端模式没有演示语义）。
-function get(id) {
+// opts.record=true：拆信同时落一条重读记录（BR-09）。云端由 letter.get 的 record 参数在
+// 同一次调用内完成（省掉详情页第二轮云函数往返，见 技术架构文档 §4.3），local 复刻原行为。
+// 分享页预览不传该参数 —— 预览不是拆信，不得产生邮戳。
+function get(id, opts) {
+  const record = !!(opts && opts.record);
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'get', { id }).then((r) => {
+    return cloud.call('letter', 'get', { id, record }).then((r) => {
       if (r && r.letter) return { letter: r.letter, isDemo: false };
       return Promise.reject(new Error('letter not found or recycled'));
     });
@@ -118,10 +122,13 @@ function get(id) {
     letter = readLetters().find((l) => String(l.id) === String(id)) || null;
   }
   if (letter) {
-    return Promise.resolve({ letter: JSON.parse(JSON.stringify(letter)), isDemo: false });
+    const copy = JSON.parse(JSON.stringify(letter));
+    if (record) recordLocally(copy);
+    return Promise.resolve({ letter: copy, isDemo: false });
   }
   const demo = demoLetter();
   if (id) demo.id = id;
+  if (record) recordLocally(demo);
   return Promise.resolve({ letter: demo, isDemo: true });
 }
 
@@ -192,9 +199,9 @@ function setPinned(letter, pinned) {
 }
 
 // ── 拆信重读（BR-09：拆一次记一条，同日不重复，用户不可编辑/删除）──
-// local：与原详情页行为一致，直接在 letter.opens 上做当日去重并落库；
-// cloud：服务端按 (openid, letter_id, open_date) 幂等去重，返回全量邮戳（时间戳数组）。
-// 两种模式下都返回去重后的 letter.opens，页面据此渲染邮戳墙。
+// 云端独立入口走 open.add（旧客户端仍在用）；详情页已改走 get(id, { record: true })，
+// 在同一次 letter.get 内完成记录，不再单独往返一次云函数。
+// local：直接在 letter.opens 上做当日去重并落库；cloud：返回服务端全量邮戳（时间戳数组）。
 function recordOpen(letter) {
   if (DATA_SOURCE === 'cloud') {
     return cloud.call('open', 'add', { letter_id: letter.id }).then((r) => {
@@ -203,6 +210,11 @@ function recordOpen(letter) {
       return letter.opens;
     });
   }
+  return Promise.resolve(recordLocally(letter));
+}
+
+// local 版当日去重（真实信落库；演示信不在 letters_mock 中，persist 静默失败 —— 与原行为一致）
+function recordLocally(letter) {
   const now = Date.now();
   letter.opens = (letter.opens || []).slice();
   if (!letter.opens.some((ts) => sameDay(ts, now))) {
@@ -210,14 +222,17 @@ function recordOpen(letter) {
   }
   letter.opens.sort((a, b) => a - b);
   persist(letter);
-  return Promise.resolve(letter.opens);
+  return letter.opens;
 }
 
 // ── 回信（BR-10：用户主动新增，日期自动生成不可改）──
-// 返回更新后的回信数组（元素 {ts, text}，页面直接渲染便签流）；演示信先落成真实信
+// 返回更新后的回信数组（元素 {ts, text}，页面直接渲染便签流）；演示信先落成真实信。
+// 云端走 letter 云函数的 addReply/removeReply —— 详情页拆信时 letter 已被调用（实例是热的），
+// 比单独叫一个只在此处出现的 reply 云函数少一次冷启动（首贴可能省 1~2 秒）。
+// reply 云函数的 add/remove 保留为旧客户端入口，两边幂等口径一致（见 tests 回归用例）。
 function addReply(letter, text) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('reply', 'add', { letter_id: letter.id, content: text }).then((r) => {
+    return cloud.call('letter', 'addReply', { id: letter.id, content: text }).then((r) => {
       letter.replies = (r && r.replies) || letter.replies || [];
       return letter.replies;
     });
@@ -232,7 +247,7 @@ function addReply(letter, text) {
 // 按 ts（创建时间戳）精确匹配；返回更新后的回信数组（元素 {ts, text}）；演示信先落成真实信
 function removeReply(letter, ts) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('reply', 'remove', { letter_id: letter.id, ts }).then((r) => {
+    return cloud.call('letter', 'removeReply', { id: letter.id, ts }).then((r) => {
       letter.replies = (r && r.replies) || [];
       return letter.replies;
     });

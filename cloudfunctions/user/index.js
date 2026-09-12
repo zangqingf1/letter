@@ -39,13 +39,17 @@ exports.main = async (event) => {
       case 'saveProfile': {
         const profile = event.profile || {};
         const data = {};
-        if (typeof profile.nickname === 'string') data.nickname = profile.nickname;
+        // 昵称限长 32：旧版不限长，可写入超长字符串（并展示在后台用户列表）
+        if (typeof profile.nickname === 'string') data.nickname = profile.nickname.slice(0, 32);
         // 头像为本地临时文件时由前端先上传云存储并传 fileID
         if (typeof profile.avatar === 'string' && profile.avatar.indexOf('cloud://') === 0) {
           data.avatar_url = profile.avatar;
         }
-        const found = await db.collection('users').where({ _openid: OPENID }).count();
-        if (found.total === 0) {
+        const found = await db.collection('users').where({ _openid: OPENID }).limit(1).get();
+        const cur = found.data[0];
+        // 封禁用户不得再修改档案（ensure/getProfile 已拒绝，这里补齐写路径）
+        if (cur && cur.status === 'banned') return { ok: false, error: 'banned' };
+        if (!cur) {
           await db.collection('users').add({
             data: Object.assign({ _openid: OPENID, status: 'active', created_at: db.serverDate() }, data)
           });
@@ -57,16 +61,19 @@ exports.main = async (event) => {
 
       // 注销：物理删除该账号全部数据（PRD 第六节，BR-12 口径），不留软删除副本。
       // members（会员状态）也一并清除，保证「注销 = 清空该 openid 全部数据」的语义。
+      // 九个集合互不依赖，并行删除（旧版逐个 await，注销耗时是必要值的近九倍）。
       case 'deactivate': {
-        await db.collection('letters').where({ _openid: OPENID }).remove();
-        await db.collection('open_records').where({ _openid: OPENID }).remove();
-        await db.collection('reply_records').where({ _openid: OPENID }).remove();
-        await db.collection('drafts').where({ _openid: OPENID }).remove();
-        await db.collection('events').where({ _openid: OPENID }).remove();
-        await db.collection('members').where({ _openid: OPENID }).remove();
-        await db.collection('member_orders').where({ _openid: OPENID }).remove();
-        await db.collection('feedback').where({ _openid: OPENID }).remove();
-        await db.collection('users').where({ _openid: OPENID }).remove();
+        await Promise.all([
+          db.collection('letters').where({ _openid: OPENID }).remove(),
+          db.collection('open_records').where({ _openid: OPENID }).remove(),
+          db.collection('reply_records').where({ _openid: OPENID }).remove(),
+          db.collection('drafts').where({ _openid: OPENID }).remove(),
+          db.collection('events').where({ _openid: OPENID }).remove(),
+          db.collection('members').where({ _openid: OPENID }).remove(),
+          db.collection('member_orders').where({ _openid: OPENID }).remove(),
+          db.collection('feedback').where({ _openid: OPENID }).remove(),
+          db.collection('users').where({ _openid: OPENID }).remove()
+        ]);
         return { ok: true };
       }
 
@@ -74,7 +81,10 @@ exports.main = async (event) => {
         return { ok: false, error: 'unknown action: ' + action };
     }
   } catch (e) {
-    return { ok: false, error: e.message };
+    // 错误详情只进日志：不回传 DB/SDK 原始 message
+    // （'banned' 走各 action 的显式 return，不依赖此处文案）
+    console.error('[user] action 失败', action, e);
+    return { ok: false, error: 'internal error' };
   }
 };
 

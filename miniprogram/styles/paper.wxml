@@ -2,11 +2,12 @@
      引用方：pages/write/step2.wxml（选主题预览）/ pages/detail/detail.wxml（拆信后阅读）/
              pages/share/share.wxml（分享明信片预览）。
      data 约定：v = paper-view.js buildView 产出；paper = papers.js 某项；
-                handOff = handwriting_off 开关；mode = 可选的动效类（step2 翻页）。
+                mode = 可选的动效类（step2 翻页）。
      版式与配色完全固定（纸色自持），不读取主题 palette；十个 wx:if 分支与
-     styles/paper.wxss 的 pl-x* / share.js drawXxxStyle 一一对应，改版式请三处同步。 -->
+     styles/paper.wxss 的 pl-x* / paper-specs.js 的区块流 / share.js 的 drawOps 三处同构，
+     改版式请三处同步（preflight 第 11 项会校验 paper-specs.js 与本文档的数值一致）。 -->
 <template name="paper-letter">
-  <view class="pl {{mode}} {{handOff ? 'hand-off' : ''}}">
+  <view class="pl {{mode}}">
 
     <!-- 号外头版：报纸头版 + 首字下沉 -->
     <view wx:if="{{paper.id === 'extra'}}" class="pl-paper pl-extra">
@@ -74,7 +75,7 @@
         <view class="plt-cap">答</view>
         <view class="plt-a">{{v.answer}}</view>
         <view class="plt-barcode"></view>
-        <view class="plt-under">2026 MENTAL MAILBOX</view>
+        <view class="plt-under">{{v.yearText}} MENTAL MAILBOX</view>
         <view class="plt-foot">写于 {{v.dateLong}} · 已封存</view>
       </view>
     </view>
@@ -202,7 +203,7 @@
     </view>
 
     <!-- 会员专属 premium：后台添加的专属版式，通用金线笺模板；颜色行内注入
-         （colors.bg/ink/gold），后台改配色即生效，无需改代码（与 share.js drawPremiumStyle 同构） -->
+         （colors.bg/ink/gold），后台改配色即生效，无需改代码（与 paper-specs.js 的 premium 规格同构） -->
     <view wx:elif="{{paper.premium}}" class="pl-paper pl-premium" style="background: {{paper.colors.bg}}; color: {{paper.colors.ink}};">
       <view class="plpm-rule" style="background: {{paper.colors.gold}};"></view>
       <view class="plpm-name" style="color: {{paper.colors.ink}};">{{v.name}}</view>

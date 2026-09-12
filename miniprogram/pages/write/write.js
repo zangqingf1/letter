@@ -78,8 +78,6 @@ Page({
     canNext: false,
     // 书写区下方陈列的未写完草稿（点击卡片载入续写，卡片上可删除；编辑态不显示）
     drafts: [],
-    // 无障碍开关：关闭手写体（全局设置，我的页提供开关入口）
-    handwritingOff: false,
     // 编辑态标记（供 wxml 隐藏「存草稿」按钮；编辑态仅「保存修改并封存」）
     isEdit: false,
     // 信头落款（新写信=今天，编辑态=原信创建日期）
@@ -94,10 +92,6 @@ Page({
     this.contentCompleteTracked = false;
     // 当前正在写的草稿 id（''=尚未落成草稿的新信）；寄出后据此精确清除对应草稿
     this.currentDraftId = '';
-
-    // 无障碍：读取「关闭手写体」设置
-    // TODO: 我的页提供开关入口，统一读写该存储键
-    this.setData({ handwritingOff: wx.getStorageSync('handwriting_off') === true });
 
     // 从第二步「返回修改」回来时撤销进入第二步自动落的草稿（onShow 消费，仅本次新建的）
     this._pendingDraftUndo = false;
@@ -414,6 +408,7 @@ Page({
         return;
       }
       wx.disableAlertBeforeUnload();
+      this._alertOn = false; // 与 syncAlertBeforeUnload 的跃迁判断保持同一份状态
       const pages = getCurrentPages();
       if (pages.length > 1) {
         wx.navigateBack();
@@ -479,10 +474,14 @@ Page({
   },
 
   // 有内容时开启系统手势返回的退出提示；无内容时关闭。
-  // 口径与返回按钮共用 shouldAlertLeave（编辑态：内容与原信一致时不打扰用户）
+  // 口径与返回按钮共用 shouldAlertLeave（编辑态：内容与原信一致时不打扰用户）。
+  // 输入框每个字符都会走到这里，故只在「开/关」真正跃迁时才调原生 API：
+  // 旧版每敲一个字符都调一次 wx.enableAlertBeforeUnload（同步原生调用），长文输入会明显发涩。
   syncAlertBeforeUnload() {
+    const need = this.shouldAlertLeave();
+    if (need === this._alertOn) return;
     try {
-      if (this.shouldAlertLeave()) {
+      if (need) {
         // 编辑态手势返回的提示文案与新写信区分（按钮为系统默认的确定/取消）
         wx.enableAlertBeforeUnload({
           message: this.editMode ? '这次编辑还没有封存，确定离开吗？' : '这封信还没写完。'
@@ -490,6 +489,8 @@ Page({
       } else {
         wx.disableAlertBeforeUnload();
       }
+      // 仅在调用成功后才记状态，失败（基础库不支持）时下次仍会重试
+      this._alertOn = need;
     } catch (e) { /* 基础库不支持或非手势返回场景时忽略 */ }
   }
 });

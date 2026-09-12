@@ -13,7 +13,6 @@ const MOCK_STATS = {
   registerDays: 128
 };
 
-const MOCK_PINNED_COUNT = 2;
 const MOCK_RECYCLE_COUNT = 1;
 
-module.exports = { MOCK_USER, MOCK_STATS, MOCK_PINNED_COUNT, MOCK_RECYCLE_COUNT };
+module.exports = { MOCK_USER, MOCK_STATS, MOCK_RECYCLE_COUNT };

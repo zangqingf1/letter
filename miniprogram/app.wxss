@@ -38,3 +38,10 @@ page {
   transform: scale(0.97);
   box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
 }
+/* 主按钮的按下态（供 hover-class 引用）。必须是与基础类不同的名字：微信按下态按类名增删，
+   hover-class 若与元素自身的类同名，抬起时会把那个类一并从节点上摘掉，按钮点一次就变裸文字。
+   全局唯一定义处（各页只写类名，不要把这段复制进页面 wxss）。 */
+.btn-primary-hover {
+  transform: scale(0.97);
+  box-shadow: 0 4rpx 12rpx rgba(107, 142, 133, 0.2);
+}

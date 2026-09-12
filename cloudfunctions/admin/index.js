@@ -6,6 +6,7 @@
 // name/question/answer 与回信 content。改动时必须维持这条红线。
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const crypto = require('crypto');
 const db = cloud.database();
 const _ = db.command;
 const $ = db.command.aggregate;
@@ -14,15 +15,11 @@ const TZ = '+0800';
 const DAY = 86400000;
 
 // ── 官方默认配置 seed（与 miniprogram/pages/write/themes.js / papers.js 同源手工同步）──
-// 仅 xiaowangzi 有信封素材（小程序包内路径）；其余主题无素材，由 theme 服务回落默认信封。
+// 官方主题仅「小王子」一套：唯一有信封素材（小程序包内路径）且为未知 theme_id 的回落款。
+// 历史版本的 6 套无素材主题（晨光/雨夜/牛皮纸/棉麻/花笺/咖啡渍）已删除；若线上 themes
+// 集合仍留有这批旧记录，需在后台「主题管理」逐条删除，否则会继续下发。
 const SEED_THEMES = [
-  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, desk: '#EDE9DC', assets: { envelope: '/assets/theme/xiaowangzi/envelope.jpg', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } },
-  { theme_id: 'chenyu', name: '晨光', desc: '温暖明亮', version: 1, swatch: '#F3EADB', palette: { base: '#F3EADB', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, desk: '#EFE6D3', assets: {} },
-  { theme_id: 'yuye', name: '雨夜', desc: '安静陪伴', version: 1, swatch: '#C4CBD3', palette: { base: '#DDE2E6', title: '#4C5560', text: '#3E4750', tag: '#8A939C' }, desk: '#D4DADF', assets: {} },
-  { theme_id: 'niupizhi', name: '牛皮纸', desc: '朴实有趣', version: 1, swatch: '#D8C4A4', palette: { base: '#E7D9BC', title: '#6B5636', text: '#57462C', tag: '#9C8B6C' }, desk: '#DCD0B2', assets: {} },
-  { theme_id: 'mianma', name: '棉麻', desc: '极简高级', version: 1, swatch: '#E3DECF', palette: { base: '#EBE7DA', title: '#5C594C', text: '#4C4A40', tag: '#98948A' }, desk: '#E0DCCB', assets: {} },
-  { theme_id: 'huajian', name: '花笺', desc: '柔美治愈', version: 1, swatch: '#E7CFCB', palette: { base: '#F1DFDB', title: '#6E514C', text: '#5C443F', tag: '#AB8B85' }, desk: '#E8D3CE', assets: {} },
-  { theme_id: 'kafeizi', name: '咖啡渍', desc: '手账有趣', version: 1, swatch: '#CBB693', palette: { base: '#E4D8BE', title: '#66543A', text: '#52442C', tag: '#9D8F73' }, desk: '#D8CBB0', assets: {} }
+  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, desk: '#EDE9DC', assets: { envelope: '/assets/theme/xiaowangzi/envelope.jpg', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } }
 ];
 
 // 十款信纸版式：后台只管名称/描述/配色/上下架/排序/版本；版式视觉结构在
@@ -42,8 +39,8 @@ const SEED_PAPERS = [
 ];
 
 // 会员专属内容（member_items 集合 seed，与 miniprogram/pages/member/premium.js 同源手工同步）。
-// 本期后台预置 + 小程序端仍是演示态（premium.js 硬编码色样展示）；真实接入三端同构后，
-// 由本表驱动写信页专属版式/主题的解锁与下发。
+// 本表驱动三端：theme 云函数下发时把上架的专属款并入主题/版式列表（premium:true），
+// 写信页解锁 / 详情 / 分享渲染均以它为准，后台改配色即生效。
 const SEED_MEMBER_ITEMS = [
   { kind: 'paper', item_id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' } },
   { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', version: 1, colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' } },
@@ -60,12 +57,32 @@ function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// 选择器字段类型化：这些值会直接进 where()，若为对象（如 {"$ne":null}）会被数据库当作
+// 查询操作符，导致全表命中 —— themeDelete/paperDelete/memberItemDelete 会清空整个集合、
+// userBan/memberRevoke 会批量封禁。故一律要求字符串并限制长度，非法返回 null。
+function selectorField(v, max) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  if (!s || s.length > (max || 64)) return null;
+  return s;
+}
+
+// openid 选择器：微信 openid 为 [A-Za-z0-9_-] 的短串
+function openidField(v) {
+  const s = selectorField(v, 64);
+  return s && /^[A-Za-z0-9_-]+$/.test(s) ? s : null;
+}
+
 // 管理员密钥：只读环境变量 ADMIN_KEY（在 CloudBase 控制台配置）。
 // 未配置时 checkKey 直接拒绝一切请求（密钥不得落入仓库，历史泄露的密钥须视为已失效并轮换）。
+// 比较前双方各做一次 SHA-256：既避免长度差异泄露，也让 timingSafeEqual 可用于等长缓冲。
 function checkKey(event) {
   const key = process.env.ADMIN_KEY || '';
   if (!key) return false;
-  return typeof event.key === 'string' && event.key === key;
+  if (typeof event.key !== 'string') return false;
+  const a = crypto.createHash('sha256').update(event.key).digest();
+  const b = crypto.createHash('sha256').update(key).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 function pick(obj, keys) {
@@ -149,20 +166,22 @@ async function countByOpenid(coll, openIds) {
 }
 
 async function userDetail(openid) {
-  const u = await db
-    .collection('users')
-    .where({ _openid: openid })
-    .field({ nickname: true, avatar_url: true, status: true, banned_at: true, created_at: true })
-    .limit(1)
-    .get();
-  const [letters, recycled, opens, replies, drafts] = await Promise.all([
+  // 五项计数与会员状态互不依赖，和用户档案一并并发；旧版把这五项排成一批、
+  // 会员状态再单独串行一次，等于多一个往返（后台点开用户详情时才走这里）。
+  const [u, letters, recycled, opens, replies, drafts, m] = await Promise.all([
+    db
+      .collection('users')
+      .where({ _openid: openid })
+      .field({ nickname: true, avatar_url: true, status: true, banned_at: true, created_at: true })
+      .limit(1)
+      .get(),
     db.collection('letters').where({ _openid: openid, status: 'active' }).count(),
     db.collection('letters').where({ _openid: openid, status: 'recycled' }).count(),
     db.collection('open_records').where({ _openid: openid }).count(),
     db.collection('reply_records').where({ _openid: openid }).count(),
-    db.collection('drafts').where({ _openid: openid }).count()
+    db.collection('drafts').where({ _openid: openid }).count(),
+    db.collection('members').where({ _openid: openid }).limit(1).get()
   ]);
-  const m = await db.collection('members').where({ _openid: openid }).limit(1).get();
   const member = m.data[0] || null;
   return {
     user: u.data[0] || null,
@@ -211,19 +230,36 @@ function parseHttpEvent(event) {
   return body && typeof body === 'object' ? body : {};
 }
 
-const CORS_HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
+// 跨域来源：环境变量 ADMIN_ORIGIN（多个逗号分隔）配置后只回显白名单来源，
+// 非白名单不回 ACAO（浏览器侧拒绝），避免任意站点直接打这个端点做暴力破解。
+// 未配置时回落 '*' 以兼容既有部署 —— 此时务必在 HTTP 网关侧配置限流（见 admin/README.md）。
+const ADMIN_ORIGINS = (process.env.ADMIN_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function corsHeaders(rawEvent) {
+  const h = (rawEvent && rawEvent.headers) || {};
+  const origin = h.origin || h.Origin || '';
+  const base = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Headers': 'content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+  if (!ADMIN_ORIGINS.length) return Object.assign({ 'Access-Control-Allow-Origin': '*' }, base);
+  if (origin && ADMIN_ORIGINS.indexOf(origin) !== -1) {
+    return Object.assign({ 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }, base);
+  }
+  return base;
+}
 
 exports.main = async (event) => {
   const http = parseHttpEvent(event);
   if (!http) return handleAction(event);
-  if (http.options) return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+  const headers = corsHeaders(event);
+  if (http.options) return { statusCode: 204, headers, body: '' };
   const result = await handleAction(http);
-  return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(result) };
+  return { statusCode: 200, headers, body: JSON.stringify(result) };
 };
 
 async function handleAction(event) {
@@ -242,15 +278,18 @@ async function handleAction(event) {
         return { ok: true, themes: res.data };
       }
       case 'themeSave': {
-        if (!event.theme || !event.theme.theme_id || !event.theme.name) {
+        const theme = event.theme || {};
+        const themeId = selectorField(theme.theme_id, 64);
+        if (!themeId || typeof theme.name !== 'string' || !theme.name.trim()) {
           return { ok: false, error: 'theme_id 与 name 必填' };
         }
-        const r = await upsertConfig('themes', 'theme_id', event.theme);
+        const r = await upsertConfig('themes', 'theme_id', Object.assign({}, theme, { theme_id: themeId }));
         return { ok: true, ...r };
       }
       case 'themeDelete': {
-        if (!event.theme_id) return { ok: false, error: 'theme_id 必填' };
-        const r = await db.collection('themes').where({ theme_id: event.theme_id }).remove();
+        const themeId = selectorField(event.theme_id, 64);
+        if (!themeId) return { ok: false, error: 'theme_id 非法' };
+        const r = await db.collection('themes').where({ theme_id: themeId }).remove();
         return { ok: true, removed: r.stats.removed };
       }
       case 'themeSeed': {
@@ -260,7 +299,6 @@ async function handleAction(event) {
           if (!exists.data.length) {
             await db.collection('themes').add({
               data: Object.assign({}, t, {
-                pending: false,
                 status: 'online',
                 sort: SEED_THEMES.indexOf(t),
                 created_at: new Date(),
@@ -279,15 +317,18 @@ async function handleAction(event) {
         return { ok: true, papers: res.data };
       }
       case 'paperSave': {
-        if (!event.paper || !event.paper.paper_id || !event.paper.name) {
+        const paper = event.paper || {};
+        const paperId = selectorField(paper.paper_id, 64);
+        if (!paperId || typeof paper.name !== 'string' || !paper.name.trim()) {
           return { ok: false, error: 'paper_id 与 name 必填' };
         }
-        const r = await upsertConfig('papers', 'paper_id', event.paper);
+        const r = await upsertConfig('papers', 'paper_id', Object.assign({}, paper, { paper_id: paperId }));
         return { ok: true, ...r };
       }
       case 'paperDelete': {
-        if (!event.paper_id) return { ok: false, error: 'paper_id 必填' };
-        const r = await db.collection('papers').where({ paper_id: event.paper_id }).remove();
+        const paperId = selectorField(event.paper_id, 64);
+        if (!paperId) return { ok: false, error: 'paper_id 非法' };
+        const r = await db.collection('papers').where({ paper_id: paperId }).remove();
         return { ok: true, removed: r.stats.removed };
       }
       case 'paperSeed': {
@@ -354,17 +395,20 @@ async function handleAction(event) {
       }
       case 'eventsSummary': {
         const since7 = new Date(Date.now() - 7 * DAY);
-        const all = await db
-          .collection('events')
-          .aggregate()
-          .group({ _id: '$name', count: $.sum(1) })
-          .end();
-        const recent = await db
-          .collection('events')
-          .aggregate()
-          .match({ created_at: _.gte(since7) })
-          .group({ _id: '$name', count: $.sum(1) })
-          .end();
+        // 两个聚合互不依赖（全量 + 近 7 天），一次并发（旧版串行，看板每次打开多一个往返）
+        const [all, recent] = await Promise.all([
+          db
+            .collection('events')
+            .aggregate()
+            .group({ _id: '$name', count: $.sum(1) })
+            .end(),
+          db
+            .collection('events')
+            .aggregate()
+            .match({ created_at: _.gte(since7) })
+            .group({ _id: '$name', count: $.sum(1) })
+            .end()
+        ]);
         const recentMap = {};
         for (const row of recent.list) recentMap[row._id] = row.count;
         return {
@@ -378,11 +422,15 @@ async function handleAction(event) {
       // ── 用户管理（profile + count，零内容字段）──
       case 'userList': {
         const pageSize = 20;
-        const page = Math.max(1, Number(event.page) || 1);
+        const page = Math.min(500, Math.max(1, Number(event.page) || 1));
         const where = {};
-        if (event.status && event.status !== 'all') where.status = event.status;
-        if (event.keyword && String(event.keyword).trim()) {
-          where.nickname = db.RegExp({ regexp: escapeRegExp(String(event.keyword).trim()), options: 'i' });
+        // 枚举白名单：与面板筛选项一致（全部/正常/已封禁/已注销），避免任意值进入查询
+        if (event.status === 'active' || event.status === 'banned' || event.status === 'deactivated') {
+          where.status = event.status;
+        }
+        const keyword = selectorField(event.keyword, 64);
+        if (keyword) {
+          where.nickname = db.RegExp({ regexp: escapeRegExp(keyword), options: 'i' });
         }
         const base = Object.keys(where).length ? db.collection('users').where(where) : db.collection('users');
         const total = (await base.count()).total;
@@ -423,31 +471,34 @@ async function handleAction(event) {
         };
       }
       case 'userBan': {
-        if (!event.openid) return { ok: false, error: 'openid 必填' };
-        await db.collection('users').where({ _openid: event.openid }).update({
+        const openid = openidField(event.openid);
+        if (!openid) return { ok: false, error: 'openid 非法' };
+        await db.collection('users').where({ _openid: openid }).update({
           data: { status: 'banned', banned_at: new Date() }
         });
         return { ok: true };
       }
       case 'userUnban': {
-        if (!event.openid) return { ok: false, error: 'openid 必填' };
-        await db.collection('users').where({ _openid: event.openid }).update({
+        const openid = openidField(event.openid);
+        if (!openid) return { ok: false, error: 'openid 非法' };
+        await db.collection('users').where({ _openid: openid }).update({
           data: { status: 'active', banned_at: null }
         });
         return { ok: true };
       }
       case 'userDetail': {
-        if (!event.openid) return { ok: false, error: 'openid 必填' };
-        const d = await userDetail(event.openid);
+        const openid = openidField(event.openid);
+        if (!openid) return { ok: false, error: 'openid 非法' };
+        const d = await userDetail(openid);
         return { ok: true, ...d };
       }
 
       // ── 会员管理（members 集合：VIP 用户状态，后台预置，小程序本期仍为演示态）──
       case 'memberList': {
         const pageSize = 20;
-        const page = Math.max(1, Number(event.page) || 1);
+        const page = Math.min(500, Math.max(1, Number(event.page) || 1));
         const where = {};
-        if (event.state && event.state !== 'all') where.state = event.state;
+        if (event.state === 'vip' || event.state === 'free') where.state = event.state;
         const base = Object.keys(where).length ? db.collection('members').where(where) : db.collection('members');
         const total = (await base.count()).total;
         const res = await base
@@ -486,15 +537,19 @@ async function handleAction(event) {
         };
       }
       case 'memberGrant': {
-        const openid = (event.openid || '').trim();
-        if (!openid) return { ok: false, error: 'openid 必填' };
-        const plan = event.plan || 'month';
+        const openid = openidField(event.openid);
+        if (!openid) return { ok: false, error: 'openid 非法' };
+        // plan 只允许已知档位（PLAN_NAMES 的键），避免写入任意 level 字符串
+        const plan = PLAN_NAMES[event.plan] ? event.plan : 'month';
         const days = Number(event.days);
         if (!(days > 0) || days > 3650) return { ok: false, error: '有效期天数需为 1–3650' };
-        const userExists = (await db.collection('users').where({ _openid: openid }).count()).total > 0;
-        if (!userExists) return { ok: false, error: '该 openid 未建档（无此用户）' };
+        // 建档校验与现有会员记录互不依赖，一次并发（旧版串行，发卡多一个往返）
+        const [userExistsRes, found] = await Promise.all([
+          db.collection('users').where({ _openid: openid }).count(),
+          db.collection('members').where({ _openid: openid }).limit(1).get()
+        ]);
+        if (userExistsRes.total === 0) return { ok: false, error: '该 openid 未建档（无此用户）' };
         const now = new Date();
-        const found = await db.collection('members').where({ _openid: openid }).limit(1).get();
         let base = now.getTime();
         if (found.data.length && found.data[0].state === 'vip' && found.data[0].expires_at) {
           const t = new Date(found.data[0].expires_at).getTime();
@@ -521,8 +576,9 @@ async function handleAction(event) {
         return { ok: true, updated: false };
       }
       case 'memberRevoke': {
-        if (!event.openid) return { ok: false, error: 'openid 必填' };
-        const r = await db.collection('members').where({ _openid: event.openid }).update({
+        const openid = openidField(event.openid);
+        if (!openid) return { ok: false, error: 'openid 非法' };
+        const r = await db.collection('members').where({ _openid: openid }).update({
           data: { state: 'free', updated_at: new Date() }
         });
         return { ok: true, updated: (r.stats && r.stats.updated) || 0 };
@@ -531,7 +587,7 @@ async function handleAction(event) {
       // ── 会员专属内容（member_items 集合：专属版式/主题，后台增删改查）──
       case 'memberItemList': {
         const where = {};
-        if (event.kind && event.kind !== 'all') where.kind = event.kind;
+        if (event.kind === 'paper' || event.kind === 'theme') where.kind = event.kind;
         const base = Object.keys(where).length ? db.collection('member_items').where(where) : db.collection('member_items');
         const res = await base.orderBy('sort', 'asc').limit(200).get();
         return { ok: true, items: res.data };
@@ -541,13 +597,18 @@ async function handleAction(event) {
         if (!item.kind || (item.kind !== 'paper' && item.kind !== 'theme')) {
           return { ok: false, error: 'kind 必须为 paper / theme' };
         }
-        if (!item.item_id || !item.name) return { ok: false, error: 'item_id 与 name 必填' };
-        const r = await upsertMemberItem(item);
+        const itemId = selectorField(item.item_id, 64);
+        if (!itemId || typeof item.name !== 'string' || !item.name.trim()) {
+          return { ok: false, error: 'item_id 与 name 必填' };
+        }
+        const r = await upsertMemberItem(Object.assign({}, item, { item_id: itemId }));
         return { ok: true, ...r };
       }
       case 'memberItemDelete': {
-        if (!event.kind || !event.item_id) return { ok: false, error: 'kind 与 item_id 必填' };
-        const r = await db.collection('member_items').where({ kind: event.kind, item_id: event.item_id }).remove();
+        const kind = event.kind === 'paper' || event.kind === 'theme' ? event.kind : null;
+        const itemId = selectorField(event.item_id, 64);
+        if (!kind || !itemId) return { ok: false, error: 'kind 与 item_id 非法' };
+        const r = await db.collection('member_items').where({ kind: kind, item_id: itemId }).remove();
         return { ok: true, removed: r.stats.removed };
       }
       case 'memberItemSeed': {
@@ -573,7 +634,7 @@ async function handleAction(event) {
       //    其余内容字段红线照旧 —— letters/reply_records 永不读取）──
       case 'feedbackList': {
         const pageSize = 20;
-        const page = Math.max(1, Number(event.page) || 1);
+        const page = Math.min(500, Math.max(1, Number(event.page) || 1));
         const where = {};
         if (event.status === 'new' || event.status === 'done') where.status = event.status;
         const base = Object.keys(where).length
@@ -604,8 +665,8 @@ async function handleAction(event) {
         };
       }
       case 'feedbackDetail': {
-        const id = (event.id || '').trim();
-        if (!id) return { ok: false, error: 'id 必填' };
+        const id = selectorField(event.id, 64);
+        if (!id) return { ok: false, error: 'id 非法' };
         const doc = await db.collection('feedback').doc(id).get().catch(() => null);
         if (!doc || !doc.data) return { ok: false, error: '反馈不存在或已被删除' };
         const f = doc.data;
@@ -634,8 +695,8 @@ async function handleAction(event) {
         };
       }
       case 'feedbackUpdate': {
-        const id = (event.id || '').trim();
-        if (!id) return { ok: false, error: 'id 必填' };
+        const id = selectorField(event.id, 64);
+        if (!id) return { ok: false, error: 'id 非法' };
         if (event.status !== 'new' && event.status !== 'done') {
           return { ok: false, error: 'status 需为 new / done' };
         }
@@ -652,8 +713,8 @@ async function handleAction(event) {
         return { ok: true, updated: (r.stats && r.stats.updated) || 0 };
       }
       case 'feedbackDelete': {
-        const id = (event.id || '').trim();
-        if (!id) return { ok: false, error: 'id 必填' };
+        const id = selectorField(event.id, 64);
+        if (!id) return { ok: false, error: 'id 非法' };
         const doc = await db.collection('feedback').doc(id).get().catch(() => null);
         const images =
           doc && doc.data && Array.isArray(doc.data.images) ? doc.data.images.slice(0, 50) : [];
@@ -668,6 +729,8 @@ async function handleAction(event) {
         return { ok: false, error: 'unknown action' };
     }
   } catch (e) {
-    return { ok: false, error: e.message };
+    // 错误详情只进日志：不回传 DB/SDK 原始 message（集合名、索引提示等便于侦察）
+    console.error('[admin] action 失败', action, e);
+    return { ok: false, error: 'internal error' };
   }
 };

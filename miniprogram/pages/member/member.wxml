@@ -10,8 +10,24 @@
   <view class="page-note">一张金卡信纸，安放下你的专属与长久。</view>
 
   <!-- 会员状态卡 -->
+  <!-- 会员态未定（首帧无可用的本会话缓存，回源在路上）：只画中性骨架。
+       不预告「还未开通会员」—— 否则 VIP 用户进页面会先闪一屏开通引导。 -->
+  <view wx:if="{{state === 'loading'}}" class="status-card loading">
+    <view class="status-free-top">
+      <view class="skeleton sk-title"></view>
+      <view class="skeleton sk-seal"></view>
+    </view>
+    <view class="skeleton sk-desc"></view>
+    <view class="status-points">
+      <view class="skeleton sk-point"></view>
+      <view class="skeleton sk-point"></view>
+      <view class="skeleton sk-point"></view>
+    </view>
+    <view class="skeleton sk-btn"></view>
+  </view>
+
   <!-- 未开通态：虚线描边引导 -->
-  <view wx:if="{{state === 'free'}}" class="status-card free">
+  <view wx:elif="{{state === 'free'}}" class="status-card free">
     <view class="status-free-top">
       <view class="status-free-title">还未开通会员</view>
       <view class="status-seal seal-plain">VIP</view>
@@ -22,7 +38,7 @@
       <text class="status-point">📮 专属主题信封</text>
       <text class="status-point">🌱 信封不限量</text>
     </view>
-    <view class="btn-primary status-btn" hover-class="btn-primary" bindtap="openSheet">立即开通</view>
+    <view class="btn-primary status-btn" hover-class="btn-primary-hover" bindtap="openSheet">立即开通</view>
   </view>
 
   <!-- 已开通态：金色卡片 + 火漆 -->
@@ -50,7 +66,7 @@
         <text class="meta-value">专属版式 · 信封不限</text>
       </view>
     </view>
-    <view class="btn-primary status-btn" hover-class="btn-primary" bindtap="openSheet">续费</view>
+    <view class="btn-primary status-btn" hover-class="btn-primary-hover" bindtap="openSheet">续费</view>
   </view>
 
   <!-- 权益清单 -->
@@ -63,7 +79,7 @@
         <view class="benefit-desc">{{item.desc}}</view>
       </view>
       <view wx:if="{{item.unlocked}}" class="benefit-badge on">已解锁</view>
-      <view wx:else class="benefit-badge">未解锁</view>
+      <view wx:elif="{{state !== 'loading'}}" class="benefit-badge">未解锁</view>
     </view>
   </view>
 
@@ -80,7 +96,7 @@
           </view>
           <view class="show-name">{{item.name}}</view>
           <view wx:if="{{state === 'vip'}}" class="show-state unlocked">✓</view>
-          <view wx:else class="show-state">🔒</view>
+          <view wx:elif="{{state === 'free'}}" class="show-state">🔒</view>
         </view>
       </view>
     </scroll-view>
@@ -94,7 +110,7 @@
           <view wx:else class="theme-preview" style="background: {{item.swatch || item.palette.base}};"></view>
           <view class="show-name">{{item.name}}</view>
           <view wx:if="{{state === 'vip'}}" class="show-state unlocked">✓</view>
-          <view wx:else class="show-state">🔒</view>
+          <view wx:elif="{{state === 'free'}}" class="show-state">🔒</view>
         </view>
       </view>
     </scroll-view>
@@ -127,7 +143,7 @@
       <view class="agree-check {{agreed ? 'agree-check-on' : ''}}">{{agreed ? '✓' : ''}}</view>
       <view class="agree-text">开通即表示同意<text class="agree-link">《会员服务协议》</text></view>
     </view>
-    <view class="btn-primary sheet-btn" hover-class="btn-primary" bindtap="onConfirmPay">{{payText}}</view>
+    <view class="btn-primary sheet-btn" hover-class="btn-primary-hover" bindtap="onConfirmPay">{{payText}}</view>
   </view>
 
   <!-- 开通成功完成幕（点击任意处跳过） -->
@@ -141,11 +157,11 @@
   <!-- 专属信纸示例预览：真实版式模板渲染（与写信第二步/详情同构），点击遮罩关闭 -->
   <view class="sample-mask" wx:if="{{showPaperPreview}}" bindtap="onClosePaperPreview">
     <view class="sample-stage" style="background: {{previewDesk}};">
-      <template is="paper-letter" data="{{ v: previewView, paper: previewPaper, handOff: handwritingOff }}" />
+      <template is="paper-letter" data="{{ v: previewView, paper: previewPaper }}" />
     </view>
     <view class="sample-bar" catchtap="noop">
       <view class="sample-name">{{previewPaper.name}} · {{previewPaper.desc}}</view>
-      <view class="btn-primary sample-btn" hover-class="btn-primary" catchtap="onUnlockFromPreview">{{state === 'vip' ? '已解锁 · 写信时可用' : '开通会员解锁'}}</view>
+      <view class="btn-primary sample-btn" hover-class="btn-primary-hover" catchtap="onUnlockFromPreview">{{state === 'vip' ? '已解锁 · 写信时可用' : (state === 'free' ? '开通会员解锁' : '正在读取会员状态…')}}</view>
       <view class="sample-close" catchtap="onClosePaperPreview">点击任意处关闭</view>
     </view>
   </view>

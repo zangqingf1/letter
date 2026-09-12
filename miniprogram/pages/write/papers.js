@@ -1,7 +1,7 @@
 // 信纸版式配置（信纸自持改版：版式 = 固定纸色 + 固定排版，不再取主题 palette；
 // 主题只绑定信封与桌面底色，切主题不影响信纸画面）。
 // colors 是每套版式配色的唯一事实来源：详情/写信预览的 WXSS 与分享页 Canvas
-// （share.js drawXxxStyle）都必须与本表数值一致，改色请只改这里并同步两处。
+// （share.js 按 paper-specs.js 取色）都必须与本表数值一致，改色请只改这里并同步两处。
 // 版本规则与主题相同：信件锁定创建时的 paper_version。旧四款（su/airmail/notebook/weave）
 // 已移除，老信件未知 paper_id 由 paperOf 回落本列表第一套（留白志）。
 // 航空笺为新 id airmail2（旧 airmail 老信件不自动迁移，维持回落留白志）。
@@ -48,7 +48,7 @@ module.exports = [
   },
 
   // ── 会员专属版式（premium:true，后台 member_items kind='paper' 下发，与 admin seed 手工同步）──
-  // 通用专属模板渲染（styles/paper.wxml pl-premium 分支 + share.js drawPremiumStyle），
+  // 通用专属模板渲染（styles/paper.wxml pl-premium 分支 + paper-specs.js 的 premium 规格），
   // 只取 colors.bg/ink/gold 三色；后台改配色即生效，无需改代码。
   {
     id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, premium: true,

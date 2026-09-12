@@ -30,11 +30,13 @@ function sameDay(a, b) {
 
 // 收起态邮戳展示上限（最早 5 枚 + 今天，其余收进「+N 展开」，对应低保真状态 2）
 const SHOW_STAMPS = 6;
+// 拆信动画时长；REVEAL_CAP_MS 是揭幕兜底 —— 数据迟迟不到也不让页面停在动画上
+const OPEN_ANIM_MS = 1300;
+const REVEAL_CAP_MS = 4000;
 
 Page({
   data: {
     statusBarHeight: 20,
-    handwritingOff: false, // 无障碍开关：关闭手写体（全局设置）
     letter: { name: '', question: '', answer: '' },
     theme: THEMES[0],
     paper: PAPERS[0],
@@ -49,7 +51,6 @@ Page({
     opening: true, // 拆信动画播放中
     openStampText: '',
     replyOpen: false,
-    replyText: '',
     todayLongText: '',
     keyboardHeight: 0,
     noteToast: false
@@ -58,21 +59,23 @@ Page({
   onLoad(options) {
     const win = wx.getWindowInfo();
     this.setData({
-      statusBarHeight: win.statusBarHeight || 20,
-      // TODO: 我的页提供开关入口，统一读写该存储键
-      handwritingOff: wx.getStorageSync('handwriting_off') === true
+      statusBarHeight: win.statusBarHeight || 20
     });
+
+    // 入口页带过来的主题/名称：让拆信动画首帧就画对这封信的信封与名字
+    this.listenUnsealHint();
 
     this.loadLetter(options && options.id);
 
-    // 拆信动画播完自动进入阅读态（点击任意处可跳过）
-    this.openTimer = setTimeout(() => {
-      this.setData({ opening: false });
-    }, 1300);
+    // 揭幕 = 动画播完 且 数据就绪（见 revealIfReady）：数据晚于动画时停在拆信幕上，
+    // 避免先露一张空白信纸；revealCap 兜住加载异常，不让页面永久停在动画
+    this.openTimer = setTimeout(() => this.onAnimDone(), OPEN_ANIM_MS);
+    this.revealCap = setTimeout(() => this.onDataReady(), REVEAL_CAP_MS);
   },
 
   onUnload() {
     if (this.openTimer) clearTimeout(this.openTimer);
+    if (this.revealCap) clearTimeout(this.revealCap);
   },
 
   onShow() {
@@ -87,9 +90,16 @@ Page({
   },
 
   // 读取信件（经 letter 服务：真实寄出的信优先，否则演示数据预览态）并记录重读。
+  // record: true → 云端在 letter.get 同一次调用内落重读记录并返回邮戳墙（BR-09，同日幂等），
+  // 页面不再单独打一次 open 云函数：渲染路径上只有一轮云函数往返。
   // isRefresh：从编辑/分享返回后的内容刷新，不重复上报拆信埋点（BR-09 今日记录本就幂等）
   loadLetter(id, isRefresh) {
-    Promise.all([letterService.get(id), themeService.getThemes(), themeService.getPapers(), memberService.getMembership()]).then(([res, themes, papers, m]) => {
+    Promise.all([
+      letterService.get(id, { record: true }),
+      themeService.getThemes(),
+      themeService.getPapers(),
+      memberService.getMembership()
+    ]).then(([res, themes, papers, m]) => {
       const letter = res.letter;
       const isVip = !!(m && m.state === 'vip');
       this.isDemo = res.isDemo;
@@ -100,37 +110,33 @@ Page({
       // 信纸版式解析（未知/缺失 paper_id 回落列表第一套；非 VIP 专属版式同样回落默认）
       const paper = themeService.paperOf(letter.paper_id, papers, isVip);
       const today = new Date();
+      const created = new Date(letter.created_at);
+      // 落款长日期（三端同口径）：写于
+      const dateText = longDate(created);
+      // 信纸渲染数据（票面日期/编号/首字下沉等由此派生，与预览/分享一致）
+      const view = buildView(letter, { created: created, dateText: dateText });
 
-      // BR-09：拆信一次即产生一条重读记录（仅日期，用户不可编辑/删除；同日不重复，
-      // 服务内部去重并落库），返回全量邮戳时间戳供邮戳墙渲染
-      letterService.recordOpen(letter).then((opens) => {
-        letter.opens = opens || [];
-        const created = new Date(letter.created_at);
-        // 落款长日期（三端同口径）：写于
-        const dateText = longDate(created);
-        // 信纸渲染数据（票面日期/编号/首字下沉等由此派生，与预览/分享一致）
-        const view = buildView(letter, { created: created, dateText: dateText });
+      if (!isRefresh) track('letter_open', { letter_id: letter.id });
 
-        if (!isRefresh) track('letter_open', { letter_id: letter.id });
-
-        // 一次 setData 带齐主信、邮戳墙与回信流（原生层只通信一次）
-        this.setData({
-          letter,
-          theme,
-          paper,
-          view,
-          pinned: !!letter.pinned,
-          openStampText: pad2(today.getMonth() + 1) + '.' + pad2(today.getDate()),
-          todayLongText: today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日',
-          ...this.buildRecords(letter.opens),
-          ...this.buildReplies(letter.replies || [])
-        });
-      })
-      .catch((err) => console.error('[detail] 重读记录上报失败', err));
+      // 一次 setData 带齐主信、邮戳墙与回信流（原生层只通信一次）
+      this.setData({
+        letter,
+        theme,
+        paper,
+        view,
+        pinned: !!letter.pinned,
+        openStampText: pad2(today.getMonth() + 1) + '.' + pad2(today.getDate()),
+        todayLongText: today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日',
+        ...this.buildRecords(letter.opens || []),
+        ...this.buildReplies(letter.replies || [])
+      });
+      this.onDataReady();
     })
     .catch((err) => {
       console.error('[detail] 信件读取失败', err);
       wx.showToast({ title: '这封信暂时取不出来，稍后再来试试', icon: 'none' });
+      // 失败也要揭幕：停在拆信幕上更像卡死（原因已由 Toast 说明）
+      this.onDataReady();
     });
   },
 
@@ -179,13 +185,52 @@ Page({
     return { replyCount: list.length, replies: list };
   },
 
-  // ── 拆信动画 ──
-  onSkipOpen() {
+  // ── 拆信动画 / 揭幕 ──
+  // 入口页（信匣 / 回形针列表）手里已有这封信的名称与主题，经事件通道带过来：
+  // 拆信动画首帧就画对信封与名字，不必等云调用回来（emit 早于监听时由通道缓冲）
+  listenUnsealHint() {
+    const ch = this.getOpenerEventChannel && this.getOpenerEventChannel();
+    if (!ch || !ch.on) return;
+    ch.on('letterHint', (d) => {
+      // 真实数据已落地就不再覆盖：主题提示可能是会员专属款，会盖掉 loadLetter 里的非 VIP 回落
+      if (!d || this._dataReady) return;
+      const patch = {};
+      const theme = themeService.cachedThemes().find((t) => t.id === d.theme_id);
+      if (theme) patch.theme = theme;
+      if (d.name) patch.letter = Object.assign({}, this.data.letter, { name: d.name });
+      if (Object.keys(patch).length) this.setData(patch);
+    });
+  },
+
+  // 动画播完 / 点击跳过：跳过只跳过动画，不跳过数据 —— 数据没到就揭幕等于先露一张白纸
+  onAnimDone() {
     if (this.openTimer) {
       clearTimeout(this.openTimer);
       this.openTimer = null;
     }
+    this._animDone = true;
+    this.revealIfReady();
+  },
+
+  // 数据就绪（拿到信件 / 读取失败 / 兜底超时）
+  onDataReady() {
+    if (this.revealCap) {
+      clearTimeout(this.revealCap);
+      this.revealCap = null;
+    }
+    this._dataReady = true;
+    this.revealIfReady();
+  },
+
+  // 揭幕：动画与数据都就绪才撤下拆信幕
+  revealIfReady() {
+    if (this._revealed || !this._animDone || !this._dataReady) return;
+    this._revealed = true;
     this.setData({ opening: false });
+  },
+
+  onSkipOpen() {
+    this.onAnimDone();
   },
 
   onTapBack() {
@@ -203,21 +248,29 @@ Page({
   },
 
   // ── 回信弹层 ──
+  // 输入内容不放 data：文本域自己持有，逐键 setData 会让每次按键都过一次渲染层
+  // （本页很重：信纸模板 + 邮戳墙 + 便签流，低端机上表现为输入卡顿/丢字）。
+  // 草稿存实例字段 _replyDraft，提交时读；弹层是 wx:if 挂载的，重开即空白文本域。
   onOpenReply() {
+    this._replyDraft = '';
     this.setData({ replyOpen: true, keyboardHeight: 0 });
   },
 
   onCloseReply() {
-    this.setData({ replyOpen: false, replyText: '', keyboardHeight: 0 });
+    this._replyDraft = '';
+    this.setData({ replyOpen: false, keyboardHeight: 0 });
   },
 
   onReplyInput(e) {
-    this.setData({ replyText: e.detail.value });
+    this._replyDraft = e.detail.value;
   },
 
-  // 软键盘避让：弹层整体向上推升（抽屉 padding-bottom 抬到键盘上方）
+  // 软键盘避让：弹层整体向上推升（抽屉 padding-bottom 抬到键盘上方）。
+  // keyboardheightchange 在键盘动画期间会连发多次，高度没变就不重复 setData
   onKeyboard(e) {
-    this.setData({ keyboardHeight: (e.detail && e.detail.height) || 0 });
+    const height = (e.detail && e.detail.height) || 0;
+    if (height === this.data.keyboardHeight) return;
+    this.setData({ keyboardHeight: height });
   },
 
   onKeyboardBlur() {
@@ -227,23 +280,26 @@ Page({
   noop() {},
 
   onSaveReply() {
-    const text = (this.data.replyText || '').trim();
+    const text = (this._replyDraft || '').trim();
     if (!text) {
       wx.showToast({ title: '写点什么再贴吧', icon: 'none' });
       return;
     }
     const letter = this.data.letter;
+    // 先收键盘再发起写请求：贴上是网络操作（云函数首次调用含冷启动，可能到秒级），
+    // 不让用户对着弹出的键盘干等；失败时弹层与文本域内容都原样留着，可直接重试
+    if (wx.hideKeyboard) wx.hideKeyboard();
     // 回信经 letter 服务落库（BR-10：日期自动生成不可改），返回更新后的回信数组；
     // 失败保留输入内容并提示，不关闭弹层（用户可重试）
     letterService.addReply(letter, text).then((replies) => {
       track('reply_add', { letter_id: letter.id });
+      this._replyDraft = '';
 
       // 一次 setData 带齐信件、回信流与弹层关闭态
       this.setData({
         letter,
         ...this.buildReplies(replies || []),
         replyOpen: false,
-        replyText: '',
         keyboardHeight: 0,
         noteToast: true
       });
@@ -288,7 +344,7 @@ Page({
     // 经事件通道传入完整信件（演示数据不在 letters_mock 中也能预填）
     const l = this.data.letter;
     wx.navigateTo({
-      url: '/pages/write/write?mode=edit&id=' + l.id,
+      url: '/pages/write/write?mode=edit&id=' + encodeURIComponent(l.id),
       success: (res) => {
         res.eventChannel.emit('letterData', {
           editMode: true,
@@ -319,7 +375,7 @@ Page({
 
   onTapShare() {
     // 进入分享明信片预览页（重读记录与回信永不入图 BR-15，在分享页内保证）
-    wx.navigateTo({ url: '/pages/share/share?id=' + this.data.letter.id });
+    wx.navigateTo({ url: '/pages/share/share?id=' + encodeURIComponent(this.data.letter.id) });
   },
 
   onTapDelete() {
