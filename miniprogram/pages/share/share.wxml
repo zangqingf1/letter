@@ -1,6 +1,9 @@
-<!-- 04 · 分享图 · 明信片预览（信纸自持版式 + 底部小程序条，与导出图同构；名称/问题/答案/写信日期固定全入图，重读记录与回信永不入图 BR-15） -->
+<!-- 04 · 分享图 · 明信片预览（预览区直接显示生成好的明信片文件本身，预览的像素即导出件的像素；
+     名称/问题/答案/写信日期固定全入图，重读记录与回信永不入图 BR-15）
+     paper.wxml 模板只在出图失败时作为降级预览使用，不再是预览的常规渲染路径
+     页面背景随主题：desk 桌面色（这封信的主题氛围），缺省回落 #F4F3EE -->
 <import src="../../styles/paper.wxml" />
-<view class="page" style="padding-top: {{statusBarHeight}}px;">
+<view class="page" style="padding-top: {{statusBarHeight}}px; background: {{theme.desk || '#F4F3EE'}};">
 
   <!-- 顶部轻导航：‹ 返回 + 居中标题 -->
   <view class="nav">
@@ -8,10 +11,28 @@
     <view class="nav-title">预览分享明信片</view>
   </view>
 
-  <!-- 明信片预览区：信纸自持版式（号外/蓝图/票根/标语/几何/黑胶，与写信预览/详情阅读完全同构；
-       高度随内容自适应，长信可滚动预览）+ 底部小程序条，与导出图同构 -->
+  <!-- 预览区（方案 A：预览的像素 = 导出件的像素）
+       ① shot     —— 直接显示生成好的明信片文件本身，等比缩放（长图可滚动，点击全屏放大）
+       ② loading  —— 出图中的空白纸骨架：纸色取当前版式、高度先按成品等比占住，换图时不跳高
+       ③ fallback —— 出图失败才回落到 WXML 版式预览（降级路径，不再参与「预览即成品」口径） -->
   <view class="stage">
-    <view class="postcard">
+    <image
+      wx:if="{{stage === 'shot'}}"
+      class="shot"
+      src="{{shotSrc}}"
+      mode="widthFix"
+      bindtap="onPreviewShot"
+    />
+
+    <view
+      wx:elif="{{stage === 'loading'}}"
+      class="shot-sk"
+      style="height: {{shotH}}rpx; background: {{paper.colors.bg}}; color: {{paper.colors.ink || paper.colors.text || paper.colors.body || '#33302A'}};"
+    >
+      <view class="shot-sk-tip">正在冲印这张明信片…</view>
+    </view>
+
+    <view wx:else class="postcard">
       <template is="paper-letter" data="{{ v: view, paper: paper }}" />
 
       <!-- 底部小程序条：火漆 Logo + 品牌文案 + 小程序码 -->

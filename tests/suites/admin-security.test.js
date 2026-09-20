@@ -256,12 +256,12 @@ suite('admin · 会员与反馈运营动作', () => {
   test('memberGrant 写 vip 并按 plan 记档位名', async () => {
     const { h, call } = admin();
     h.seed('users', { _openid: 'openid-A', nickname: 'A', status: 'active', created_at: new Date() });
-    const r = await call({ action: 'memberGrant', openid: 'openid-A', plan: 'year', days: 365 });
+    const r = await call({ action: 'memberGrant', openid: 'openid-A', plan: 'year', days: 366 });
     eq(r.ok, true);
     const m = h.all('members')[0];
     eq(m.state, 'vip');
     eq(m.plan_name, '年卡');
-    eq(m.total_days, 365);
+    eq(m.total_days, 366);
     eq(m.granted_by, 'admin');
   });
 

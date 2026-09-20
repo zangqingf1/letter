@@ -2,6 +2,7 @@
 /* 信纸版式装饰与排版：共享样式（styles/paper.wxss，与写信预览/分享同构） */
 @import "../../styles/paper.wxss";
 
+/* 页面背景随主题：WXML 内联绑 theme.desk（与拆信幕同源），这里只是绑定缺失时的兜底 */
 .page {
   display: flex;
   flex-direction: column;
@@ -326,7 +327,9 @@
   box-shadow: 0 4rpx 16rpx rgba(196, 164, 130, 0.35);
 }
 
-/* ── 拆信动画（约 1.2s，可点击跳过；纸张物理感：仅位移/淡入淡出，无弹跳闪光） ── */
+/* ── 拆信动画（约 1.2s，可点击跳过；纸张物理感：仅位移/淡入淡出，无弹跳闪光）
+   背景色随主题：WXML 内联绑 theme.desk（主题桌面底色），这里的 #EDE9DC 只是
+   绑定缺失时的兜底（= 默认款 desk，与历史行为一致） ── */
 .unseal {
   position: fixed;
   top: 0;
@@ -393,10 +396,13 @@
     transform: translateY(0) scale(1.1);
   }
 }
-/* 信封：微浮起（阴影加深）→ 淡出移出屏幕 */
+/* 信封：微浮起（阴影加深）→ 淡出移出屏幕。
+   min-height 预留信封位（素材统一宽高比 890×616 ≈ 560rpx 宽 → 388rpx 高）：
+   云端信封图迟到时名字/邮戳的位置不跳；无交接等云函数的空档也不再塌成一条 */
 .us-env {
   position: absolute;
   width: 560rpx;
+  min-height: 388rpx;
   z-index: 2;
   animation: env-out 1.25s ease forwards;
 }
@@ -405,6 +411,25 @@
   width: 100%;
   border-radius: 14rpx;
   box-shadow: 0 10rpx 32rpx rgba(80, 100, 90, 0.2);
+}
+/* 云端素材（cloud://）的信封：挂载即透明，bindload 后切 in 类淡入浮现
+   （见 detail.js 的 envFade / onEnvImgLoad）；包内素材不挂 fade，首帧即完整呈现 */
+.us-env-img.fade {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+.us-env-img.fade.in {
+  opacity: 1;
+}
+/* 信封大图的预取节点：挪到屏幕外只为触发加载（见 detail.js 的 onEnvFullLoaded），
+   绝对定位所以不参与布局，也不影响 .us-env 由小图撑开的高度 */
+.us-env-pre {
+  position: absolute;
+  left: -2000rpx;
+  top: 0;
+  width: 10rpx;
+  height: 10rpx;
+  opacity: 0;
 }
 @keyframes env-out {
   0% {

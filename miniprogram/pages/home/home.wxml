@@ -98,7 +98,9 @@
         bindtap="onTapLetter"
       >
         <view class="env-wrap">
-          <image class="env-img" src="{{item.env}}" mode="aspectFill" lazy-load />
+          <!-- 信封不做进入视口懒加载：点开视口外的信时，云端主题的缩略图必须已在缓存里，
+               否则拆信幕首帧无图可命中（见 detail.js envPatchOf） -->
+          <image class="env-img" src="{{item.env}}" mode="aspectFill" />
           <view wx:if="{{item.pinned}}" class="clip-wrap">
             <image class="clip" src="/assets/clip.png" mode="aspectFit" />
           </view>
@@ -114,5 +116,11 @@
     <image class="float-mailbox" src="/assets/mailbox.png" mode="aspectFit" />
   </view>
   </block>
+
+  <!-- 点开信件时的信封预取节点（见 openDetail）：屏幕外挂载只为触发下载，图片缓存按 URL
+       全局共享，详情页拆信幕的两级 src 因此大概率直接命中，不必从点击那一刻才开始走
+       「fileID→临时URL→下载」 -->
+  <image wx:if="{{preEnv}}" class="env-pre" src="{{preEnv}}" />
+  <image wx:if="{{preEnvFull}}" class="env-pre" src="{{preEnvFull}}" />
 
 </view>

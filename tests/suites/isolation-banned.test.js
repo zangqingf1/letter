@@ -334,6 +334,23 @@ suite('主题下发 · theme', () => {
     eq(r.themes[0].id, 'a');
   });
 
+  test('缩略信封原样下发：列表页才用得上小图', async () => {
+    const h = createHarness();
+    const BIG = 'cloud://env.bucket/theme/yinhua/envelope.jpg';
+    const THUMB = 'cloud://env.bucket/theme/yinhua/envelope-thumb.jpg';
+    h.seed('themes', { theme_id: 'yinhua', name: '印花', status: 'online', sort: 1, assets: { envelope: BIG, envelopeThumb: THUMB } });
+    h.seed('themes', { theme_id: 'noassets', name: '无素材', status: 'online', sort: 2 });
+    h.seed('member_items', { kind: 'theme', item_id: 'vip_theme', name: '专属主题', status: 'online', sort: 1, assets: { envelope: BIG, envelopeThumb: THUMB } });
+    const main = h.load('theme');
+    const r = await main({ action: 'list' });
+
+    // 早期漏下发 envelopeThumb，前端 `t.envelopeThumb || t.envelope` 就退化成用大图当缩略图
+    eq(r.themes.find((t) => t.id === 'yinhua').envelopeThumb, THUMB, '官方款的缩略图必须下发');
+    eq(r.themes.find((t) => t.id === 'vip_theme').envelopeThumb, THUMB, '专属款的缩略图必须下发');
+    // 没配缩略图时是空串（前端按真值回落大图），不能是 undefined 之外的怪值
+    eq(r.themes.find((t) => t.id === 'noassets').envelopeThumb, '', '缺素材时为空串，由前端回落大图');
+  });
+
   test('会员专属款并入下发并带 premium 标记', async () => {
     const h = createHarness();
     h.seed('themes', { theme_id: 'xiaowangzi', name: '小王子', status: 'online', sort: 1 });

@@ -13,8 +13,8 @@ const FAKE_KEY = 'test-key-not-a-real-secret';
 
 // 每档道具 productId（与 cloudfunctions/member/config.js 同源）
 const PRODUCT = { month: 'vip_month', quarter: 'vip_quarter', year: 'vip_year' };
-const PRICE = { month: 100, quarter: 2590, year: 9990 };
-const DAYS = { month: 30, quarter: 90, year: 365 };
+const PRICE = { month: 990, quarter: 2590, year: 9990 };
+const DAYS = { month: 31, quarter: 93, year: 366 };
 
 /** 构造一条「平台发货推送」正文（字段名照抄微信文档） */
 function notifyBody({ openid, outTradeNo, productId, actualPrice, mchOrderNo }) {
@@ -166,7 +166,7 @@ suite('会员支付 · 发货安全', () => {
     const r = await main(body);
     eq(r.ErrCode, 0, '合法推送应成功');
     const m = h.all('members')[0];
-    eq(m.total_days, DAYS.month, '天数必须取订单 plan=month（30 天）');
+    eq(m.total_days, DAYS.month, '天数必须取订单 plan=month（31 天）');
     eq(m.plan_name, '月卡');
   });
 
@@ -234,11 +234,11 @@ suite('会员支付 · 发货安全', () => {
     const r = await main(notifyBody({ openid: 'openid-A', outTradeNo, productId: PRODUCT.quarter }));
     eq(r.ErrCode, 0);
     const m = h.all('members')[0];
-    eq(m.total_days, 30 + DAYS.quarter, '总天数应累计为 30+90');
+    eq(m.total_days, 30 + DAYS.quarter, '总天数应累计为 30+93');
     const expected = future.getTime() + DAYS.quarter * DAY;
     ok(
       Math.abs(new Date(m.expires_at).getTime() - expected) < 2000,
-      '应在剩余到期日上顺延 90 天，实际到期 ' + new Date(m.expires_at).toISOString()
+      '应在剩余到期日上顺延 93 天，实际到期 ' + new Date(m.expires_at).toISOString()
     );
   });
 

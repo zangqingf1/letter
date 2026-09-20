@@ -1,8 +1,17 @@
 const { DATA_SOURCE, CLOUD_ENV } = require('./config/env.js');
 const userService = require('./services/user.js');
+const privacyService = require('./services/privacy.js');
 
 App({
+  // 页面间同步交接槽的容器：跳转前写入、目标页 onLoad 同步取用（services/handoff.js）
+  globalData: {},
+
   onLaunch() {
+    // 隐私授权预检：提前问一次「是否需要同意《用户隐私保护指引》」并缓存结果，
+    // 让换头像、反馈传截图、保存明信片这些隐私接口在用户点击时零等待。
+    // 静默执行：不弹窗、不阻塞启动（弹窗时机交给用户真正点击时，见 services/privacy.js）
+    privacyService.precheck();
+
     // 心灵信箱：首次进入不强制登录（PRD 第六节）
     if (DATA_SOURCE === 'cloud' && wx.cloud) {
       wx.cloud.init({ env: CLOUD_ENV, traceUser: true });

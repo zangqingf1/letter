@@ -2,3 +2,16 @@ node_modules/
 .DS_Store
 Thumbs.db
 .zcode/
+
+# 临时输出（preflight / 验证脚本产物）
+pf-err.txt
+pf-out.txt
+preflight-out.txt
+scripts/tmp-verify.js
+scripts/verify-log.txt
+
+# 本地 agent 工作数据
+.workbuddy/
+
+# 设计源素材（不入库）
+picture/

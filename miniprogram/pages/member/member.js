@@ -30,9 +30,9 @@ const PAY_ERROR_HINTS = {
 
 // 订阅档位（一次性月卡/季卡/年卡；价格须与 MP 后台「道具管理」发布道具一致）
 const PLANS = [
-  { id: 'month', name: '月卡', price: 1, unit: '¥', period: '/30 天', tag: '30 天有效期' },
-  { id: 'quarter', name: '季卡', price: 25.9, unit: '¥', period: '/90 天', tag: '90 天有效期' },
-  { id: 'year', name: '年卡', price: 99.9, unit: '¥', period: '/365 天', tag: '最划算 · 约合 8.3 元/月' }
+  { id: 'month', name: '月卡', price: 9.9, unit: '¥', period: '/31 天', tag: '31 天有效期' },
+  { id: 'quarter', name: '季卡', price: 25.9, unit: '¥', period: '/93 天', tag: '93 天有效期' },
+  { id: 'year', name: '年卡', price: 99.9, unit: '¥', period: '/366 天', tag: '最划算 · 约合 8.2 元/月' }
 ];
 
 // 从 theme 服务下发的列表里挑出会员专属款（后台 member_items 标记 premium:true）。

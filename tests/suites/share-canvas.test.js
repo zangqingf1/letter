@@ -19,6 +19,7 @@
  * wx-server-sdk，不读这两个全局，因此不会互相影响。
  */
 const path = require('path');
+const fs = require('fs');
 const { suite, test, ok, eq } = require('../runner');
 
 const MINI_ROOT = path.resolve(__dirname, '..', '..', 'miniprogram') + path.sep;
@@ -55,7 +56,7 @@ function fakeCtx() {
       }
       return { width: w };
     },
-    save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, clip() {},
+    save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, transform() {}, clip() {},
     beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, rect() {}, arcTo() {},
     arc(x, y, r) {
       assertFinite('arc', [x, y, r]);
@@ -123,7 +124,13 @@ const VIEW = {
   dateLong: '2026年9月12日',
   serial: 'NO.20260912',
   serialNo: '20260912',
-  dwgNo: '2026-0912'
+  dwgNo: '2026-0912',
+  mon2: '09',
+  day2: '12',
+  dayNum: '12',
+  cnMonth: '九月',
+  enMonth: 'SEPTEMBER',
+  weekdayCn: '星期六'
 };
 
 const json = (v) => JSON.parse(JSON.stringify(v));
@@ -173,6 +180,24 @@ suite('分享图版面（Canvas ↔ paper.wxss 同构）', () => {
   test('未知 paper_id 回落黑胶唱片（与 paper.wxml 的 wx:else 同口径）', () => {
     eq(specs.specOf({ id: 'su-v1-removed' }), specs.SPECS.vinyl, '旧版式 id 应回落 vinyl');
     eq(specs.specOf({ id: 'airmail-old' }), specs.SPECS.vinyl);
+  });
+
+  test('会员专属复用官方 id 时仍按官方版式渲染（专属黑胶不丢样式）', () => {
+    // 后台「从已有款挑选加入专属」会复用官方 id（member_items.item_id='vinyl'），
+    // theme 云函数 mergeLists 让专属款覆盖同 id 官方款 → 下发的 papers 里
+    // vinyl 带 premium:true。导出侧 specOf 先按 id 命中，天然落在黑胶规格；
+    // 预览侧 paper.wxml 的专属分支若只判 premium，黑胶（唯一的 wx:else catch-all）
+    // 会被通用金线笺顶掉 —— 盘面/曲轨全丢，且与导出图两端不一致。
+    eq(specs.specOf({ id: 'vinyl', premium: true }), specs.SPECS.vinyl, '导出侧：专属黑胶仍按黑胶规格');
+    eq(specs.specOf({ id: 'gold', premium: true }), specs.SPECS.premium, '导出侧：无官方版面的专属 id 仍走专属模板');
+    // 预览侧：专属分支的条件必须把黑胶让回给 wx:else（黑胶是唯一 catch-all 官方款）
+    const wxml = fs.readFileSync(path.join(MINI_ROOT, 'styles', 'paper.wxml'), 'utf8');
+    const m = wxml.match(/wx:elif="\{\{paper\.premium([^}]*)\}\}"/);
+    ok(m, 'paper.wxml 应有会员专属分支');
+    ok(/paper\.id !== 'vinyl'/.test(m[1]), '专属分支必须把黑胶 id 让回官方版式分支，不得只判 premium');
+    const premiumPos = m.index;
+    const vinylPos = wxml.indexOf('pl-paper pl-vinyl');
+    ok(vinylPos > premiumPos, '黑胶分支应排在专属分支之后（作为 catch-all 兜底）');
   });
 
   test('会员专属版式按 .pl-premium 排版（修复：旧版整篇按号外头版）', () => {
@@ -388,14 +413,14 @@ suite('分享图版面（Canvas ↔ paper.wxss 同构）', () => {
   });
 
   test('abs 装饰名都有对应的绘制分支（写错名字不会静默不画）', () => {
-    const handled = ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2'];
+    const handled = ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu'];
     for (const p of PAPERS) {
       const abs = specs.SPECS[p.id].abs;
       if (!abs) continue;
       ok(handled.indexOf(abs) > -1, p.id + ' 的 abs=' + abs + ' 必须有 drawAbs 分支');
     }
     // 需要出血装饰的版式一个都不能漏
-    for (const id of ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2']) {
+    for (const id of ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu']) {
       ok(specs.SPECS[id].abs, id + ' 缺 abs 分派');
     }
   });

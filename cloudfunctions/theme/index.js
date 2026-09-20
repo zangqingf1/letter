@@ -22,7 +22,7 @@ exports.main = async (event) => {
     return { ok: false, error: 'unknown action' };
   }
   try {
-    // papers：十款信纸版式的配色配置（colors 与小程序 papers.js 同形状），只下发上架的。
+    // papers：二十一款信纸版式的配色配置（colors 与小程序 papers.js 同形状），只下发上架的。
     // 末尾追加上架的会员专属版式（member_items kind='paper'，premium:true），由前端按会员态解锁。
     if (event.action === 'papers') {
       const [paperRes, premiumRes] = await Promise.all([
@@ -57,7 +57,14 @@ exports.main = async (event) => {
       desc: t.desc || '',
       version: t.version || 1,
       envelope: t.assets && t.assets.envelope,
-      // 方案B：信纸 = 配色排版（无纸张图片），下发 palette（base/title/text/tag）
+      // 缩略信封必须原样下发：首页信匣/回形针/废纸篓行用小图（避免解码高清大图）。
+      // 早期漏了这个字段，云端主题的 envelopeThumb 恒为空，normalizeThemes 的下标
+      // `t.envelopeThumb || t.envelope` 就把大图当缩略图用 —— 小图白白配了没人读。
+      // 空串仍回落大图（normalizeThemes 判的是真值），故这条不会改变既有款的渲染结果。
+      envelopeThumb: (t.assets && t.assets.envelopeThumb) || '',
+      // 方案B：信纸 = 配色排版（无纸张图片），主题 palette 只剩底色 base
+      // （拆信动画的信纸底色 + 无信封款的选择卡色样）；墨色由版式自持，不在主题里。
+      // 老文档里残留的 title/text/tag 已无消费方：渲染侧只读 base，不会有人取它们。
       palette: t.palette || '',
       desk: t.desk || '',
       swatch: t.swatch || ''
@@ -68,6 +75,7 @@ exports.main = async (event) => {
       desc: t.desc || '',
       version: t.version || 1,
       envelope: (t.assets && t.assets.envelope) || '',
+      envelopeThumb: (t.assets && t.assets.envelopeThumb) || '',
       palette: t.palette || '',
       desk: t.desk || '',
       swatch: t.swatch || '',

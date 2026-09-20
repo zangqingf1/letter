@@ -170,3 +170,13 @@
 .empty-txt .em {
   color: var(--color-accent-primary);
 }
+
+/* ── 信封预取节点（见 onTapRow / prefetchEnv）：屏幕外挂载只为触发下载，不参与布局 ── */
+.env-pre {
+  position: fixed;
+  left: -2000rpx;
+  top: 0;
+  width: 10rpx;
+  height: 10rpx;
+  opacity: 0;
+}

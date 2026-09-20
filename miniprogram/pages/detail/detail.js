@@ -6,9 +6,12 @@ const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
 const memberService = require('../../services/member.js');
 const analytics = require('../../services/analytics.js');
-// data 初始默认主题；实际主题在 loadLetter 中按信件 theme_id 经 theme 服务解析
+// 入口页在跳转前写好、本页 onLoad 同步取用的主题交接（见文件头「拆信幕」注释）
+const handoff = require('../../services/handoff.js');
+// 本地默认款（services/theme.js DEFAULT_THEME_ID = 'cuican' 璀璨如初，按 id 显式解析）：
+// 只借它的纸色给拆信幕兜底，信封一律不借
 const THEMES = require('../write/themes.js');
-// data 初始默认信纸版式；实际版式在 loadLetter 中按信件 paper_id 经 theme 服务解析
+// data 初始默认信纸版式（DEFAULT_PAPER_ID = 'liubai' 留白志）；实际版式在 loadLetter 中按信件 paper_id 经 theme 服务解析
 const PAPERS = require('../write/papers.js');
 // 信纸渲染数据（共享模板 paper.wxml 只认 view 字段，与写信预览/分享图同构）
 const { buildView, longDate } = require('../write/paper-view.js');
@@ -30,6 +33,45 @@ function sameDay(a, b) {
 
 // 收起态邮戳展示上限（最早 5 枚 + 今天，其余收进「+N 展开」，对应低保真状态 2）
 const SHOW_STAMPS = 6;
+// 拆信幕的初始主题：**只有纸色，没有信封**。
+// 这里曾是 `THEMES[0]`（本地默认款小王子），于是任意一封信的拆信动画开场都先亮出
+// 小王子的信封 —— 因为真主题原来有两条**异步**来源（入口页事件通道的 emit、loadLetter
+// 的云函数），而 navigateTo 的时序是「目标页 onLoad/onShow → **首帧渲染** → 源页 success
+// 回调」，emit 比首帧还晚。纯云端主题（如「印花」，信封素材在云存储）最刺眼：
+// <image> 换 src 期间旧图还挂着，云图加载失败时整段 1.3s 动画就停在默认款上。
+// 现在改成入口页**跳转前**解析好主题、经 services/handoff.js 同步交接，onLoad 里与
+// statusBarHeight 同一批 setData ⇒ 首帧渲染的就是这封信真正的信封。
+// 本常量只兜「没有交接」的情形（从外部直接打开本页，如开发预览）：此时不画任何信封
+// （detail.wxml 按「有信封才画」渲染），等 loadLetter 回来再画，绝不凭空亮出默认款。
+const BLANK_THEME = {
+  id: '',
+  name: '',
+  envelope: '',
+  envelopeThumb: '',
+  ownEnvelope: false,
+  palette: Object.assign({}, (THEMES.find((t) => t.id === 'cuican') || THEMES[0]).palette)
+};
+
+// 拆信幕信封的两级 src：首帧先用列表页刚渲染过的小图（envelopeThumb —— 同一张图的
+// 微信图片缓存命中，拆信动画第一帧就有信封，不必等大图下载），大图交给屏幕外的预取节点，
+// 加载完再顶上（那时大图也进了缓存，切换不掉帧）。云端没单独配小图（归一化时回落主图）
+// 时两者同源，只画一张。loadedFull 是已经顶上过的大图地址：loadLetter 回源换了主题对象
+// 但大图没变时，保持大图，不回退成小图。
+// envFade：云端素材（cloud://）的加载有网络延迟（入口页已点按即预取，见 home/clips 的
+// prefetchEnv，但慢网络仍可能赶不上首帧），挂载即透明、bindload 后淡入浮现，不突现；
+// 包内素材零延迟，不挂 fade、首帧即完整呈现。envIn 不在这里重置 —— 由 onEnvImgLoad
+// 置位后保持，回源换主题/大图顶上的换 src 不重播淡入（换 src 期间旧图一直挂着，本就无缝）。
+function envPatchOf(theme, loadedFull) {
+  const full = (theme && theme.envelope) || '';
+  const thumb = (theme && theme.envelopeThumb) || '';
+  const src = loadedFull && full === loadedFull ? full : thumb || full;
+  return {
+    envSrc: src,
+    envFull: full && full !== src ? full : '',
+    envFade: /^cloud:\/\//.test(src)
+  };
+}
+
 // 拆信动画时长；REVEAL_CAP_MS 是揭幕兜底 —— 数据迟迟不到也不让页面停在动画上
 const OPEN_ANIM_MS = 1300;
 const REVEAL_CAP_MS = 4000;
@@ -38,8 +80,14 @@ Page({
   data: {
     statusBarHeight: 20,
     letter: { name: '', question: '', answer: '' },
-    theme: THEMES[0],
-    paper: PAPERS[0],
+    theme: BLANK_THEME,
+    // 拆信幕信封：envSrc 是实际在画的那张（首帧=列表缓存的小图），envFull 是待顶上的大图；
+    // envFade=云端素材挂载即透明、envIn=已加载完可淡入（见 envPatchOf / onEnvImgLoad）
+    envSrc: '',
+    envFull: '',
+    envFade: false,
+    envIn: false,
+    paper: PAPERS.find((p) => p.id === 'liubai') || PAPERS[0],
     view: buildView({ name: '', question: '', answer: '' }, { created: new Date() }),
     openCount: 0,
     stamps: [],
@@ -57,15 +105,22 @@ Page({
   },
 
   onLoad(options) {
+    const id = options && options.id;
     const win = wx.getWindowInfo();
-    this.setData({
-      statusBarHeight: win.statusBarHeight || 20
-    });
+    const patch = { statusBarHeight: win.statusBarHeight || 20 };
 
-    // 入口页带过来的主题/名称：让拆信动画首帧就画对这封信的信封与名字
-    this.listenUnsealHint();
+    // 入口页（信匣 / 回形针）在跳转**之前**放进交接槽的主题与名字：与 statusBarHeight
+    // 同一批 setData，所以首帧渲染的就是这封信真正的信封与名字 —— 零等待，且不依赖
+    // 事件通道（emit 在 navigateTo success 里，比首帧还晚）与云函数（更晚）。
+    // 信封两级 src：先画列表页缓存里的小图，大图由 wxml 的预取节点加载完顶上。
+    const hint = handoff.take(id);
+    if (hint) {
+      if (hint.theme) Object.assign(patch, envPatchOf(hint.theme), { theme: hint.theme });
+      if (hint.name) patch.letter = Object.assign({}, this.data.letter, { name: hint.name });
+    }
+    this.setData(patch);
 
-    this.loadLetter(options && options.id);
+    this.loadLetter(id);
 
     // 揭幕 = 动画播完 且 数据就绪（见 revealIfReady）：数据晚于动画时停在拆信幕上，
     // 避免先露一张空白信纸；revealCap 兜住加载异常，不让页面永久停在动画
@@ -104,9 +159,9 @@ Page({
       const isVip = !!(m && m.state === 'vip');
       this.isDemo = res.isDemo;
 
-      // 非 VIP 时专属主题按默认主题渲染（会员过期后老信回退，开通后自动恢复）
-      let theme = themes.find((t) => t.id === letter.theme_id) || themes[0];
-      if (theme.premium && !isVip) theme = themes[0] || theme;
+      // 主题解析：未知 theme_id 与非 VIP 的专属款都回落默认主题（会员过期后老信回退，
+      // 开通后自动恢复）。与入口页跳转前交接用的是同一个出口，首帧到回源不会跳款。
+      const theme = themeService.themeOf(letter.theme_id, themes, isVip);
       // 信纸版式解析（未知/缺失 paper_id 回落列表第一套；非 VIP 专属版式同样回落默认）
       const paper = themeService.paperOf(letter.paper_id, papers, isVip);
       const today = new Date();
@@ -122,6 +177,8 @@ Page({
       this.setData({
         letter,
         theme,
+        // 信封 src 按回源后的主题重算（首帧那份来自交接槽，正常情况这里一致）
+        ...envPatchOf(theme, this._envFullLoaded),
         paper,
         view,
         pinned: !!letter.pinned,
@@ -186,20 +243,22 @@ Page({
   },
 
   // ── 拆信动画 / 揭幕 ──
-  // 入口页（信匣 / 回形针列表）手里已有这封信的名称与主题，经事件通道带过来：
-  // 拆信动画首帧就画对信封与名字，不必等云调用回来（emit 早于监听时由通道缓冲）
-  listenUnsealHint() {
-    const ch = this.getOpenerEventChannel && this.getOpenerEventChannel();
-    if (!ch || !ch.on) return;
-    ch.on('letterHint', (d) => {
-      // 真实数据已落地就不再覆盖：主题提示可能是会员专属款，会盖掉 loadLetter 里的非 VIP 回落
-      if (!d || this._dataReady) return;
-      const patch = {};
-      const theme = themeService.cachedThemes().find((t) => t.id === d.theme_id);
-      if (theme) patch.theme = theme;
-      if (d.name) patch.letter = Object.assign({}, this.data.letter, { name: d.name });
-      if (Object.keys(patch).length) this.setData(patch);
-    });
+  // 信封图就绪（仅云端 src 挂 fade 类）：挂载即透明，这里切 in 类淡入浮现，避免动画
+  // 中段突现一张图。只切一次：此后大图顶上、回源换主题的换 src 都不重播淡入 ——
+  // 换 src 期间旧图一直挂着，本就无缝（见 envPatchOf 的 envIn 说明）。
+  onEnvImgLoad() {
+    if (!this.data.envFade || this.data.envIn) return;
+    this.setData({ envIn: true });
+  },
+
+  // 信封大图就绪（wxml 里那个屏幕外的预取节点）：换成大图，撤掉预取节点。
+  // 记下已顶上过的大图地址 —— loadLetter 回源时主题对象会换一份新的，但大图没变，
+  // 这时要接着用大图而不是退回小图（见 envPatchOf）。
+  onEnvFullLoaded() {
+    const full = this.data.envFull;
+    if (!full) return;
+    this._envFullLoaded = full;
+    this.setData({ envSrc: full, envFull: '' });
   },
 
   // 动画播完 / 点击跳过：跳过只跳过动画，不跳过数据 —— 数据没到就揭幕等于先露一张白纸

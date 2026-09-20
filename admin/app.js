@@ -150,6 +150,13 @@ function colorField(name, label, value) {
     <input type="text" data-f="${name}" value="${esc(v)}" placeholder="#RRGGBB / rgba()">
   </div>`);
 }
+// 主题底色：数据库里的 palette 只保留 base 一个键。
+// 三档墨色 title/text/tag 是「信纸自持」改版前的遗留，渲染侧（WXML/WXSS/Canvas）无人读取，
+// 2026-09 从抽屉与 seed 里清掉；留空时写空对象而不是空字符串 base ——
+// 服务端归一化（miniprogram/services/theme.js）判的是「有没有 base」，空对象能正常回落默认款。
+function paletteOf(base) {
+  return base ? { base: base } : {};
+}
 function bindColorPairs(scope) {
   scope.querySelectorAll('input[type="color"][data-c]').forEach((cp) => {
     cp.addEventListener('input', () => {
@@ -251,7 +258,7 @@ async function loadTrend(days) {
   }
 }
 
-// 上移/下移箭头按钮（用于主题/版式排序）
+// 上移/下移箭头按钮（用于主题/版式排序；拖动块之外的精确微调入口）
 function orderArrows(i, len) {
   return `<button type="button" class="btn small arrow" data-order="${i}" data-dir="up" title="上移" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button type="button" class="btn small arrow" data-order="${i}" data-dir="down" title="下移" ${i === len - 1 ? 'disabled' : ''}>↓</button>`;
@@ -275,6 +282,92 @@ function bindOrder(list, saveFn, rerender) {
   }));
 }
 
+// ── 拖动块排序（主题 / 版式列表行首的六点手柄）────────────────────────────
+// 按住手柄直接拖动：行随指针在表内实时挪位（DOM 直接 insertBefore，所见即所得），
+// 松手后把「当前视觉顺序」写成 sort = 0..n-1，只回写值真变了的行（挪一格通常只改两三行）。
+// 用 Pointer Events 而不是 HTML5 拖放：鼠标与触屏同一套代码，也不必处理拖拽镜像的
+// 兼容差异（后台既可能在桌面浏览器用，也可能在平板上点）。
+function dragHandle() {
+  return '<span class="drag-handle" data-drag role="button" aria-label="拖动调整顺序" title="按住拖动，快速调整顺序"></span>';
+}
+// 会员专属标签：该 id 在 member_items（「会员管理 → 专属内容」）里已有专属款。
+// 与 theme 云函数下发列表时打的 premium 标记同源（同一张表），不受该款自身上下架影响。
+function premiumBadge(on) {
+  return on
+    ? '<span class="badge vip" title="会员专属款：小程序端仅会员可选，上下架在「会员管理 → 专属内容」维护">👑 会员</span>'
+    : '';
+}
+function bindDragSort(list, idOf, saveFn, rerender) {
+  const handles = content().querySelectorAll('[data-drag]');
+  if (!handles.length) return;
+  let busy = false; // 保存期间不接受第二次拖动，避免两条改序互相覆盖
+  handles.forEach((handle) => {
+    handle.addEventListener('pointerdown', (e) => {
+      if (busy) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return; // 仅鼠标左键
+      const row = handle.closest('tr[data-row-id]');
+      if (!row) return;
+      e.preventDefault(); // 别让按下就拖选文字（触屏滚动由 CSS touch-action 挡住）
+      startDrag(row, e);
+    });
+  });
+
+  function startDrag(row, down) {
+    const body = row.parentNode;
+    let moved = false;
+    row.classList.add('dragging');
+    document.body.classList.add('row-dragging');
+
+    // 指针越过某行中线就挪到它前面；越过末行中线则落到表尾。target 为 null 时
+    // insertBefore(row, null) 等价 appendChild，无需分支。
+    const onMove = (ev) => {
+      if (Math.abs(ev.clientY - down.clientY) > 3) moved = true;
+      const rows = Array.prototype.filter.call(body.children, (r) => r.matches('tr[data-row-id]'));
+      let target = null;
+      for (const r of rows) {
+        if (r === row) continue;
+        const box = r.getBoundingClientRect();
+        if (ev.clientY < box.top + box.height / 2) { target = r; break; }
+      }
+      if (target === row.nextElementSibling) return; // 已就位，跳过无谓的 DOM 操作
+      body.insertBefore(row, target);
+    };
+
+    const onEnd = async () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      row.classList.remove('dragging');
+      document.body.classList.remove('row-dragging');
+      if (!moved) return; // 只是点了一下手柄：不打接口
+      const ids = Array.prototype.map.call(
+        body.querySelectorAll('tr[data-row-id]'), (r) => r.dataset.rowId
+      );
+      const changes = [];
+      ids.forEach((id, i) => {
+        const it = list.filter((x) => String(idOf(x)) === id)[0];
+        if (!it) return;
+        const cur = typeof it.sort === 'number' ? it.sort : null;
+        if (cur !== i) changes.push(Object.assign({}, it, { sort: i }));
+      });
+      if (!changes.length) { toast('顺序未变化'); return; }
+      busy = true;
+      try {
+        await Promise.all(changes.map((it) => saveFn(it)));
+        toast('顺序已更新');
+      } catch (err) {
+        toast('顺序保存失败：' + err.message);
+      }
+      busy = false;
+      rerender(); // 成败都重渲染：保存失败时回到服务端真实顺序，界面不骗人
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  }
+}
+
 // ════════ 主题管理 ════════
 async function renderThemes() {
   content().innerHTML = '<p class="empty-tip">加载中…</p>';
@@ -282,7 +375,7 @@ async function renderThemes() {
     const r = await api('themeList');
     content().innerHTML = `
       <h2 class="page-title">主题管理</h2>
-      <p class="page-sub">themes 集合：主题绑定信封素材与桌面底色；信纸配色由版式（papers）自持。上架中的主题在写信页横滑卡片可见。</p>
+      <p class="page-sub">themes 集合：主题绑定信封素材与桌面底色；信纸配色由版式（papers）自持。上架中的主题在写信页横滑卡片可见。按住行首拖动块可快速调整顺序（序号小在前）；会员专属款的状态列带「👑 会员」标签。</p>
       <div class="toolbar">
         <button class="btn primary" id="theme-new">＋ 新建主题</button>
         <button class="btn" id="theme-seed">导入官方 1 套</button>
@@ -291,12 +384,13 @@ async function renderThemes() {
       </div>
       <div class="card">
         ${r.themes.length ? `<table>
-          <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>信封素材</th><th style="text-align:right">操作</th></tr>
-          ${r.themes.map((t, i) => `<tr>
+          <tr><th class="drag-col" title="按住行首拖动块可调整顺序"></th><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>信封素材</th><th style="text-align:right">操作</th></tr>
+          ${r.themes.map((t, i) => `<tr data-row-id="${esc(t.theme_id)}">
+            <td class="drag-col">${dragHandle()}</td>
             <td class="num">${t.sort ?? ''}</td>
             <td>${esc(t.theme_id)}</td>
             <td>${esc(t.name)}</td>
-            <td><span class="badge ${t.status === 'online' ? 'online' : 'offline'}">${t.status === 'online' ? '上架' : '下架'}</span></td>
+            <td>${premiumBadge(t.premium)}<span class="badge ${t.status === 'online' ? 'online' : 'offline'}">${t.status === 'online' ? '上架' : '下架'}</span></td>
             <td class="num">v${t.version || 1}</td>
             <td>${t.assets && t.assets.envelope ? '有' : '—'}</td>
             <td style="text-align:right;white-space:nowrap">
@@ -316,6 +410,7 @@ async function renderThemes() {
       renderThemes();
     });
     bindOrder(r.themes, (theme) => api('themeSave', { theme }), renderThemes);
+    bindDragSort(r.themes, (t) => t.theme_id, (theme) => api('themeSave', { theme }), renderThemes);
     content().querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
       const t = r.themes.find((x) => x.theme_id === b.dataset.edit);
       themeDrawer(t);
@@ -358,15 +453,9 @@ function themeDrawer(t, nextSort) {
     </select>`)}
     ${colorField('swatch', '色样（无信封素材时选择卡片显示）', t.swatch)}
     ${colorField('desk', '预览区桌面底色', t.desk)}
-    <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信纸配色（palette：底色 + 三档墨色）</p>
-    <div class="field-row">
-      ${colorField('palette.base', '底色 base', p.base)}
-      ${colorField('palette.title', '标题 title', p.title)}
-    </div>
-    <div class="field-row">
-      ${colorField('palette.text', '正文 text', p.text)}
-      ${colorField('palette.tag', '标签 tag', p.tag)}
-    </div>
+    <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信纸底色 palette.base（拆信动画抽出的那张纸 + 无信封款的选择卡色样）。
+    信纸的墨色与排版由版式（papers）自持，主题不再参与，故此处只有一个取色框。</p>
+    ${colorField('palette.base', '底色 palette.base', p.base)}
     <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信封素材（小程序包内路径，如 /assets/theme/xiaowangzi/envelope.jpg；留空则回落默认信封）</p>
     ${textField('assets.envelope', '信封大图 envelope', a.envelope || '')}
     ${textField('assets.envelopeThumb', '信封缩略图 envelopeThumb', a.envelopeThumb || '')}
@@ -388,7 +477,7 @@ function themeDrawer(t, nextSort) {
       status: v.status,
       swatch: v.swatch || '',
       desk: v.desk || '',
-      palette: { base: v['palette.base'] || '', title: v['palette.title'] || '', text: v['palette.text'] || '', tag: v['palette.tag'] || '' },
+      palette: paletteOf(v['palette.base']),
       assets: { envelope: v['assets.envelope'] || '', envelopeThumb: v['assets.envelopeThumb'] || '' }
     };
     try {
@@ -410,21 +499,23 @@ async function renderPapers() {
     content().innerHTML = `
       <h2 class="page-title">版式管理</h2>
       <p class="page-sub">papers 集合：信纸 = 固定纸色 + 固定排版，此处只管理名称/描述/配色 colors/上下架/排序/版本。
-      版式的视觉结构在小程序代码三端同构（styles/paper.wxml + paper.wxss + share.js），新增版式结构必须改代码发版，后台无法凭空创建。</p>
+      版式的视觉结构在小程序代码三端同构（styles/paper.wxml + paper.wxss + share.js），新增版式结构必须改代码发版，后台无法凭空创建。
+      按住行首拖动块可快速调整顺序（序号小在前）；会员专属款的状态列带「👑 会员」标签。</p>
       <div class="toolbar">
         <button class="btn primary" id="paper-new">＋ 新建版式</button>
-        <button class="btn" id="paper-seed">导入官方 10 套</button>
+        <button class="btn" id="paper-seed">导入官方 21 套</button>
         <span class="spacer"></span>
         <span style="color:var(--muted);font-size:12px">共 ${r.papers.length} 套</span>
       </div>
       <div class="card">
         ${r.papers.length ? `<table>
-          <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>配色数</th><th>底色</th><th style="text-align:right">操作</th></tr>
-          ${r.papers.map((p, i) => `<tr>
+          <tr><th class="drag-col" title="按住行首拖动块可调整顺序"></th><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>版本</th><th>配色数</th><th>底色</th><th style="text-align:right">操作</th></tr>
+          ${r.papers.map((p, i) => `<tr data-row-id="${esc(p.paper_id)}">
+            <td class="drag-col">${dragHandle()}</td>
             <td class="num">${p.sort ?? ''}</td>
             <td>${esc(p.paper_id)}</td>
             <td>${esc(p.name)}</td>
-            <td><span class="badge ${p.status === 'online' ? 'online' : 'offline'}">${p.status === 'online' ? '上架' : '下架'}</span></td>
+            <td>${premiumBadge(p.premium)}<span class="badge ${p.status === 'online' ? 'online' : 'offline'}">${p.status === 'online' ? '上架' : '下架'}</span></td>
             <td class="num">v${p.version || 1}</td>
             <td class="num">${Object.keys(p.colors || {}).length}</td>
             <td><span class="chip" style="display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:${esc(p.colors && p.colors.bg) || 'transparent'}"></span></td>
@@ -435,16 +526,17 @@ async function renderPapers() {
               <button class="btn small danger" data-del="${esc(p.paper_id)}">删除</button>
             </td>
           </tr>`).join('')}
-        </table>` : '<p class="empty-tip">papers 集合为空。可点「导入官方 10 套」一键建立（未导入时小程序自动使用内置配置，不受影响）。</p>'}
+        </table>` : '<p class="empty-tip">papers 集合为空。可点「导入官方 21 套」一键建立（未导入时小程序自动使用内置配置，不受影响）。</p>'}
       </div>`;
     $('#paper-new').addEventListener('click', () => paperDrawer(null, r.papers.length));
     $('#paper-seed').addEventListener('click', async () => {
-      if (!confirm('导入官方 10 套版式？已存在的同 ID 版式会跳过。')) return;
+      if (!confirm('导入官方 21 套版式？已存在的同 ID 版式会跳过。')) return;
       const res = await api('paperSeed');
       toast(`已导入 ${res.seeded} 套，跳过 ${res.skipped} 套`);
       renderPapers();
     });
     bindOrder(r.papers, (paper) => api('paperSave', { paper }), renderPapers);
+    bindDragSort(r.papers, (p) => p.paper_id, (paper) => api('paperSave', { paper }), renderPapers);
     content().querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
       const p = r.papers.find((x) => x.paper_id === b.dataset.edit);
       paperDrawer(p);
@@ -666,7 +758,7 @@ let memberItemKind = 'paper';
 
 const MEMBER_KIND_LABEL = { paper: '信纸', theme: '信封' };
 
-const MEMBER_PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
+const MEMBER_PLAN_DAYS = { month: 31, quarter: 93, year: 366 };
 
 function avatarImg(avatar, nickname) {
   // 同 avatarHtml：仅 https 直链 + data-fallback，加载失败由全局捕获监听回落（无内联 onerror）
@@ -761,7 +853,7 @@ function memberGrantDrawer(m, prefillOpenid) {
   const isEdit = !!(m && m.state === 'vip');
   const openid = m ? m.openid : (prefillOpenid || '');
   const plan = (m && m.level) || 'month';
-  let days = 30;
+  let days = MEMBER_PLAN_DAYS[plan] || 31;
   if (m && m.state === 'vip') {
     days = Math.max(1, Math.ceil((new Date(m.expires_at) - Date.now()) / 86400000));
   }
@@ -769,9 +861,9 @@ function memberGrantDrawer(m, prefillOpenid) {
     <h3>${isEdit ? '续期会员 · ' + esc(m.nickname || openid) : '开通会员'}</h3>
     ${textField('openid', '用户 openid（可在用户管理点行展开复制）', openid, { disabled: !!m })}
     ${field('套餐', `<select data-f="plan">
-      <option value="month" ${plan === 'month' ? 'selected' : ''}>月卡 · 30 天</option>
-      <option value="quarter" ${plan === 'quarter' ? 'selected' : ''}>季卡 · 90 天</option>
-      <option value="year" ${plan === 'year' ? 'selected' : ''}>年卡 · 365 天</option>
+      <option value="month" ${plan === 'month' ? 'selected' : ''}>月卡 · 31 天</option>
+      <option value="quarter" ${plan === 'quarter' ? 'selected' : ''}>季卡 · 93 天</option>
+      <option value="year" ${plan === 'year' ? 'selected' : ''}>年卡 · 366 天</option>
       <option value="custom" ${plan === 'custom' ? 'selected' : ''}>自定义天数</option>
     </select>`)}
     ${numField('days', '有效期（天，1–3650）', days)}
@@ -926,7 +1018,7 @@ async function memberItemDrawer(it, nextSort, presetKind) {
       body.innerHTML = `
         <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">主题色样 swatch（无信封素材时选择卡片显示色样）</p>
         <div id="mi-swatch"></div>
-        <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">桌面底色 desk（写信第二步预览区背景）与信纸基础底色 palette.base（卡片/拆信兜底色）</p>
+        <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">桌面底色 desk（写信第二步预览区背景）与信纸底色 palette.base（拆信动画抽出的那张纸 + 无信封款的卡片色样）</p>
         <div id="mi-desk"></div>
         <div id="mi-palette-base"></div>
         <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信封素材（小程序包内路径或云存储 fileID，留空则回落默认信封；会员中心/写信页卡片显示真实信封图）</p>
@@ -972,9 +1064,7 @@ async function memberItemDrawer(it, nextSort, presetKind) {
     else {
       item.swatch = v.swatch || '';
       item.desk = v.desk || '';
-      // 保留未在抽屉编辑的 palette 其余键（title/text/tag），只覆盖 base
-      const pal = (it && it.palette) || {};
-      item.palette = Object.assign({}, pal, v.paletteBase ? { base: v.paletteBase } : {});
+      item.palette = paletteOf(v.paletteBase);
       item.assets = { envelope: v.envEnvelope || '', envelopeThumb: v.envThumb || '' };
     }
     try {

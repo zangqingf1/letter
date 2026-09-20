@@ -13,7 +13,7 @@ const STATE_KEY = 'member_demo_state';
 const EXPIRE_KEY = 'member_demo_expire_at';
 
 // 各档位演示有效期天数（真实支付到期时间由云端 members.expires_at 驱动）
-const PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
+const PLAN_DAYS = { month: 31, quarter: 93, year: 366 };
 const DAY_MS = 86400000;
 
 // 进程内会员态缓存（仅内存，绝不落 storage）：首页/详情/回形针/废纸篓/写信第二步、

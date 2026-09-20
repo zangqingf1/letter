@@ -63,4 +63,10 @@
     <view class="empty-txt">拆开一封信，点亮底部的回形针，<text class="em">它就会排在这里等你。</text></view>
   </block>
 
+  <!-- 点开信件时的信封预取节点（见 onTapRow）：屏幕外挂载只为触发下载，图片缓存按 URL
+       全局共享，详情页拆信幕的两级 src 因此大概率直接命中，不必从点击那一刻才开始走
+       「fileID→临时URL→下载」 -->
+  <image wx:if="{{preEnv}}" class="env-pre" src="{{preEnv}}" />
+  <image wx:if="{{preEnvFull}}" class="env-pre" src="{{preEnvFull}}" />
+
 </view>

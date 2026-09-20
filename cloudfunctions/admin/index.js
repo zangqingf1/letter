@@ -15,14 +15,36 @@ const TZ = '+0800';
 const DAY = 86400000;
 
 // ── 官方默认配置 seed（与 miniprogram/pages/write/themes.js / papers.js 同源手工同步）──
-// 官方主题仅「小王子」一套：唯一有信封素材（小程序包内路径）且为未知 theme_id 的回落款。
+// 官方主题十五套（小王子 + 印花 + 2026-09 新增六套 + 2026-09-20 新增七套），信封素材均为
+// 小程序包内路径（云存储 fileID 与云环境绑定，不入 seed）。默认/回落款是璀璨如初（id
+// 'cuican'）：小程序端按 services/theme.js 的 DEFAULT_THEME_ID 显式解析，与本 seed 的
+// sort 排序无关（sort 只决定选择卡陈列次序；2026-09-20 前默认款是小王子）。
 // 历史版本的 6 套无素材主题（晨光/雨夜/牛皮纸/棉麻/花笺/咖啡渍）已删除；若线上 themes
 // 集合仍留有这批旧记录，需在后台「主题管理」逐条删除，否则会继续下发。
 const SEED_THEMES = [
-  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4', title: '#5A4F3E', text: '#4A4438', tag: '#9A9284' }, desk: '#EDE9DC', assets: { envelope: '/assets/theme/xiaowangzi/envelope.jpg', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } }
+  // palette 只放底色 base：三档墨色（title/text/tag）已随「信纸自持」改版失去消费方，2026-09 清理
+  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4' }, desk: '#EDE9DC', assets: { envelope: '/assets/theme/xiaowangzi/envelope.jpg', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } },
+  // 印花 2026-09-18 上线时素材存云存储，2026-09 起搬进包内（assets 改包内路径，云存储旧图可删）。
+  // themeSeed 只补缺不覆盖：线上既有 yinhua 文档需在后台「主题管理」把两个素材路径改成包内路径。
+  { theme_id: 'yinhua', name: '印花', desc: '纸间花草', version: 1, swatch: '', palette: { base: '#F0ECE2' }, desk: '#E4E6DA', assets: { envelope: '/assets/theme/yinhua/envelope.jpg', envelopeThumb: '/assets/theme/yinhua/envelope-thumb.jpg' } },
+  // 2026-09 新增六套：素材自上线起即为包内路径（原图在 picture/新主题/），themeSeed 直接建齐。
+  { theme_id: 'daoying', name: '倒影里的秋', desc: '湖畔秋信', version: 1, swatch: '', palette: { base: '#F4EFE2' }, desk: '#E8E4D3', assets: { envelope: '/assets/theme/daoying/envelope.jpg', envelopeThumb: '/assets/theme/daoying/envelope-thumb.jpg' } },
+  { theme_id: 'gonglu', name: '公路情书', desc: '麦浪旅人', version: 1, swatch: '', palette: { base: '#F3EDDA' }, desk: '#EAE4CE', assets: { envelope: '/assets/theme/gonglu/envelope.jpg', envelopeThumb: '/assets/theme/gonglu/envelope-thumb.jpg' } },
+  { theme_id: 'tiantan', name: '天坛往事', desc: '红墙飞鸟', version: 1, swatch: '', palette: { base: '#F2EFE6' }, desk: '#E6E2D6', assets: { envelope: '/assets/theme/tiantan/envelope.jpg', envelopeThumb: '/assets/theme/tiantan/envelope-thumb.jpg' } },
+  { theme_id: 'shanye', name: '山野来信', desc: '山湖秘境', version: 1, swatch: '', palette: { base: '#F3EFDC' }, desk: '#E5E6CC', assets: { envelope: '/assets/theme/shanye/envelope.jpg', envelopeThumb: '/assets/theme/shanye/envelope-thumb.jpg' } },
+  { theme_id: 'cuican', name: '璀璨如初', desc: '烟火如诗', version: 1, swatch: '', palette: { base: '#F6F3EA' }, desk: '#ECE8DE', assets: { envelope: '/assets/theme/cuican/envelope.jpg', envelopeThumb: '/assets/theme/cuican/envelope-thumb.jpg' } },
+  { theme_id: 'luori', name: '落日归海', desc: '晚霞入海', version: 1, swatch: '', palette: { base: '#F5EBD9' }, desk: '#F0DFC6', assets: { envelope: '/assets/theme/luori/envelope.jpg', envelopeThumb: '/assets/theme/luori/envelope-thumb.jpg' } },
+  // 2026-09-20 新增七套：素材自上线起即为包内路径（原图在 picture/新主题2/，居中裁到 890×616），themeSeed 直接建齐。
+  { theme_id: 'niuyouguo', name: '牛油果', desc: '一颗温柔的绿', version: 1, swatch: '', palette: { base: '#F4F4E7' }, desk: '#EAECD6', assets: { envelope: '/assets/theme/niuyouguo/envelope.jpg', envelopeThumb: '/assets/theme/niuyouguo/envelope-thumb.jpg' } },
+  { theme_id: 'meiguixingyun', name: '玫瑰星云', desc: '星尘与玫瑰', version: 1, swatch: '', palette: { base: '#F7EFE9' }, desk: '#EEE3DE', assets: { envelope: '/assets/theme/meiguixingyun/envelope.jpg', envelopeThumb: '/assets/theme/meiguixingyun/envelope-thumb.jpg' } },
+  { theme_id: 'dielianhuajian', name: '蝶恋花笺', desc: '蝶影过花间', version: 1, swatch: '', palette: { base: '#F6F6EF' }, desk: '#ECEDE0', assets: { envelope: '/assets/theme/dielianhuajian/envelope.jpg', envelopeThumb: '/assets/theme/dielianhuajian/envelope-thumb.jpg' } },
+  { theme_id: 'huajianxinjian', name: '花间信笺', desc: '鎏金花影', version: 1, swatch: '', palette: { base: '#F7F1E5' }, desk: '#F0E6D8', assets: { envelope: '/assets/theme/huajianxinjian/envelope.jpg', envelopeThumb: '/assets/theme/huajianxinjian/envelope-thumb.jpg' } },
+  { theme_id: 'xiarihangxian', name: '夏日航线', desc: '盛夏航空信', version: 1, swatch: '', palette: { base: '#F5EADA' }, desk: '#E9DCC8', assets: { envelope: '/assets/theme/xiarihangxian/envelope.jpg', envelopeThumb: '/assets/theme/xiarihangxian/envelope-thumb.jpg' } },
+  { theme_id: 'suiyuejinjian', name: '岁月金笺', desc: '鎏金素笺', version: 1, swatch: '', palette: { base: '#F5F1E3' }, desk: '#ECE5D3', assets: { envelope: '/assets/theme/suiyuejinjian/envelope.jpg', envelopeThumb: '/assets/theme/suiyuejinjian/envelope-thumb.jpg' } },
+  { theme_id: 'yinranqingshu', name: '洇染情书', desc: '水彩洇开的信', version: 1, swatch: '', palette: { base: '#F0F2F1' }, desk: '#E3E8EA', assets: { envelope: '/assets/theme/yinranqingshu/envelope.jpg', envelopeThumb: '/assets/theme/yinranqingshu/envelope-thumb.jpg' } }
 ];
 
-// 十款信纸版式：后台只管名称/描述/配色/上下架/排序/版本；版式视觉结构在
+// 二十一款信纸版式：后台只管名称/描述/配色/上下架/排序/版本；版式视觉结构在
 // 小程序代码三端同构（styles/paper.wxml + paper.wxss + share.js drawXxxStyle），
 // 新增版式结构必须改代码发版，后台无法凭空创建。
 const SEED_PAPERS = [
@@ -35,7 +57,18 @@ const SEED_PAPERS = [
   { paper_id: 'vinyl', name: '黑胶唱片', desc: '暗纸盘芯 · 深夜重读', version: 1, colors: { bg: '#1B1A1C', text: '#D9D2C4', bright: '#F0E9D8', accent: '#C24A2E', gray: '#9C9484', dim: '#6E685C' } },
   { paper_id: 'suwen', name: '素问笺', desc: '问答朱印对帖 · 斜盖邮戳', version: 1, colors: { bg: '#FAF7F0', ink: '#3B372F', deep: '#2E2B25', accent: '#A63B2A', line: '#D8D2C2', gray: '#6B6557' } },
   { paper_id: 'moye', name: '墨夜笺', desc: '暗夜纸面 · 暖金细线', version: 1, colors: { bg: '#1D2027', bg1: '#2A2F3A', bg2: '#22262E', bg3: '#1D2027', text: '#DDD6C6', bright: '#F0E9D8', gold: '#C6A870', goldDim: 'rgba(198,168,112,0.45)', goldFaint: 'rgba(198,168,112,0.28)', gray: '#B4AD9D' } },
-  { paper_id: 'airmail2', name: '航空笺', desc: '全幅斜纹画框 · 邮票邮戳', version: 1, colors: { bg: '#FCFBF4', stripe1: '#C2452D', stripe2: '#F3EFE2', stripe3: '#33557E', ink: '#22303E', red: '#C2452D', blue: '#33557E', qGray: '#6B7B8A', aBlue: '#29405A', tan: '#A8A18C', dash: '#C9C2AC', stampPaper: '#F4F0E1', stampLine: '#CFC8B2' } }
+  { paper_id: 'airmail2', name: '航空笺', desc: '全幅斜纹画框 · 邮票邮戳', version: 1, colors: { bg: '#FCFBF4', stripe1: '#C2452D', stripe2: '#F3EFE2', stripe3: '#33557E', ink: '#22303E', red: '#C2452D', blue: '#33557E', qGray: '#6B7B8A', aBlue: '#29405A', tan: '#A8A18C', dash: '#C9C2AC', stampPaper: '#F4F0E1', stampLine: '#CFC8B2' } },
+  { paper_id: 'shupai', name: '竖排笺', desc: '从右往左 · 竖着写的信', version: 1, colors: { bg: '#FAF7F0', ink: '#3A362C', deep: '#2C2921', gray: '#847E6C', tan: '#8B8264', tanLine: '#C9C2AC', fill: '#6E6752', date: '#A29B85' } },
+  { paper_id: 'yixian', name: '一线笺', desc: '整张纸只有一根线', version: 1, colors: { bg: '#FFFFFF', ink: '#33312B', deep: '#26241E', gray: '#8A8471', faint: '#A9A28C', line: '#DCD8CB', ring: '#C4BEA9', sub: '#6E695C' } },
+  { paper_id: 'banxin', name: '版心笺', desc: '信是一页书 · 题记与页码', version: 1, colors: { bg: '#F9F5EA', ink: '#33302A', deep: '#26231D', gray: '#8A8471', faint: '#A39B85', line: '#C9C2AC', orn: '#B9AE8F', rhLine: 'rgba(163,155,133,0.5)' } },
+  { paper_id: 'juzhong', name: '居中笺', desc: '压在桌面正中的诗笺', version: 1, colors: { bg: '#F2EEE3', ink: '#35322A', deep: '#2B2822', gray: '#8A8471', faint: '#A29B85', gold: '#B9A36A', line: 'rgba(163,155,133,0.55)', brand: '#B3AB94' } },
+  { paper_id: 'caiqie', name: '裁切笺', desc: '一张还没裁开的印刷品', version: 1, colors: { bg: '#FCFCFA', ink: '#2F2F2B', deep: '#23231F', gray: '#7E7E72', faint: '#A9A99E', line: '#E3E3D9', mark: '#C6C6BC', sub: '#55554C' } },
+  { paper_id: 'xingtu', name: '星图观测笺', desc: '深蓝夜空 · 观测记录', version: 1, colors: { bg: '#101A30', ink: '#E4E8F7', bright: '#F2F4FF', gray: '#9AA5C6', blue: '#8E9AC2', gold: '#D8B26A', goldSoft: 'rgba(216,178,106,0.75)', coord: 'rgba(148,165,220,0.55)', grid: 'rgba(148,165,220,0.07)', star: '#E8C98A', starLine: 'rgba(216,178,106,0.35)' } },
+  { paper_id: 'jiaopian', name: '胶片底片', desc: '35mm 胶片 · 一格画面', version: 1, colors: { bg: '#211E1A', ink: '#E9E4D8', bright: '#F4F0E4', gray: '#A89F8C', accent: '#D98C4A', footDim: 'rgba(233,228,216,0.45)', footLine: 'rgba(233,228,216,0.3)', frame: 'rgba(233,228,216,0.55)', perf: 'rgba(238,233,220,0.9)', mark: 'rgba(233,228,216,0.4)' } },
+  { paper_id: 'rili', name: '日历撕页', desc: '那一页永远不撕的日历', version: 1, colors: { bg: '#FBFAF4', ink: '#2E2C26', deep: '#23211C', red: '#B23B2E', cream: '#F7F1E2', creamDim: 'rgba(247,241,226,0.85)', gray: '#6E6A5C', faint: '#A29B86', tear: 'rgba(150,140,110,0.55)', line: 'rgba(150,140,110,0.45)' } },
+  { paper_id: 'chufang', name: '深夜处方笺', desc: '医师：三个月后的我', version: 1, colors: { bg: '#F4F7F0', ink: '#2F352E', deep: '#24352A', red: '#B23B2E', gray: '#8A9284', sub: '#565C52', fieldLine: 'rgba(47,53,46,0.45)', deepLine: 'rgba(36,53,42,0.5)', sealLine: 'rgba(178,59,46,0.75)', sealIn: 'rgba(178,59,46,0.85)', sealInner: 'rgba(178,59,46,0.5)' } },
+  { paper_id: 'zhongduan', name: '终端笺', desc: '琥珀磷屏 · 深夜运行', version: 1, colors: { bg: '#16110A', amber: '#E8A33D', bright: '#F5C169', aAmber: '#F0BE71', qDim: 'rgba(245,193,105,0.62)', barDim: 'rgba(232,163,61,0.65)', fileDim: 'rgba(232,163,61,0.7)', promptDim: 'rgba(232,163,61,0.6)', statusDim: 'rgba(232,163,61,0.75)', footDim: 'rgba(232,163,61,0.55)', line: 'rgba(232,163,61,0.3)', frame: 'rgba(232,163,61,0.4)' } },
+  { paper_id: 'zhengshu', name: '结业证书', desc: '兹证明这一课已修完', version: 1, colors: { bg: '#F8F3E4', ink: '#3A3428', ink2: '#4A4335', title: '#7A5F28', orn: '#9C7C3C', orgK: '#A2916A', capLine: 'rgba(156,124,60,0.45)', courseTxt: '#6E6552', red: '#B23B2E', redSeal: 'rgba(178,59,46,0.92)', redRing: 'rgba(178,59,46,0.8)', cream: '#F8F3E4', frame: '#9C7C3C', innerFrame: 'rgba(156,124,60,0.55)' } }
 ];
 
 // 会员专属内容（member_items 集合 seed，与 miniprogram/pages/member/premium.js 同源手工同步）。
@@ -44,9 +77,8 @@ const SEED_PAPERS = [
 const SEED_MEMBER_ITEMS = [
   { kind: 'paper', item_id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' } },
   { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', version: 1, colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' } },
-  { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } },
-  { kind: 'theme', item_id: 'guiniao', name: '归鸟', desc: '归途晚照 · 专属', version: 1, swatch: '#D9C3B2', palette: { base: '#E9DCCF', title: '#5A4634', text: '#4A3B2C', tag: '#9C8B78' }, desk: '#DFD2C4' },
-  { kind: 'theme', item_id: 'xingxi', name: '星汐', desc: '夜海微光 · 专属', version: 1, swatch: '#B8C4CF', palette: { base: '#C8D2DC', title: '#2E3A46', text: '#27323C', tag: '#74808C' }, desk: '#BDC9D4' }
+  { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } }
+  // 专属主题（原 归鸟/星汐）已移除：需要时在后台「会员管理 → 专属内容」自行新建 kind='theme' 条目。
 ];
 
 // 会员套餐中文名（memberGrant 写入 members.plan_name）
@@ -108,6 +140,17 @@ async function upsertConfig(coll, idKey, data) {
   doc.created_at = now;
   const added = await db.collection(coll).add({ data: doc });
   return { id: added._id, updated: false };
+}
+
+// 会员专属 id 表：member_items 里已有的 item_id（kind='paper'/'theme'），
+// 供 themeList/paperList 给每行打 premium 标记 —— 后台状态列据此显示「👑 会员」标签。
+// 是否 online 不参与判断：专属款只要在 member_items 里存在就已「是专属款」，
+// 它的上下架在「会员管理 → 专属内容」维护（这里再叠一层 status 判断只会让标记乱跳）。
+async function premiumIdMap(kind) {
+  const res = await db.collection('member_items').where({ kind }).limit(200).get();
+  const map = {};
+  for (const it of res.data) map[it.item_id] = true;
+  return map;
 }
 
 // 按 (kind, item_id) upsert 一条会员专属版式/主题文档
@@ -274,8 +317,14 @@ async function handleAction(event) {
 
       // ── 主题管理 ──
       case 'themeList': {
-        const res = await db.collection('themes').orderBy('sort', 'asc').limit(200).get();
-        return { ok: true, themes: res.data };
+        const [res, premium] = await Promise.all([
+          db.collection('themes').orderBy('sort', 'asc').limit(200).get(),
+          premiumIdMap('theme')
+        ]);
+        return {
+          ok: true,
+          themes: res.data.map((t) => Object.assign({}, t, { premium: !!premium[t.theme_id] }))
+        };
       }
       case 'themeSave': {
         const theme = event.theme || {};
@@ -313,8 +362,14 @@ async function handleAction(event) {
 
       // ── 版式管理 ──
       case 'paperList': {
-        const res = await db.collection('papers').orderBy('sort', 'asc').limit(200).get();
-        return { ok: true, papers: res.data };
+        const [res, premium] = await Promise.all([
+          db.collection('papers').orderBy('sort', 'asc').limit(200).get(),
+          premiumIdMap('paper')
+        ]);
+        return {
+          ok: true,
+          papers: res.data.map((p) => Object.assign({}, p, { premium: !!premium[p.paper_id] }))
+        };
       }
       case 'paperSave': {
         const paper = event.paper || {};

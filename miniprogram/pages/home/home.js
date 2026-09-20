@@ -2,6 +2,7 @@ const letterService = require('../../services/letter.js');
 const draftService = require('../../services/draft.js');
 const themeService = require('../../services/theme.js');
 const memberService = require('../../services/member.js');
+const handoff = require('../../services/handoff.js');
 const { DATA_SOURCE } = require('../../config/env.js');
 
 // 今日来信（local 态）：同一天固定同一封（按日期种子确定性随机，次日重摇）；
@@ -47,7 +48,10 @@ Page({
     todayYear: '',
     draftCount: 0,
     hasLetters: false,
-    isTidy: false
+    isTidy: false,
+    // 信封预取节点（见 openDetail / prefetchEnv）：初始为空不挂载
+    preEnv: '',
+    preEnvFull: ''
   },
 
   onLoad() {
@@ -85,6 +89,12 @@ Page({
     Promise.all(tasks).then(
       ([box, themes, m, drafts]) => {
         const isVip = !!(m && m.state === 'vip');
+        // 供 openDetail 在跳转前解析主题（专属主题对非 VIP 要回落默认款）：
+        // 会员态与主题列表都留一份**本次渲染用的快照** —— 详情页首帧画的必须与用户刚点的那张
+        // 卡片逐字同源（同一份 themes 算出来的信封），不能改走 cachedThemes() 那个随时会
+        // 被 1h TTL 刷新的全局缓存（与 clips.js 同做法）
+        this._isVip = isVip;
+        this._themes = themes;
         // 回形针优先展示（BR-06）：只改排序，不改视觉
         const sorted = [...box.list].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
         const isTidy = sorted.length > 8;
@@ -108,10 +118,12 @@ Page({
           ? letters.find((l) => l.id === box.todayId) || pickTodayLetter(letters)
           : pickTodayLetter(letters);
 
-        // 进详情的动画首帧提示（名称 + 主题）：列表投影刻意只带渲染所需字段（见上），
-        // 这里另存一份按 id 取用，点开信封时经事件通道带给详情页
+        // 进详情的动画首帧提示（id + 名称 + 主题）：列表投影刻意只带渲染所需字段（见上），
+        // 这里另存一份按 id 取用，点开信封时经 services/handoff.js 在跳转前交给详情页。
+        // **id 必须在** —— handoff.take() 会拿它与详情页的 options.id 比对，缺了就对不上，
+        // 整份交接被丢弃（拆信幕退回「不画信封」，等于白交）。
         this._hints = {};
-        for (const l of sorted) this._hints[String(l.id)] = { name: l.name, theme_id: l.theme_id };
+        for (const l of sorted) this._hints[String(l.id)] = { id: l.id, name: l.name, theme_id: l.theme_id };
 
         this.setData({
           loading: false,
@@ -147,16 +159,34 @@ Page({
     this.openDetail(e.currentTarget.dataset.id);
   },
 
-  // 进入拆信/详情页：把列表里已知的名称与主题带上，详情页拆信动画首帧就画对信封与名字，
-  // 不必等云调用回来（emit 在 navigateTo 的 success 中，早于详情页监听时由事件通道缓冲）
+  // 进入拆信/详情页：把列表里已知的名称与主题**在跳转前**放进同步交接槽，
+  // 详情页 onLoad 同步取用 —— 拆信动画首帧就画对信封与名字，不必等云调用回来。
+  // 不能走事件通道：emit 在 navigateTo 的 success 回调里，而时序是
+  // 「目标页 onLoad/onShow → 首帧渲染 → success」，emit 到得比首帧还晚。
   openDetail(id) {
     const hint = this._hints && this._hints[String(id)];
-    wx.navigateTo({
-      url: '/pages/detail/detail?id=' + encodeURIComponent(id),
-      success: (res) => {
-        if (hint && res.eventChannel) res.eventChannel.emit('letterHint', hint);
-      }
-    });
+    if (hint) {
+      const theme = themeService.themeOf(hint.theme_id, this._themes || themeService.cachedThemes(), this._isVip);
+      handoff.put({
+        id: hint.id,
+        name: hint.name,
+        // 与列表缩略图同一个解析出口（未知 theme_id、非 VIP 的专属款都回落第一套）：
+        // 详情页首帧画的，就是用户刚点的那张卡片上的信封
+        theme
+      });
+      this.prefetchEnv(theme);
+    }
+    wx.navigateTo({ url: '/pages/detail/detail?id=' + encodeURIComponent(id) });
+  },
+
+  // 点按即预取该信封的两级素材（非阻塞、失败静默）：本页挂上屏幕外节点立刻开始
+  // 「fileID→临时URL→下载」，比详情页拆信幕自己的两级 src 早一个导航转场。图片缓存
+  // 按 URL 全局共享（拆信幕首帧的小图正是靠它命中列表页渲染过的那张），云端主题
+  // （如「印花」，素材在云存储）由此大概率在动画第一帧前就绪。包内素材（小王子）秒加载，无感。
+  prefetchEnv(theme) {
+    const thumb = (theme && theme.envelopeThumb) || '';
+    const full = (theme && theme.envelope) || '';
+    this.setData({ preEnv: thumb, preEnvFull: full !== thumb ? full : '' });
   },
 
   onTapDrafts() {

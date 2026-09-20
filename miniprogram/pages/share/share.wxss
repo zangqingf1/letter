@@ -2,6 +2,7 @@
 /* 信纸版式装饰与排版：共享样式（styles/paper.wxss，与写信预览/详情阅读同构） */
 @import "../../styles/paper.wxss";
 
+/* 页面背景随主题：WXML 内联绑 theme.desk，这里只是绑定缺失时的兜底 */
 .page {
   display: flex;
   flex-direction: column;
@@ -44,6 +45,45 @@
   overflow-y: auto;
   padding: 8rpx 40rpx;
 }
+/* ── 预览区①：成品图本身（方案 A，宽 630rpx 与导出件等比）
+   刻意不加 border-radius —— 加圆角就会裁掉导出件的四个角，预览就不再等于成品。
+   投影只是页面外框（落在图片之外，不改变任何一个像素）。── */
+.shot {
+  display: block;
+  width: 630rpx;
+  margin: auto;
+  box-shadow: 0 12rpx 36rpx rgba(80, 100, 90, 0.18);
+}
+
+/* ── 预览区②：出图骨架。纸色与文字色由页面按当前版式内联（深色纸面也能读），
+   高度由 shotH 内联占位；min-height 是「还没量出成品高」时的地板，避免塌成 0。── */
+.shot-sk {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 630rpx;
+  min-height: 720rpx;
+  margin: auto;
+  padding: 40rpx;
+  box-sizing: border-box;
+  box-shadow: 0 12rpx 36rpx rgba(80, 100, 90, 0.18);
+}
+.shot-sk-tip {
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  animation: shot-pulse 1.5s ease-in-out infinite;
+}
+@keyframes shot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── 预览区③：出图失败才用的降级预览（WXML 版式）── */
 .postcard {
   position: relative;
   margin: auto; /* 内容不超高时水平垂直居中，超高时可滚动预览（flex margin auto 居中不裁顶） */

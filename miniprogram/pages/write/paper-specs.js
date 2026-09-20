@@ -462,6 +462,474 @@ const SPECS = {
     abs: 'airmail2'
   },
 
+  // ── 竖排笺 shupai（.pl-sp；writing-mode 竖排右起，Canvas 逐字竖排定位）──
+  // cols 顺序 = 右→左：名称 / 问签+问题 / 答签+答案 / 落款；
+  // gap = 该元素换列后的 margin-left（与 WXSS 一致）。导出放不下内容宽时整体缩小字号重排。
+  shupai: {
+    css: '.pl-sp',
+    pad: [50, 50, 44, 50],
+    flow: [
+      {
+        k: 'vbody',
+        h: 1600, // .vsp-body 固定高（预览与导出同值）
+        cols: [
+          { f: 'name', size: 34, face: SONG, lh: 1.9, ls: 10, color: 'deep', gap: 40 }, // .vsp-name
+          { tag: '问', size: 18, face: HEI, padX: 6, pt: 18, pb: 22, border: 2, color: 'tan', line: 'tanLine', gap: 34 }, // .vsp-tag
+          { f: 'question', size: 26, face: KAI, lh: 2.3, color: 'gray', gap: 34 }, // .vsp-q .vsp-txt
+          { tag: '答', size: 18, face: HEI, padX: 6, pt: 18, pb: 22, border: 2, fill: true, color: 'bg', chipBg: 'fill', line: 'fill', gap: 34 }, // .vsp-tag-fill
+          { f: 'answer', size: 26, face: KAI, lh: 2.3, color: 'ink', gap: 34 }, // .vsp-a .vsp-txt
+          { text: '写于 {{dateLong}}', size: 20, face: HEI, ls: 7, color: 'date', pt: 460, gap: 30 } // .vsp-date
+        ]
+      }
+    ]
+  },
+
+  // ── 一线笺 yixian（.pl-yx；左侧一根贯纸细线，正文挂线右置）──
+  yixian: {
+    css: '.pl-yx',
+    pad: [62, 60, 52, 120],
+    flow: [
+      { k: 'text', text: '心灵信箱 · LETTER {{serial}}', size: 18, face: HEI, ls: 7, color: 'faint' }, // .ply-eyebrow
+      { k: 'text', f: 'name', size: 36, face: HEI, weight: '600 ', lh: 1.5, ls: 4, color: 'deep', mt: 18 }, // .ply-name
+      { k: 'text', text: '问', size: 18, face: HEI, ls: 10, color: 'faint', mt: 48, mb: 14 }, // .ply-cap
+      { k: 'text', f: 'question', size: 28, face: HEI, lh: 2.1, color: 'gray' }, // .ply-qt
+      { k: 'text', text: '答', size: 18, face: HEI, ls: 10, color: 'faint', mt: 48, mb: 14 },
+      { k: 'text', f: 'answer', size: 28, face: HEI, lh: 2.1, color: 'ink' },
+      {
+        k: 'lr',
+        mt: 60, // .ply-foot
+        left: { text: 'MENTAL MAILBOX · 私人信件', size: 18, face: HEI, ls: 5, color: 'faint' },
+        right: { text: '写于 {{dotDate}}', size: 20, face: HEI, ls: 4, color: 'sub' }
+      }
+    ],
+    abs: 'yixian'
+  },
+
+  // ── 版心笺 banxin（.pl-bx；书页版心：天头 Running head + 题记 + 两端对齐正文 + 页码）──
+  banxin: {
+    css: '.pl-bx',
+    pad: [42, 60, 34, 60],
+    flow: [
+      {
+        // .plbx-rh：两端细线拉通（flex ::before/::after）
+        k: 'text',
+        text: '心灵信箱 · 卷八 · 第 {{stampText}} 页',
+        size: 18,
+        face: HEI,
+        ls: 7,
+        color: 'faint',
+        rule: { h: 2, color: 'rhLine', gap: 28, both: true }
+      },
+      { k: 'text', text: '其一', size: 18, face: HEI, ls: 10, indent: 10, align: 'center', color: 'faint', mt: 44 }, // .plbx-no
+      { k: 'text', f: 'name', size: 38, face: SONG, weight: '700 ', lh: 1.5, ls: 5, align: 'center', color: 'deep', mt: 16 }, // .plbx-name
+      { k: 'text', text: '◆', size: 16, face: SONG, ls: 20, indent: 20, align: 'center', color: 'orn', mt: 18 }, // .plbx-orn
+      { k: 'line', h: 40, w: 2, align: 'center', color: 'line', mt: 60, mb: 28 }, // .plbx-epiline（上垂短线）
+      { k: 'text', f: 'question', size: 27, face: KAI, lh: 2.1, align: 'center', color: 'gray', frac: 0.86 }, // .plbx-epi
+      { k: 'text', f: 'answer', size: 28, face: SONG, lh: 2.15, color: 'ink', mt: 60, justify: true, indent: 56 }, // .plbx-body（首行缩进 2em）
+      { k: 'text', text: '· {{stampText}} · 写于 {{dateLong}}', size: 20, face: SONG, ls: 7, align: 'center', color: 'faint', mt: 72 } // .plbx-folio
+    ]
+  },
+
+  // ── 居中笺 juzhong（.pl-jz；全部居中，双菱形分隔）──
+  juzhong: {
+    css: '.pl-jz',
+    pad: [56, 54, 46, 54],
+    flow: [
+      { k: 'text', text: '把答案寄给未来', size: 18, face: HEI, ls: 14, indent: 14, align: 'center', color: 'faint' }, // .pljz-eyebrow
+      { k: 'text', f: 'name', size: 38, face: KAI, lh: 1.7, ls: 7, align: 'center', color: 'deep', mt: 40 }, // .pljz-name
+      { k: 'sep', w: 300, d: 12, gap: 20, color: 'line', dColor: 'gold', mt: 46, mb: 46 }, // .pljz-sep
+      { k: 'text', f: 'question', size: 28, face: KAI, lh: 2.15, align: 'center', color: 'gray', frac: 0.76 }, // .pljz-q
+      { k: 'text', f: 'answer', size: 28, face: SONG, lh: 2.25, align: 'center', color: 'ink', mt: 46, frac: 0.81 }, // .pljz-a
+      { k: 'text', text: '写于 {{dateLong}}', size: 20, face: HEI, ls: 5, align: 'center', color: 'gray', mt: 68 }, // .pljz-date
+      { k: 'text', text: '心 灵 信 箱', size: 16, face: HEI, ls: 10, indent: 10, align: 'center', color: 'brand', mt: 46 } // .pljz-brand
+    ],
+    abs: 'juzhong'
+  },
+
+  // ── 裁切笺 caiqie（.pl-cq；四角出血裁切线 + 等宽索引行 + Q/A 发排式小标）──
+  caiqie: {
+    css: '.pl-cq',
+    pad: [54, 56, 46, 56],
+    flow: [
+      {
+        // .plcq-index：等宽索引行（border-bottom 在下一条 line op 落位）
+        k: 'lr',
+        pb: 24,
+        left: { text: 'NO. {{dwgNo}} · PRIVATE', size: 19, face: MONO, ls: 4, color: 'faint' },
+        right: { text: '{{dotDate}}', size: 19, face: MONO, ls: 4, color: 'faint' }
+      },
+      { k: 'line', h: 2, color: 'line' }, // .plcq-index 的 border-bottom
+      { k: 'text', f: 'name', size: 36, face: HEI, weight: '700 ', lh: 1.5, ls: 4, color: 'deep', mt: 68 }, // .plcq-name
+      {
+        // .plcq-cap：Q/A 加粗深色（prefix），破折号退灰
+        k: 'text',
+        text: ' ──────────',
+        size: 19,
+        face: MONO,
+        ls: 5,
+        color: 'faint',
+        mb: 18,
+        prefix: { text: 'Q', size: 19, weight: '700 ', color: 'deep' }
+      },
+      { k: 'text', f: 'question', size: 28, face: HEI, lh: 2.1, color: 'gray', frac: 0.85 }, // .plcq-q .plcq-txt
+      {
+        k: 'text',
+        text: ' ──────────',
+        size: 19,
+        face: MONO,
+        ls: 5,
+        color: 'faint',
+        mt: 68,
+        mb: 18,
+        prefix: { text: 'A', size: 19, weight: '700 ', color: 'deep' }
+      },
+      { k: 'text', f: 'answer', size: 28, face: HEI, lh: 2.1, color: 'ink', frac: 0.85 },
+      {
+        k: 'lr',
+        mt: 94,
+        pt: 26,
+        border: { h: 2, color: 'line' }, // .plcq-foot
+        left: { text: 'MENTAL MAILBOX', size: 18, face: MONO, ls: 7, color: 'faint' },
+        right: { text: '写于 {{dotDate}}', size: 20, face: HEI, ls: 4, color: 'sub' }
+      }
+    ],
+    abs: 'caiqie'
+  },
+
+  // ── 星图观测笺 xingtu（.pl-xt；深蓝夜空网格 + 金色刻度尺 + 右上星座连线群）──
+  xingtu: {
+    css: '.pl-xt',
+    pad: [52, 50, 46, 50],
+    flow: [
+      { k: 'text', text: 'MENTAL MAILBOX OBSERVATORY · OBS. {{mon2}}{{day2}}', size: 18, face: MONO, ls: 7, color: 'goldSoft' }, // .plxt-eyebrow
+      { k: 'text', text: '今夜观测记录', size: 20, face: HEI, ls: 14, indent: 14, color: 'blue', mt: 11 }, // .plxt-eyebrow-cn
+      { k: 'text', f: 'name', size: 40, face: SONG, lh: 1.6, ls: 5, color: 'bright', mt: 40, frac: 0.72 }, // .plxt-name
+      { k: 'line', h: 3, w: 115, color: 'gold', mt: 32 }, // .plxt-name-rule
+      { k: 'text', text: '✦ 问', size: 20, face: HEI, ls: 8, color: 'gold', mt: 58, mb: 18 }, // .plxt-cap
+      { k: 'text', f: 'question', size: 28, face: HEI, lh: 2.0, color: 'gray' }, // .plxt-txt
+      { k: 'text', text: '✦ 答', size: 20, face: HEI, ls: 8, color: 'gold', mt: 58, mb: 18 },
+      { k: 'text', f: 'answer', size: 28, face: HEI, lh: 2.0, color: 'ink' },
+      {
+        k: 'lr',
+        mt: 79, // .plxt-foot
+        left: { text: 'RA 03h 47m · DEC +24° 07′', size: 18, face: MONO, ls: 4, color: 'coord' },
+        right: { text: '写于 {{dotDate}}', size: 20, face: HEI, ls: 4, color: 'gold' }
+      }
+    ],
+    abs: 'xingtu'
+  },
+
+  // ── 胶片底片 jiaopian（.pl-fm；齿孔条 + 片边印字 + 画幅框，框由 sheet 机制参与排版）──
+  jiaopian: {
+    css: '.pl-fm',
+    pad: [106, 42, 104, 42], // 上下容下齿孔条 + 片边印字两层，再接画幅框
+    sheet: [34, 34, 30, 34], // .plfm-frame 内衬（border 用 box-shadow 0 0 0 3rpx 模拟，不占布局）
+    sheetCss: '.plfm-frame',
+    flow: [
+      { k: 'text', f: 'name', size: 45, face: SONG, lh: 1.6, ls: 4, color: 'bright' }, // .plfm-name
+      { k: 'text', text: 'SCENE 01 · 问', size: 20, face: MONO, ls: 7, color: 'accent', mt: 47 }, // .plfm-cap
+      { k: 'text', f: 'question', size: 26, face: HEI, lh: 2.0, color: 'gray' }, // .plfm-txt
+      { k: 'text', text: 'SCENE 02 · 答', size: 20, face: MONO, ls: 7, color: 'accent', mt: 47 },
+      { k: 'text', f: 'answer', size: 26, face: HEI, lh: 2.0, color: 'ink' },
+      {
+        k: 'lr',
+        mt: 61,
+        pt: 25,
+        border: { h: 2, color: 'footLine' }, // .plfm-foot
+        left: { text: 'EXPOSURE · 一个诚实的深夜', size: 19, face: MONO, ls: 5, color: 'footDim' },
+        right: { text: '摄于 {{dotDate}}', size: 22, face: HEI, ls: 4, color: 'accent' }
+      }
+    ],
+    abs: 'jiaopian'
+  },
+
+  // ── 日历撕页 rili（.pl-rl；撕线与月份带整幅出血（lr full），特大日期 + 黄历角签）──
+  rili: {
+    css: '.pl-rl',
+    pad: [0, 44, 40, 44],
+    flow: [
+      {
+        // .plrl-tearline：全幅出血，dashed 撕线在文字下方（border.bottom）
+        k: 'lr',
+        full: true,
+        px: 36,
+        pt: 22,
+        border: { h: 3, color: 'tear', dash: [10, 7], bottom: true },
+        left: { text: '✂ 沿此线撕取', size: 19, face: HEI, ls: 5, color: 'faint' },
+        right: { text: 'MENTAL MAILBOX CALENDAR · {{yearText}}', size: 19, face: HEI, ls: 5, color: 'faint' }
+      },
+      {
+        // .plrl-band：全幅出血的红色月份带（bg 整块铺色）
+        k: 'lr',
+        full: true,
+        bg: 'red',
+        px: 44,
+        pt: 18,
+        pb: 18,
+        mt: 40,
+        left: { text: '{{cnMonth}}', size: 30, face: SONG, weight: '800 ', ls: 9, color: 'cream' },
+        right: { text: '{{enMonth}}', size: 19, face: MONO, ls: 5, color: 'creamDim' }
+      },
+      {
+        // .plrl-datehead：特大日期 + 右侧星期/黄历角签（底对齐）
+        k: 'datehead',
+        mt: 36,
+        gap: 32,
+        asidePb: 18,
+        almMt: 18,
+        big: { f: 'dayNum', size: 166, face: SONG, weight: '900 ', ls: 4, lh: 0.95, color: 'deep' },
+        wk: { text: '{{weekdayCn}} · 写下这封信的一天', size: 23, face: HEI, weight: '700 ', ls: 5, color: 'red' },
+        alm: { text: '宜：想明白 忌：熬夜', size: 20, face: HEI, ls: 4, lh: 1.9, color: 'red', border: 3, padX: 18, padY: 11 }
+      },
+      { k: 'text', f: 'name', size: 38, face: HEI, weight: '700 ', ls: 4, color: 'deep', mt: 47 }, // .plrl-name
+      { k: 'text', text: '问', size: 20, face: HEI, weight: '700 ', ls: 9, color: 'red', mt: 43, mb: 11 }, // .plrl-cap
+      { k: 'text', f: 'question', size: 26, face: HEI, lh: 2.0, color: 'gray' }, // .plrl-txt
+      { k: 'text', text: '答', size: 20, face: HEI, weight: '700 ', ls: 9, color: 'red', mt: 40, mb: 11 },
+      { k: 'text', f: 'answer', size: 26, face: HEI, lh: 2.0, color: 'ink' },
+      {
+        k: 'lr',
+        mt: 61,
+        pt: 22,
+        border: { h: 2, color: 'line' }, // .plrl-foot
+        left: { text: '心灵信箱 · 每天一页', size: 20, face: HEI, ls: 5, color: 'faint' },
+        right: { text: '写于 {{dateLong}} · 本页永不撕去', size: 22, face: HEI, ls: 4, color: 'deep' }
+      }
+    ]
+  },
+
+  // ── 深夜处方笺 chufang（.pl-cf；诊所抬头 + 表单栏 + 诊断/Rp + 红圈章签名区）──
+  chufang: {
+    css: '.pl-cf',
+    pad: [42, 44, 38, 44],
+    flow: [
+      {
+        // .plcf-head：左侧诊所抬头两行 + 右上 Rx 编号框
+        k: 'rxhead',
+        cn: { text: '心灵信箱 · 深夜诊所', size: 34, face: HEI, weight: '800 ', ls: 5, color: 'deep' },
+        en: { text: 'MENTAL MAILBOX NIGHT CLINIC', size: 18, face: MONO, ls: 5, color: 'gray', mt: 7 },
+        chip: { text: 'Rx No. {{mon2}}{{day2}}', size: 22, face: MONO, ls: 2, color: 'red', border: 3, padX: 16, padY: 9 }
+      },
+      { k: 'line', h: 5, color: 'deep', mt: 29 }, // .plcf-rule2 的粗线
+      { k: 'line', h: 2, color: 'deep', mt: 9 }, // .plcf-rule2 的细线
+      {
+        // .plcf-formrow：三格表单栏，各自带底边线
+        k: 'fields',
+        mt: 29,
+        gap: 47,
+        pb: 7,
+        kGap: 14,
+        ks: { size: 19, face: HEI, ls: 5, color: 'gray' },
+        vs: { size: 22, face: HEI, ls: 2, color: 'ink' },
+        lineColor: 'fieldLine',
+        lw: 2,
+        cells: [
+          { k: '姓名', v: '{{name}}', f: 'name' },
+          { k: '就诊日期', v: '{{dotDate}}' },
+          { k: '科室', v: '睡眠科' }
+        ]
+      },
+      {
+        // .plcf-cap：诊断 + 等宽英文小字（同一基线）
+        k: 'text',
+        text: '诊断',
+        size: 22,
+        face: HEI,
+        weight: '800 ',
+        ls: 7,
+        color: 'red',
+        mt: 50,
+        mb: 14,
+        sup: { text: 'DIAGNOSIS', size: 18, face: MONO, ls: 4, color: 'gray', gap: 18, va: 0 }
+      },
+      { k: 'text', f: 'question', size: 26, face: HEI, lh: 2.0, color: 'sub' }, // .plcf-dxtxt
+      {
+        // .plcf-rp：斜体 Rp 落款（plain lead）+ 右侧处方正文（cap + txt 两段）
+        k: 'row',
+        mt: 47,
+        lead: { style: 'plain', text: 'Rp', size: 54, face: SONG, weight: 'italic ', lh: 1, color: 'deep', mt: 4, gap: 29 },
+        body: [
+          { k: 'text', text: '处方', size: 22, face: HEI, weight: '800 ', ls: 7, color: 'red', mb: 14 },
+          { k: 'text', f: 'answer', size: 26, face: HEI, lh: 2.05, color: 'ink' }
+        ]
+      },
+      {
+        // .plcf-sigzone：左用法（底对齐）+ 右红圈章/医师签名栏
+        k: 'rxsig',
+        mt: 72,
+        usage: { text: '用法：每晚睡前默读一遍\n疗程：直到三个月后的回信抵达', size: 22, face: HEI, ls: 4, lh: 2.0, color: 'sub' },
+        seal: {
+          box: 151,
+          rotate: -10,
+          lw: 5,
+          ring: 'sealLine',
+          inner: 9,
+          innerLw: 2,
+          innerColor: 'sealInner',
+          text: '心灵信箱',
+          textSize: 22,
+          face: HEI,
+          ls: 4,
+          color: 'sealIn',
+          sub: 'NIGHT CLINIC',
+          subSize: 16,
+          subFace: MONO,
+          subGap: 5,
+          subColor: 'sealIn'
+        },
+        doctor: { text: '医师：三个月后的我', size: 24, face: KAI, ls: 4, color: 'deep', line: 'deepLine', lineH: 3, padX: 25, pb: 11, mt: 18 },
+        sigk: { text: '医师签名', size: 18, face: HEI, ls: 5, color: 'gray', mt: 11 }
+      }
+    ]
+  },
+
+  // ── 终端笺 zhongduan（.pl-tm；琥珀磷屏日志体，sup.block 画实心块光标）──
+  zhongduan: {
+    css: '.pl-tm',
+    pad: [42, 44, 38, 44],
+    flow: [
+      {
+        k: 'lr',
+        pt: 18,
+        border: { h: 2, color: 'line' }, // .pltm-bar
+        left: { text: 'MENTAL-MAILBOX v{{yearText}}.{{mon2}}', size: 20, face: MONO, ls: 4, color: 'barDim' },
+        right: { text: 'TTY1 · 深夜', size: 20, face: MONO, ls: 4, color: 'barDim' }
+      },
+      { k: 'text', text: 'FILE: ~/mailbox/{{yearText}}/{{mon2}}/{{day2}}.txt', size: 22, face: MONO, ls: 2, color: 'fileDim', mt: 43 }, // .pltm-file
+      { k: 'text', f: 'name', size: 42, face: HEI, weight: '700 ', lh: 1.6, ls: 4, color: 'bright', mt: 14 }, // .pltm-name
+      {
+        // .pltm-prompt：> INPUT 亮色加粗（prefix），其余退灰
+        k: 'text',
+        text: ' / 来信问题 _',
+        size: 21,
+        face: MONO,
+        ls: 2,
+        color: 'promptDim',
+        mt: 50,
+        mb: 14,
+        prefix: { text: '> INPUT', size: 21, weight: '700 ', color: 'bright' }
+      },
+      { k: 'text', f: 'question', size: 26, face: HEI, lh: 2.0, color: 'qDim' }, // .pltm-txt
+      {
+        k: 'text',
+        text: ' / 处理结果 _',
+        size: 21,
+        face: MONO,
+        ls: 2,
+        color: 'promptDim',
+        mt: 50,
+        mb: 14,
+        prefix: { text: '> OUTPUT', size: 21, weight: '700 ', color: 'bright' }
+      },
+      { k: 'text', f: 'answer', size: 26, face: HEI, lh: 2.0, color: 'aAmber' },
+      {
+        // .pltm-status 两行：[DONE] 亮色（sup）、行尾实心块光标（sup.block）
+        k: 'text',
+        text: '> PROCESS: 反刍中……',
+        size: 21,
+        face: MONO,
+        ls: 2,
+        lh: 2.1,
+        color: 'statusDim',
+        mt: 54,
+        sup: { text: '[DONE]', size: 21, face: MONO, weight: '700 ', color: 'bright', gap: 11, va: 0 }
+      },
+      {
+        k: 'text',
+        text: '> EXIT 0 · 已封存至 ~/mailbox/{{yearText}}/{{mon2}}/{{day2}}',
+        size: 21,
+        face: MONO,
+        ls: 2,
+        lh: 2.1,
+        color: 'statusDim',
+        sup: { block: true, w: 16, h: 27, gap: 11, color: 'bright' }
+      },
+      {
+        k: 'lr',
+        mt: 47,
+        pt: 22,
+        border: { h: 2, color: 'line' }, // .pltm-foot
+        left: { text: 'MENTAL MAILBOX TERMINAL', size: 19, face: MONO, ls: 4, color: 'footDim' },
+        right: { text: '写于 {{dotDate}}', size: 19, face: MONO, ls: 4, color: 'amber' }
+      }
+    ],
+    abs: 'zhongduan'
+  },
+
+  // ── 结业证书 zhengshu（.pl-zs；金框角花 + 富文本结业词 + 红印缎带）──
+  zhengshu: {
+    css: '.pl-zs',
+    pad: [47, 50, 41, 50],
+    flow: [
+      { k: 'text', text: 'CERTIFICATE OF COMPLETION', size: 18, face: MONO, ls: 7, color: 'orgK' }, // .plzs-en
+      { k: 'text', text: '结业证书', size: 58, face: SONG, weight: '900 ', ls: 25, indent: 25, align: 'center', color: 'title', mt: 18 }, // .plzs-cn
+      { k: 'text', text: '❖ ❖ ❖', size: 22, face: SONG, ls: 18, indent: 18, align: 'center', color: 'orn', mt: 22 }, // .plzs-orn
+      {
+        // .plzs-cap：◆ 前缀 + 标题 + 延伸细线（rule 按前缀+文字总宽落位）
+        k: 'text',
+        text: '修习课题',
+        size: 22,
+        face: HEI,
+        weight: '700 ',
+        ls: 9,
+        color: 'title',
+        mt: 50,
+        mb: 14,
+        prefix: { text: '◆ ', size: 16, color: 'orn' },
+        rule: { h: 2, color: 'capLine', gap: 22 }
+      },
+      { k: 'text', f: 'question', size: 26, face: KAI, lh: 2.0, color: 'courseTxt' }, // .plzs-txt
+      {
+        k: 'text',
+        text: '结业答卷',
+        size: 22,
+        face: HEI,
+        weight: '700 ',
+        ls: 9,
+        color: 'title',
+        mt: 43,
+        mb: 14,
+        prefix: { text: '◆ ', size: 16, color: 'orn' },
+        rule: { h: 2, color: 'capLine', gap: 22 }
+      },
+      { k: 'text', f: 'answer', size: 26, face: KAI, lh: 2.0, color: 'ink' },
+      {
+        // .plzs-verdict：一句里两种字色的富文本（rich 分段换行 + 居中）；
+        // 信件名称嵌进结业词（「名称必入图」口径），field 记在 op 上
+        k: 'text',
+        f: 'name',
+        size: 27,
+        face: HEI,
+        ls: 4,
+        lh: 2.1,
+        align: 'center',
+        color: 'ink2',
+        mt: 54,
+        rich: [
+          { t: '「{{name}}」一课，经三个月后的本人复核，', weight: '', color: 'ink2', lh: 2.1 },
+          { t: '准予结业，特发此证', weight: '700 ', color: 'title', lh: 2.1 },
+          { t: '。', weight: '', color: 'ink2', lh: 2.1 }
+        ]
+      },
+      {
+        // .plzs-sigzone：左颁发栏两行（底对齐）+ 右红印与缎带
+        k: 'zssig',
+        mt: 61,
+        org: [
+          { prefix: '颁发', text: '心灵信箱学堂' },
+          { prefix: '编号', text: 'MM-{{yearText}}-{{mon2}}{{day2}}' }
+        ],
+        orgRun: { size: 22, face: HEI, ls: 5, color: 'ink2' },
+        orgK: { size: 19, face: HEI, ls: 7, color: 'orgK' },
+        orgLh: 2.2,
+        orgGap: 14,
+        seal: { box: 173, rotate: -8, bg: 'redSeal', color: 'cream', text: '心灵信箱', size: 31, face: SONG, weight: '900 ', ls: 4 },
+        ribbon: { w: 22, h: 47, gap: 7, mt: -11, color: 'red' }
+      },
+      { k: 'text', text: '写于 {{dateLong}}', size: 22, face: HEI, ls: 5, align: 'center', color: 'courseTxt', mt: 25 } // .plzs-date
+    ],
+    abs: 'zhengshu'
+  },
+
   // ── 会员专属：鎏金笺 / 苍蓝笺 / 银厢笺（后台 member_items 下发）──
   // premium 这个键是「任意专属版式」的通用入口：后台新增的专属款 id 不在本表里，
   // 但只要带 premium 标记就命中它 —— 旧版正是缺了这一步，三款专属笺整篇按号外头版排版。

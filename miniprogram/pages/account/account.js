@@ -2,6 +2,7 @@
 // 头像 open-type="chooseAvatar"、昵称 type="nickname" 输入框（合规方案，getUserProfile 已下线）。
 // 资料/注销经 user 服务处理（本地 storage 或云端），「我的」页名片读取同一份数据。
 const userService = require('../../services/user.js');
+const privacyService = require('../../services/privacy.js');
 
 Page({
   data: {
@@ -15,6 +16,18 @@ Page({
     const win = wx.getWindowInfo();
     this.setData({ statusBarHeight: win.statusBarHeight || 20 });
     this.loadProfile();
+    // 头像按钮（open-type="chooseAvatar"）与昵称输入框（type="nickname"）都是隐私组件：
+    // 未同意《用户隐私保护指引》时点了不会有任何反应，且原生按钮拦不住点击，
+    // 所以进页面就把授权弹窗消化掉，用户真正点头像时已是就绪状态
+    privacyService.ensure().then((ok) => {
+      if (!ok) {
+        wx.showToast({
+          title: '需同意隐私政策后才能修改头像昵称',
+          icon: 'none',
+          duration: 2500
+        });
+      }
+    });
   },
 
   loadProfile() {

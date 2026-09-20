@@ -8,8 +8,7 @@ module.exports = {
     { id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' } },
     { id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } }
   ],
-  themes: [
-    { id: 'guiniao', name: '归鸟', desc: '归途晚照 · 专属', swatch: '#D9C3B2' },
-    { id: 'xingxi', name: '星汐', desc: '夜海微光 · 专属', swatch: '#B8C4CF' }
-  ]
+  // 专属主题不再内置兜底款（归鸟/星汐已删）：云端 member_items 上架了专属主题就由
+  // pickPremium 从 theme 列表挑出，没上架时会员页此栏为空。保留空数组键，member.js 首帧绑定不空指针。
+  themes: []
 };

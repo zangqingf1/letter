@@ -9,6 +9,12 @@ const { createHarness } = require('../harness');
 const DAY = 86400000;
 const LETTER = { name: '给三年后的我', question: '当时为什么离开？', answer: '因为想看看别处的天。' };
 
+// 与云函数 dateKeyOf 同口径的本地日期键（toISOString 是 UTC，北京时间过了零点就差一天）
+function localDateKey() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+
 async function makeLetter(main, over) {
   const r = await main(Object.assign({ action: 'create' }, LETTER, over || {}));
   return r.id;
@@ -436,7 +442,7 @@ suite('回信 · reply', () => {
     eq(r.ok, true);
     eq(r.replies.length, 1);
     const rec = h.all('reply_records')[0];
-    eq(rec.reply_date, new Date().toISOString().slice(0, 10), '日期必须服务端生成，忽略入参');
+    eq(rec.reply_date, localDateKey(), '日期必须服务端生成，忽略入参');
   });
 
   test('add 空内容与纯空白被拒', async () => {
@@ -533,7 +539,7 @@ suite('回信 · 两个写入入口（letter 与 reply 口径一致）', () => {
     const rec = h.all('reply_records')[0];
     eq(rec._openid, 'openid-A');
     eq(rec.letter_id, id);
-    eq(rec.reply_date, new Date().toISOString().slice(0, 10), '日期服务端生成，忽略入参');
+    eq(rec.reply_date, localDateKey(), '日期服务端生成，忽略入参');
   });
 
   test('letter 写入的回信能被 reply 撕掉，reply 写入的也能被 letter 撕掉', async () => {

@@ -62,12 +62,15 @@ function makeData() {
     });
   }
   const themes = [
-    { theme_id: 'xiaowangzi', name: '小王子', desc: '默认主题', version: 1, status: 'online', sort: 0, swatch: '#2E4756', palette: 'xiaowangzi', desk: '', assets: {} },
-    { theme_id: 'moye', name: '墨夜', desc: '深色', version: 1, status: 'offline', sort: 1, swatch: '#111', palette: 'moye', desk: '', assets: {} }
+    { theme_id: 'xiaowangzi', name: '小王子', desc: '默认主题', version: 1, status: 'online', sort: 0, swatch: '#2E4756', palette: { base: '#F9F3E4' }, desk: '#EDE9DC', assets: {} },
+    { theme_id: 'moye', name: '墨夜', desc: '深色', version: 1, status: 'offline', sort: 1, swatch: '#111111', palette: { base: '#1D2027' }, desk: '#15181E', assets: {} }
   ];
   const papers = [
     { paper_id: 'liubai', name: '留白志', desc: '默认', version: 1, status: 'online', sort: 0, colors: { bg: '#F7F5EF', ink: '#2E2A24' } },
-    { paper_id: 'vinyl', name: '黑胶', desc: '复古', version: 1, status: 'online', sort: 1, colors: { bg: '#141414', ink: '#EFE7D6' } }
+    { paper_id: 'extra', name: '号外头版', desc: '报纸头版', version: 1, status: 'online', sort: 1, colors: { bg: '#F5EFDE', ink: '#262219', accent: '#A33B24' } },
+    { paper_id: 'blueprint', name: '工程蓝图', desc: '白线网格', version: 2, status: 'offline', sort: 2, colors: { bg: '#16324F', line: '#EAF2F8' } },
+    { paper_id: 'ticket', name: '存根票根', desc: '凭证票面', version: 1, status: 'online', sort: 3, colors: { bg: '#F6EDDC', ink: '#2E2A26', accent: '#C2452D' } },
+    { paper_id: 'vinyl', name: '黑胶', desc: '复古', version: 1, status: 'online', sort: 4, colors: { bg: '#141414', ink: '#EFE7D6' } }
   ];
   const members = users.filter((u) => u.memberState === 'vip').map((u) => ({
     openid: u.openid,
@@ -82,7 +85,11 @@ function makeData() {
   }));
   const memberItems = [
     { id: 'mi1', kind: 'paper', item_id: 'pl-premium', name: '专属·鎏金', desc: 'VIP 专属版式', version: 1, status: 'online', sort: 0, colors: { bg: '#1B1B1B', ink: '#F0E6D2', gold: '#C8A24A' } },
-    { id: 'mi2', kind: 'theme', item_id: 'th-premium', name: '专属·夜航', desc: 'VIP 专属主题', version: 1, status: 'online', sort: 0, swatch: '#0B1B2B', palette: 'night', desk: '', assets: {} }
+    { id: 'mi2', kind: 'theme', item_id: 'th-premium', name: '专属·夜航', desc: 'VIP 专属主题', version: 1, status: 'online', sort: 0, swatch: '#0B1B2B', palette: { base: '#0B1B2B' }, desk: '#0A1622', assets: {} },
+    // 与 papers/themes 同 id 的两条：模拟「从已有款挑选新建专属」（后台会复用原 id），
+    // 用于验证「版式管理 / 主题管理」状态列上的 👑 会员 标签
+    { id: 'mi3', kind: 'paper', item_id: 'vinyl', name: '黑胶 · 专属版', desc: 'VIP 专属版式', version: 1, status: 'online', sort: 1, colors: { bg: '#1B1A1C', ink: '#F0E6D2', gold: '#C6A870' } },
+    { id: 'mi4', kind: 'theme', item_id: 'xiaowangzi', name: '小王子 · 专属版', desc: 'VIP 专属主题', version: 1, status: 'online', sort: 1, swatch: '#D9C3B2', palette: { base: '#E9DCCF' }, desk: '#DFD2C4', assets: {} }
   ];
   return { users, feedback, themes, papers, members, memberItems };
 }
@@ -226,8 +233,19 @@ function handle(data, payload) {
       return { ok: true, removed: 1 };
     }
 
-    case 'themeList':
-      return { ok: true, themes: data.themes.slice() };
+    // premium 标记与 admin 云函数一致：该 id 在 member_items（同 kind）里已有专属款。
+    // 状态列据此多挂一枚 👑 会员 标签（member item 自己的上下架不参与判断）。
+    // 排序也照云函数来（orderBy sort asc）：拖动改序后重渲染才能看出新顺序。
+    case 'themeList': {
+      const premium = {};
+      data.memberItems.forEach((x) => { if (x.kind === 'theme') premium[x.item_id] = true; });
+      return {
+        ok: true,
+        themes: data.themes.slice()
+          .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+          .map((t) => Object.assign({}, t, { premium: !!premium[t.theme_id] }))
+      };
+    }
 
     case 'themeSeed':
       return { ok: true, seeded: 0, skipped: data.themes.length };
@@ -247,8 +265,16 @@ function handle(data, payload) {
       return { ok: true, removed: 1 };
     }
 
-    case 'paperList':
-      return { ok: true, papers: data.papers.slice() };
+    case 'paperList': {
+      const premium = {};
+      data.memberItems.forEach((x) => { if (x.kind === 'paper') premium[x.item_id] = true; });
+      return {
+        ok: true,
+        papers: data.papers.slice()
+          .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+          .map((p) => Object.assign({}, p, { premium: !!premium[p.paper_id] }))
+      };
+    }
 
     case 'paperSeed':
       return { ok: true, seeded: 0, skipped: data.papers.length };

@@ -8,7 +8,9 @@ node tests/admin-ui/mock-server.js        # → http://127.0.0.1:8799/
 ```
 
 mock 数据：25 个用户（20 条/页，第 5 个已封禁、第 7 个已注销）、23 条反馈、6 个 VIP 会员、
-2 个主题（1 上架 1 下架）、2 个版式。页面里可用 `window.__ui` 检查调用：
+2 个主题（1 上架 1 下架）、5 个版式（1 下架）、4 条会员专属内容（其中 `vinyl` / `xiaowangzi`
+与主题/版式列表同 id，用来验证状态列的「👑 会员」标签，另两条是只存在于专属内容的独立 id）。
+页面里可用 `window.__ui` 检查调用：
 
 ```js
 __ui.calls                 // [{ action, data }] 全部请求
@@ -38,10 +40,18 @@ mock 脚本由同一台 mock 服务器以 `/__mock-api.js` 提供，仍属同源
 | 截图灯箱 | 点缩略图 | 灯箱打开，计数 `1 / 1`，图片 src 正确；按 Esc 关闭 |
 | 标记已处理 | 详情行内按钮 | `feedbackUpdate{id,status:done}`，Toast「已标记为已处理」，列表状态刷新 |
 | 删除反馈 | 详情行内按钮 | 确认文案含「将连同其云端截图一并删除，不可恢复」，`feedbackDelete` 后总数 23 → 22 |
-| 会员续期 | 「续期」→ 抽屉选年卡 → 提交 | `memberGrant{plan:'year',days:365}`，抽屉关闭，Toast「已续期」 |
+| 会员续期 | 「续期」→ 抽屉选年卡 → 提交 | `memberGrant{plan:'year',days:366}`，抽屉关闭，Toast「已续期」 |
 | 会员撤销 | 行内「取消」 | 确认「取消用户「用户04」的会员资格？」，`memberRevoke{openid-u04}` |
 | 主题上下架 | 点「下架」 | `themeSave{theme_id:'xiaowangzi',status:'offline'}`，行内徽标同步 |
-| 版式页 | 进入 | 2 行，配色色数正确显示 |
+| 主题抽屉字段 | 点「编辑」 | 取色框只有 3 个：`swatch` / `desk` / `palette.base`；**没有** `palette.title` / `palette.text` / `palette.tag`（三档墨色 2026-09 已清理，信纸墨色由版式自持） |
+| 主题底色落库 | 改底色 → 保存 | `themeSave` 的 `theme.palette` 是 `{base:'#xxxxxx'}`（只有 base 一个键） |
+| 主题底色清空 | 清空底色框 → 保存 | `palette` 落成 `{}`（不是 `{base:''}`）—— 服务端归一化按「有没有 base」判空，空对象才能回落默认款 |
+| 专属内容主题抽屉 | 会员管理 → 专属内容 → 信封 → 编辑 | 同样只有 `swatch` / `desk` / `paletteBase` 三个取色框，保存后 `item.palette` 只含 base |
+| 主题拖动排序 | 按住「墨夜」行首拖动块拖到「小王子」下方 | 行随指针挪位（拖动态纸色加深），松手 `themeSave` 只回写值变化的两行（`moye.sort=1` / `xiaowangzi.sort=0`，**仍带原 status**）、Toast「顺序已更新」，列表按新顺序重渲染 |
+| 拖动块只点不拖 | 点一下拖动块 | 不产生任何请求、顺序不变 |
+| 会员专属标签 | 主题/版式页看状态列 | `xiaowangzi` / `vinyl` 行多一枚金色「👑 会员」（与「上架」并排）；其余行只有「上架/下架」 |
+| 版式拖动排序 | 把 `liubai` 拖到第 3 位 | `paperSave` 恰好 3 次（`extra=0` / `blueprint=1` / `liubai=2`），未动的 `ticket` / `vinyl` 不发请求 |
+| 版式页 | 进入 | 5 行，配色色数正确显示 |
 | 退出登录 | 点「退出登录」 | 回到登录视图，主界面隐藏 |
 
 ## 未覆盖（需要真网关）

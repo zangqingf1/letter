@@ -67,8 +67,9 @@
     </view>
   </view>
 
-  <!-- 寄出完成幕（点击任意处跳过）：主题信封落定 → 固定文案，随后淡出返回信匣 -->
-  <view wx:if="{{fx}}" class="send-fx {{fxOut ? 'fx-out' : ''}}" catchtap="onSkipFx">
+  <!-- 寄出完成幕（点击任意处跳过）：主题信封落定 → 固定文案，随后淡出返回信匣
+       背景随主题：与预览区同一个 desk（桌面底色），封存的一刻整屏都是这个主题的氛围 -->
+  <view wx:if="{{fx}}" class="send-fx {{fxOut ? 'fx-out' : ''}}" style="background: {{currentTheme.desk || '#F4F3EE'}};" catchtap="onSkipFx">
     <view class="fx-env">
       <image class="fx-env-img" src="{{currentTheme.envelope}}" mode="aspectFill" />
     </view>

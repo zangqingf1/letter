@@ -1,6 +1,7 @@
 // 12 · 问题反馈（从「我的」页功能列表进入）：文字（必填）+ 联系方式（选填）+ 多张截图（选填）
 // 提交经 feedback 服务（云端落 feedback 集合，本地落 storage feedback_local）。
 const feedbackService = require('../../services/feedback.js');
+const privacyService = require('../../services/privacy.js');
 
 const CONTENT_MAX = 1000;
 const CONTACT_MAX = 40;
@@ -51,13 +52,25 @@ Page({
     this.setData({ contact: e.detail.value });
   },
 
-  // 追加截图：chooseMedia（低版本回落 chooseImage），一次最多选满剩余额度
+  // 追加截图：选图属隐私接口（收集你选中的照片或视频信息），
+  // 未同意《用户隐私保护指引》时 chooseMedia 会直接 fail，用户会以为按钮坏了 —— 先确保授权
   onAddShot() {
     const remain = SHOTS_MAX - this.data.shots.length;
     if (remain <= 0) {
       wx.showToast({ title: '最多 ' + SHOTS_MAX + ' 张截图', icon: 'none' });
       return;
     }
+    privacyService.ensure().then((ok) => {
+      if (!ok) {
+        wx.showToast({ title: '需同意隐私政策后才能选择截图', icon: 'none' });
+        return;
+      }
+      this.pickShots(remain);
+    });
+  },
+
+  // chooseMedia（低版本回落 chooseImage），一次最多选满剩余额度
+  pickShots(remain) {
     const append = (items) => {
       const ok = [];
       let skipped = 0;

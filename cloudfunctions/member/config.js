@@ -7,19 +7,19 @@
 //
 // 道具（goodsPrice 单位「分」，须与 MP 后台「道具管理」已发布道具的单价完全一致）：
 //   月卡/季卡/年卡 各一个 productId，在 MP 后台创建并发布后填入下表（productId 须与后台一致）。
-// 套餐有效期按天数落地 members.expires_at（30/90/365）。
+// 套餐有效期按天数落地 members.expires_at（31/93/366）。
 
 // 现网道具映射：plan → { productId, priceFen }
 // productId 与 MP 后台「虚拟支付 → 道具管理」创建并发布的道具 ID 完全一致；
-// 道具价格（元）→ priceFen（分）：1 / 25.9 / 99.9。
+// 道具价格（元）→ priceFen（分）：9.9 / 25.9 / 99.9。
 const PRODUCTS = {
-  month: { productId: 'vip_month', priceFen: 100 },
+  month: { productId: 'vip_month', priceFen: 990 },
   quarter: { productId: 'vip_quarter', priceFen: 2590 },
   year: { productId: 'vip_year', priceFen: 9990 }
 };
 
 // 各档位会员有效期天数（与前端 member 页 PLANS 对齐）
-const PLAN_DAYS = { month: 30, quarter: 90, year: 365 };
+const PLAN_DAYS = { month: 31, quarter: 93, year: 366 };
 
 // OfferID / AppKey 只从云函数环境变量读取：未配置时 configured() 为 false，
 // 下单接口直接返回 'xpay not configured'，绝不回落任何仓库内密钥。

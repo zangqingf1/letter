@@ -29,6 +29,10 @@ function digitsOf(d) {
   return '' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
 }
 
+// 日历撕页用：中文月份 / 英文月份全称 / 星期全称
+const CN_MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+const EN_MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
 // view：共享模板渲染一封信所需的全部字段
 // letter: { name, question, answer }；options.created 落款基准时间（缺省今天）；
 // options.dateText 覆盖落款长日期（编辑态双落款由页面拼好后传入）
@@ -52,7 +56,14 @@ function buildView(letter, options) {
     serial: 'NO.' + digits,
     serialNo: digits,
     dwgNo: created.getFullYear() + '-' + stampDate(created).replace('.', ''),
-    dateLong: opts.dateText || longDate(created)
+    dateLong: opts.dateText || longDate(created),
+    // 日历撕页 / 处方笺 / 终端笺 / 证书编号用：补零月日、日期数字、中英文月份、星期
+    mon2: pad2(created.getMonth() + 1),
+    day2: pad2(created.getDate()),
+    dayNum: String(created.getDate()),
+    cnMonth: CN_MONTHS[created.getMonth()] + '月',
+    enMonth: EN_MONTHS[created.getMonth()],
+    weekdayCn: '星期' + '日一二三四五六'.charAt(created.getDay())
   };
 }
 

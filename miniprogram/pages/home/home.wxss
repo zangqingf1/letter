@@ -359,3 +359,13 @@
   width: 118rpx;
   height: 198rpx;
 }
+
+/* ── 信封预取节点（见 openDetail / prefetchEnv）：屏幕外挂载只为触发下载，不参与布局 ── */
+.env-pre {
+  position: fixed;
+  left: -2000rpx;
+  top: 0;
+  width: 10rpx;
+  height: 10rpx;
+  opacity: 0;
+}

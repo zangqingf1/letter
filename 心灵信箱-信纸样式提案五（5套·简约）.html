@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心灵信箱 · 信纸样式提案五（5 套 · 简约）</title>
+<style>
+  /* ============ 提案页本身（非信纸样式） ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E7E3DA;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #3B372F;
+    padding: 48px 20px 96px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header.page { text-align: center; margin-bottom: 56px; }
+  header.page .kicker {
+    font-size: 12px; letter-spacing: 6px; color: #8B8578; margin-bottom: 14px;
+  }
+  header.page h1 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 30px; font-weight: 600; letter-spacing: 2px; color: #2E2B25;
+  }
+  header.page .sub {
+    margin-top: 16px; font-size: 13.5px; line-height: 1.9; color: #6E695E; max-width: 560px; margin-left: auto; margin-right: auto;
+  }
+  header.page .rules {
+    margin-top: 18px; display: inline-block; text-align: left;
+    font-size: 12.5px; line-height: 2; color: #6E695E;
+    border-top: 1px solid #C9C3B5; border-bottom: 1px solid #C9C3B5;
+    padding: 10px 4px;
+  }
+
+  section.sample { margin-bottom: 84px; }
+  .meta { margin-bottom: 18px; }
+  .meta .no {
+    font-family: Georgia, serif; font-size: 13px; color: #A29B8A; letter-spacing: 2px;
+  }
+  .meta h2 {
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 21px; font-weight: 600; color: #2E2B25; letter-spacing: 1.5px;
+    margin-top: 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .meta h2 .tagline { font-family: "PingFang SC","Microsoft YaHei",sans-serif; font-size: 13px; font-weight: 400; color: #8B8578; letter-spacing: 0; }
+  .meta ul { list-style: none; margin-top: 8px; }
+  .meta ul li {
+    font-size: 12.5px; color: #75705F; line-height: 1.9;
+    padding-left: 14px; position: relative;
+  }
+  .meta ul li::before { content: "·"; position: absolute; left: 2px; color: #A29B8A; }
+
+  /* ============ 信纸通用基底 ============ */
+  .paper {
+    width: 100%; max-width: 680px; margin: 0 auto;
+    min-height: 560px;
+    box-shadow: 0 1px 2px rgba(40,35,25,.10), 0 12px 32px rgba(40,35,25,.14);
+    position: relative;
+    padding: 56px 52px 48px;
+    overflow: hidden;
+  }
+  @media (max-width: 560px) { .paper { padding: 40px 26px 36px; min-height: 480px; } }
+
+  .f-kai  { font-family: "Kaiti SC","STKaiti","KaiTi","DFKai-SB",serif; }
+  .f-song { font-family: "Songti SC","SimSun",serif; }
+  .f-hei  { font-family: "PingFang SC","Microsoft YaHei",sans-serif; }
+  .f-mono { font-family: "Courier New", Consolas, monospace; }
+
+  /* ================================================================
+     27 竖排笺 —— 从右往左，一封竖着写的信
+     竖排右起：名称起首，问答依次向左展开，日期收在最左下。
+     ================================================================ */
+  .p27 { background: #FAF7F0; color: #3A362C; padding: 56px 56px 48px; }
+  .p27 .vbody {
+    writing-mode: vertical-rl; text-orientation: mixed;
+    height: 470px; margin: 0 auto;
+  }
+  .p27 .vname {
+    font-size: 21px; letter-spacing: 6px; color: #2C2921; line-height: 1.9;
+    margin-left: 40px;
+  }
+  .p27 .vsec { margin-left: 34px; }
+  .p27 .vtag {
+    display: inline-block; font-size: 11px; letter-spacing: 3px;
+    border: 1px solid #C9C2AC; color: #8B8264;
+    padding: 10px 3px 12px; margin-bottom: 16px; line-height: 1;
+  }
+  .p27 .vtag.fill { background: #6E6752; border-color: #6E6752; color: #FAF7F0; }
+  .p27 .vtxt { font-size: 15px; line-height: 2.3; }
+  .p27 .vq .vtxt { color: #847E6C; }
+  .p27 .va .vtxt { color: #3A362C; }
+  .p27 .vdate {
+    margin-left: 30px; padding-top: 250px;
+    font-size: 12px; letter-spacing: 4px; color: #A29B85;
+  }
+  @media (max-width: 560px) {
+    .p27 .vbody { height: 400px; }
+    .p27 .vdate { padding-top: 140px; }
+  }
+
+  /* ================================================================
+     28 一线笺 —— 整张纸只有一根线
+     左侧一根贯穿的细线顶一枚空心圆，正文全部挂线右置，余下全是留白。
+     ================================================================ */
+  .p28 { background: #FFFFFF; color: #33312B; padding: 66px 64px 56px 132px; }
+  .p28::before {
+    content: ""; position: absolute; left: 94px; top: 72px; bottom: 64px; width: 1px;
+    background: #DCD8CB;
+  }
+  .p28::after {
+    content: ""; position: absolute; left: 90.5px; top: 58px;
+    width: 8px; height: 8px; border: 1px solid #C4BEA9; border-radius: 50%;
+    background: #FFFFFF;
+  }
+  .p28 .inner { position: relative; z-index: 1; }
+  .p28 .eyebrow {
+    font-size: 10px; letter-spacing: 4px; color: #A9A28C;
+  }
+  .p28 .name {
+    margin-top: 16px; font-size: 21px; font-weight: 600; letter-spacing: 2px; color: #26241E;
+  }
+  .p28 .sec { margin-top: 44px; }
+  .p28 .cap {
+    font-size: 10.5px; letter-spacing: 6px; color: #A9A28C; margin-bottom: 12px;
+  }
+  .p28 .txt { font-size: 15px; line-height: 2.1; max-width: 440px; }
+  .p28 .q .txt { color: #8A8471; }
+  .p28 .a .txt { color: #33312B; }
+  .p28 .foot {
+    margin-top: 56px; display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .p28 .foot .l { font-size: 10.5px; letter-spacing: 3px; color: #A9A28C; }
+  .p28 .foot .r { font-size: 12px; letter-spacing: 2px; color: #6E695C; }
+
+  /* ================================================================
+     29 版心笺 —— 信是一页书
+     书页版心：天头 Running head + 题记式问题 + 两端对齐正文 + 地脚页码。
+     ================================================================ */
+  .p29 { background: #F9F5EA; color: #33302A; padding: 46px 66px 38px; }
+  .p29 .rh {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 10.5px; letter-spacing: 4px; color: #A39B85;
+  }
+  .p29 .rh::before, .p29 .rh::after { content: ""; flex: 1; border-top: 1px solid rgba(163,155,133,.5); }
+  .p29 .chap {
+    margin-top: 40px; text-align: center;
+  }
+  .p29 .chap .no {
+    font-size: 11px; letter-spacing: 6px; text-indent: 6px; color: #A39B85;
+  }
+  .p29 .name {
+    margin-top: 14px; font-size: 24px; font-weight: 700; letter-spacing: 3px; color: #26231D;
+  }
+  .p29 .chap .orn { margin-top: 16px; font-size: 10px; letter-spacing: 12px; text-indent: 12px; color: #B9AE8F; }
+  .p29 .epigraph {
+    margin: 34px auto 0; max-width: 440px; text-align: center;
+    font-size: 14.5px; line-height: 2.1; color: #8A8471;
+  }
+  .p29 .epigraph::before {
+    content: ""; display: block; width: 1px; height: 22px;
+    background: #C9C2AC; margin: 0 auto 16px;
+  }
+  .p29 .body {
+    margin-top: 34px;
+    font-size: 15.5px; line-height: 2.15; color: #33302A;
+    text-align: justify; text-indent: 2em;
+  }
+  .p29 .folio {
+    margin-top: 40px; text-align: center;
+    font-size: 12px; letter-spacing: 4px; color: #A39B85;
+  }
+
+  /* ================================================================
+     30 居中笺 —— 一张压在桌面正中的诗笺
+     全部居中：眉题、名称、双菱形分隔、问灰答墨，最少的颜色与线。
+     ================================================================ */
+  .p30 {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,253,246,.8), transparent 60%),
+      #F2EEE3;
+    color: #35322A; padding: 62px 60px 50px; text-align: center;
+  }
+  .p30 .eyebrow {
+    font-size: 10.5px; letter-spacing: 8px; text-indent: 8px; color: #A29B85;
+  }
+  .p30 .name {
+    margin-top: 22px; font-size: 25px; letter-spacing: 4px; color: #2B2822; line-height: 1.7;
+  }
+  .p30 .sep {
+    margin: 26px auto; width: 210px; display: flex; align-items: center; gap: 12px;
+  }
+  .p30 .sep::before, .p30 .sep::after { content: ""; flex: 1; border-top: 1px solid rgba(163,155,133,.55); }
+  .p30 .sep .d { width: 6px; height: 6px; background: #B9A36A; transform: rotate(45deg); flex: none; }
+  .p30 .q {
+    max-width: 430px; margin: 0 auto;
+    font-size: 15px; line-height: 2.15; color: #8A8471;
+  }
+  .p30 .a {
+    max-width: 460px; margin: 26px auto 0;
+    font-size: 15.5px; line-height: 2.25; color: #35322A;
+  }
+  .p30 .date {
+    margin-top: 38px; font-size: 12px; letter-spacing: 3px; color: #8A8471;
+  }
+  .p30 .brand {
+    margin-top: 26px; font-size: 9.5px; letter-spacing: 6px; text-indent: 6px; color: #B3AB94;
+  }
+
+  /* ================================================================
+     31 裁切笺 —— 一张还没裁开的印刷品
+     四角出血裁切线 + 等宽索引行 + 发排式问答标注，冷白纸面。
+     ================================================================ */
+  .p31 { background: #FCFCFA; color: #2F2F2B; padding: 60px 62px 50px; }
+  .p31 .cm { position: absolute; width: 20px; height: 20px; border: 0 solid #C6C6BC; }
+  .p31 .c1 { top: 22px; left: 22px; border-top-width: 1px; border-left-width: 1px; }
+  .p31 .c2 { top: 22px; right: 22px; border-top-width: 1px; border-right-width: 1px; }
+  .p31 .c3 { bottom: 22px; left: 22px; border-bottom-width: 1px; border-left-width: 1px; }
+  .p31 .c4 { bottom: 22px; right: 22px; border-bottom-width: 1px; border-right-width: 1px; }
+  .p31 .index {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: "Courier New", Consolas, monospace;
+    font-size: 10.5px; letter-spacing: 2px; color: #A9A99E;
+    padding-bottom: 12px; border-bottom: 1px solid #E3E3D9;
+  }
+  .p31 .name {
+    margin-top: 38px; font-size: 21px; font-weight: 700; letter-spacing: 2px; color: #23231F;
+  }
+  .p31 .sec { margin-top: 38px; }
+  .p31 .cap {
+    font-family: "Courier New", Consolas, monospace;
+    font-size: 10.5px; letter-spacing: 3px; color: #A9A99E; margin-bottom: 10px;
+  }
+  .p31 .cap b { color: #2F2F2B; font-weight: 700; }
+  .p31 .txt { font-size: 15px; line-height: 2.1; max-width: 470px; }
+  .p31 .q .txt { color: #7E7E72; }
+  .p31 .a .txt { color: #2F2F2B; }
+  .p31 .foot {
+    margin-top: 52px; padding-top: 14px; border-top: 1px solid #E3E3D9;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .p31 .foot .l { font-size: 10px; letter-spacing: 4px; color: #A9A99E; }
+  .p31 .foot .r { font-size: 12px; letter-spacing: 2px; color: #55554C; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <div class="kicker">心 灵 信 箱 · 版 式 提 案 · 第 五 轮</div>
+    <h1>信纸样式 · 五 套 <span style="font-size:16px; color:#8B8578;">（简约）</span></h1>
+    <p class="sub">简约不是没有装饰，是把装饰降到只剩一个手势：一根线、一次竖排、一页书的版心、一次居中、四道裁切线。其余全部交给留白与排印的精度。编号 NO.27–31 接续前四轮。</p>
+    <div class="rules">
+      五套渲染同一封示例信，便于与前几轮横向对比<br>
+      名称 / 问题 / 答案 / 写信日期四项固定全入图，重读与回信永不入图<br>
+      装饰均为纯样式实现，无图片无外部字体，可复刻进 WXSS 与分享 Canvas（竖排笺落码时 Canvas 需逐字定位，成本略高，已标注）<br>
+      每套配色自持、不取主题色；每套只保留一个最强的视觉动作
+    </div>
+  </header>
+
+  <!-- ============ 27 竖排笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 27</div>
+      <h2>竖排笺 <span class="tagline">从右往左，一封竖着写的信</span></h2>
+      <ul>
+        <li>米白纸面，正文整体竖排右起：名称起首，问、答依次向左展开，传统信笺的阅读方向</li>
+        <li>「问」用描边小签、「答」用实心小签（竖排字签），是全版式唯一的装饰件</li>
+        <li>日期收在最左一列、下坠留白，像信末的落款——落码时 Canvas 需逐字竖排定位，成本略高于其余款</li>
+      </ul>
+    </div>
+    <div class="paper p27">
+      <div class="vbody">
+        <div class="vname f-song">关于失眠，我想明白的事</div>
+        <div class="vsec vq">
+          <span class="vtag f-hei">问</span>
+          <div class="vtxt f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <div class="vsec va">
+          <span class="vtag fill f-hei">答</span>
+          <div class="vtxt f-kai">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="vdate f-hei">写于 2026 年 8 月 30 日</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 28 一线笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 28</div>
+      <h2>一线笺 <span class="tagline">整张纸只有一根线</span></h2>
+      <ul>
+        <li>纯白纸面，左侧一根从天头贯到地脚的 1px 细线，线顶停一枚空心圆——全部装饰仅此而已</li>
+        <li>正文全部挂线右置，问题退灰、答案留墨，段落间距放大到近两行，靠留白分段</li>
+        <li>页脚一线两端：「心灵信箱 · LETTER NO.0830」与「写于」日期，克制的对称收尾</li>
+      </ul>
+    </div>
+    <div class="paper p28">
+      <div class="inner">
+        <div class="eyebrow f-hei">心灵信箱 · LETTER NO.0830</div>
+        <div class="name f-hei">关于失眠，我想明白的事</div>
+        <div class="sec q">
+          <div class="cap f-hei">问</div>
+          <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+        </div>
+        <div class="sec a">
+          <div class="cap f-hei">答</div>
+          <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+        </div>
+        <div class="foot">
+          <span class="l">MENTAL MAILBOX · 私人信件</span>
+          <span class="r f-hei">写于 2026.08.30</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 29 版心笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 29</div>
+      <h2>版心笺 <span class="tagline">信是一页书</span></h2>
+      <ul>
+        <li>书页米黄，天头一行 Running head（心灵信箱 · 卷八 · 第 0830 页）两端细线拉通</li>
+        <li>问题做成「题记」：居中退灰、上垂一根短线；答案按书版正文排——两端对齐 + 首行缩进两字</li>
+        <li>地脚居中页码「· 0830 ·」收束，整套最有「被装订进书里」的仪式感</li>
+      </ul>
+    </div>
+    <div class="paper p29">
+      <div class="rh f-hei"><span>心灵信箱 · 卷八 · 第 0830 页</span></div>
+      <div class="chap">
+        <div class="no f-hei">其一</div>
+        <div class="name f-song">关于失眠，我想明白的事</div>
+        <div class="orn f-song">◆</div>
+      </div>
+      <div class="epigraph f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      <div class="body f-song">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      <div class="folio f-song">· 0830 · 写于 2026 年 8 月 30 日</div>
+    </div>
+  </section>
+
+  <!-- ============ 30 居中笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 30</div>
+      <h2>居中笺 <span class="tagline">一张压在桌面正中的诗笺</span></h2>
+      <ul>
+        <li>所有元素垂直居中轴排布：眉题「把答案寄给未来」、名称、问答、日期，一列到底</li>
+        <li>唯一的装饰是两枚金棕色菱形加两侧细线，把问与答轻轻分开</li>
+        <li>问灰答墨、行高放大，纸面顶部一点微光渐变——五套里最安静的一款</li>
+      </ul>
+    </div>
+    <div class="paper p30">
+      <div class="eyebrow f-hei">把答案寄给未来</div>
+      <div class="name f-kai">关于失眠，我想明白的事</div>
+      <div class="sep"><span class="d"></span></div>
+      <div class="q f-kai">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      <div class="a f-song">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      <div class="date f-hei">写于 2026 年 8 月 30 日</div>
+      <div class="brand f-hei">心 灵 信 箱</div>
+    </div>
+  </section>
+
+  <!-- ============ 31 裁切笺 ============ -->
+  <section class="sample">
+    <div class="meta">
+      <div class="no">NO. 31</div>
+      <h2>裁切笺 <span class="tagline">一张还没裁开的印刷品</span></h2>
+      <ul>
+        <li>冷白纸面，四角印刷裁切线（与角保持一段出血距离，不是画框），像刚从印厂出来的半成品</li>
+        <li>等宽字体索引行压顶：编号 NO. MM-0830 · PRIVATE 与日期左右分列，一条细线隔开</li>
+        <li>问答用「Q ─ / A ─」发排式小标领起，页脚细线两端落品牌与「写于」，整套最「印刷品」的一款</li>
+      </ul>
+    </div>
+    <div class="paper p31">
+      <span class="cm c1"></span><span class="cm c2"></span>
+      <span class="cm c3"></span><span class="cm c4"></span>
+      <div class="index">
+        <span>NO. MM-0830 · PRIVATE</span>
+        <span>2026.08.30</span>
+      </div>
+      <div class="name f-hei">关于失眠，我想明白的事</div>
+      <div class="sec q">
+        <div class="cap"><b>Q</b> ──────────</div>
+        <div class="txt f-hei">最近总是凌晨三点醒来，脑子停不下来。我到底在焦虑什么？如果只允许我改变一件事，应该先改变哪一件？</div>
+      </div>
+      <div class="sec a">
+        <div class="cap"><b>A</b> ──────────</div>
+        <div class="txt f-hei">焦虑的从来不是失眠本身，而是害怕第二天没状态。真正要先改的一件事，是睡前一小时把手机放到客厅。今晚开始试两周：十一点关灯，不带任何屏幕进卧室。睡不着也没关系，躺着闭眼也是休息。三个月后的我要记得：你已经在做正确的事了，别急。</div>
+      </div>
+      <div class="foot">
+        <span>MENTAL MAILBOX</span>
+        <span class="r f-hei">写于 2026.08.30</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

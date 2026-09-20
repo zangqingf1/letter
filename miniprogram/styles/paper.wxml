@@ -3,7 +3,7 @@
              pages/share/share.wxml（分享明信片预览）。
      data 约定：v = paper-view.js buildView 产出；paper = papers.js 某项；
                 mode = 可选的动效类（step2 翻页）。
-     版式与配色完全固定（纸色自持），不读取主题 palette；十个 wx:if 分支与
+     版式与配色完全固定（纸色自持），不读取主题 palette；二十一个 wx:if 分支与
      styles/paper.wxss 的 pl-x* / paper-specs.js 的区块流 / share.js 的 drawOps 三处同构，
      改版式请三处同步（preflight 第 11 项会校验 paper-specs.js 与本文档的数值一致）。 -->
 <template name="paper-letter">
@@ -202,9 +202,263 @@
       </view>
     </view>
 
+    <!-- 竖排笺：writing-mode 竖排右起，问/答小签是唯一装饰件，日期收最左列 -->
+    <view wx:elif="{{paper.id === 'shupai'}}" class="pl-paper pl-sp">
+      <view class="vsp-body">
+        <view class="vsp-name">{{v.name}}</view>
+        <view class="vsp-sec vsp-q">
+          <view class="vsp-tag">问</view>
+          <view class="vsp-txt">{{v.question}}</view>
+        </view>
+        <view class="vsp-sec vsp-a">
+          <view class="vsp-tag vsp-tag-fill">答</view>
+          <view class="vsp-txt">{{v.answer}}</view>
+        </view>
+        <view class="vsp-date">写于 {{v.dateLong}}</view>
+      </view>
+    </view>
+
+    <!-- 一线笺：左侧一根贯纸细线顶一枚空心圆，正文全部挂线右置 -->
+    <view wx:elif="{{paper.id === 'yixian'}}" class="pl-paper pl-yx">
+      <view class="ply-eyebrow">心灵信箱 · LETTER {{v.serial}}</view>
+      <view class="ply-name">{{v.name}}</view>
+      <view class="ply-sec ply-q">
+        <view class="ply-cap">问</view>
+        <view class="ply-txt">{{v.question}}</view>
+      </view>
+      <view class="ply-sec ply-a">
+        <view class="ply-cap">答</view>
+        <view class="ply-txt">{{v.answer}}</view>
+      </view>
+      <view class="ply-foot">
+        <text class="ply-footl">MAILBOX · 私人信件</text>
+        <text class="ply-date">写于 {{v.dotDate}}</text>
+      </view>
+    </view>
+
+    <!-- 版心笺：书页版心 —— 天头 Running head + 题记式问题 + 两端对齐正文 + 地脚页码 -->
+    <view wx:elif="{{paper.id === 'banxin'}}" class="pl-paper pl-bx">
+      <view class="plbx-rh"><text>心灵信箱 · 卷八 · 第 {{v.stampText}} 页</text></view>
+      <view class="plbx-chap">
+        <view class="plbx-no">其一</view>
+        <view class="plbx-name">{{v.name}}</view>
+        <view class="plbx-orn">◆</view>
+      </view>
+      <view class="plbx-epiline"></view>
+      <view class="plbx-epi">{{v.question}}</view>
+      <view class="plbx-body">{{v.answer}}</view>
+      <view class="plbx-folio">· {{v.stampText}} · 写于 {{v.dateLong}}</view>
+    </view>
+
+    <!-- 居中笺：全部居中，唯一装饰是双菱形加两侧细线 -->
+    <view wx:elif="{{paper.id === 'juzhong'}}" class="pl-paper pl-jz">
+      <view class="pljz-eyebrow">把答案寄给未来</view>
+      <view class="pljz-name">{{v.name}}</view>
+      <view class="pljz-sep"><view class="pljz-d"></view></view>
+      <view class="pljz-q">{{v.question}}</view>
+      <view class="pljz-a">{{v.answer}}</view>
+      <view class="pljz-date">写于 {{v.dateLong}}</view>
+      <view class="pljz-brand">心 灵 信 箱</view>
+    </view>
+
+    <!-- 裁切笺：四角出血裁切线 + 等宽索引行 + Q/A 发排式小标 -->
+    <view wx:elif="{{paper.id === 'caiqie'}}" class="pl-paper pl-cq">
+      <view class="plcq-cm plcq-c1"></view>
+      <view class="plcq-cm plcq-c2"></view>
+      <view class="plcq-cm plcq-c3"></view>
+      <view class="plcq-cm plcq-c4"></view>
+      <view class="plcq-index">
+        <text>NO. {{v.dwgNo}} · PRIVATE</text>
+        <text>{{v.dotDate}}</text>
+      </view>
+      <view class="plcq-name">{{v.name}}</view>
+      <view class="plcq-sec plcq-q">
+        <view class="plcq-cap"><text class="plcq-capb">Q</text> ──────────</view>
+        <view class="plcq-txt">{{v.question}}</view>
+      </view>
+      <view class="plcq-sec plcq-a">
+        <view class="plcq-cap"><text class="plcq-capb">A</text> ──────────</view>
+        <view class="plcq-txt">{{v.answer}}</view>
+      </view>
+      <view class="plcq-foot">
+        <text class="plcq-footl">MENTAL MAILBOX</text>
+        <text class="plcq-date">写于 {{v.dotDate}}</text>
+      </view>
+    </view>
+
+    <!-- 星图观测笺：深蓝夜空网格 + 上下金色刻度尺 + 四角角标 + 右上星座连线群 -->
+    <view wx:elif="{{paper.id === 'xingtu'}}" class="pl-paper pl-xt">
+      <view class="plxt-ruler plxt-ruler-top"></view>
+      <view class="plxt-ruler plxt-ruler-bot"></view>
+      <view class="plxt-c plxt-c1"></view>
+      <view class="plxt-c plxt-c2"></view>
+      <view class="plxt-c plxt-c3"></view>
+      <view class="plxt-c plxt-c4"></view>
+      <view class="plxt-sky">
+        <view class="plxt-ln plxt-ln1"></view>
+        <view class="plxt-ln plxt-ln2"></view>
+        <view class="plxt-ln plxt-ln3"></view>
+        <view class="plxt-ln plxt-ln4"></view>
+        <view class="plxt-ln plxt-ln5"></view>
+        <view class="plxt-st plxt-s1"></view>
+        <view class="plxt-st plxt-s2"></view>
+        <view class="plxt-st plxt-s3"></view>
+        <view class="plxt-st plxt-s4"></view>
+        <view class="plxt-st plxt-s5"></view>
+        <view class="plxt-st plxt-s6"></view>
+      </view>
+      <view class="plxt-eyebrow">MENTAL MAILBOX OBSERVATORY · OBS. {{v.mon2}}{{v.day2}}</view>
+      <view class="plxt-eyebrow-cn">今夜观测记录</view>
+      <view class="plxt-name">{{v.name}}</view>
+      <view class="plxt-name-rule"></view>
+      <view class="plxt-sec plxt-q">
+        <view class="plxt-cap">✦ 问</view>
+        <view class="plxt-txt">{{v.question}}</view>
+      </view>
+      <view class="plxt-sec plxt-a">
+        <view class="plxt-cap">✦ 答</view>
+        <view class="plxt-txt">{{v.answer}}</view>
+      </view>
+      <view class="plxt-foot">
+        <text class="plxt-coord">RA 03h 47m · DEC +24° 07′</text>
+        <text class="plxt-date"> {{v.dotDate}}</text>
+      </view>
+    </view>
+
+    <!-- 胶片底片：齿孔条 + 片边橙印字 + 白线画幅框，信是框里的那一格 -->
+    <view wx:elif="{{paper.id === 'jiaopian'}}" class="pl-paper pl-fm">
+      <view class="plfm-perf plfm-perf-top"></view>
+      <view class="plfm-perf plfm-perf-bot"></view>
+      <view class="plfm-edge plfm-edge-top">{{v.dwgNo}} ▸ MENTAL MAILBOX SAFETY FILM 400 ▸ 24</view>
+      <view class="plfm-edge plfm-edge-bot">▸▸ KEEP THIS FRAME FOREVER ▸▸ {{v.mon2}}{{v.day2}}</view>
+      <view class="plfm-frame">
+        <view class="plfm-mark plfm-mark-tl">FRAME 24A</view>
+        <view class="plfm-name">{{v.name}}</view>
+        <view class="plfm-q">
+          <view class="plfm-cap">SCENE 01 · 问</view>
+          <view class="plfm-txt">{{v.question}}</view>
+        </view>
+        <view class="plfm-a">
+          <view class="plfm-cap">SCENE 02 · 答</view>
+          <view class="plfm-txt">{{v.answer}}</view>
+        </view>
+        <view class="plfm-foot">
+          <text class="plfm-footl">EXPOSURE</text>
+          <text class="plfm-date">摄于 {{v.dotDate}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 日历撕页：撕线 + 红色月份带 + 特大日期 + 黄历式角签 -->
+    <view wx:elif="{{paper.id === 'rili'}}" class="pl-paper pl-rl">
+      <view class="plrl-tearline">
+        <text>✂ 沿此线撕取</text>
+        <text>MENTAL MAILBOX · {{v.yearText}}</text>
+      </view>
+      <view class="plrl-band">
+        <text class="plrl-band-m">{{v.cnMonth}}</text>
+        <text class="plrl-band-en">{{v.enMonth}}</text>
+      </view>
+      <view class="plrl-datehead">
+        <view class="plrl-bignum">{{v.dayNum}}</view>
+        <view class="plrl-aside">
+          <view class="plrl-wk">{{v.weekdayCn}} · 写下这封信的一天</view>
+          <view class="plrl-almanac">宜：想明白 忌：熬夜</view>
+        </view>
+      </view>
+      <view class="plrl-name">{{v.name}}</view>
+      <view class="plrl-q">
+        <view class="plrl-cap">问</view>
+        <view class="plrl-txt">{{v.question}}</view>
+      </view>
+      <view class="plrl-a">
+        <view class="plrl-cap">答</view>
+        <view class="plrl-txt">{{v.answer}}</view>
+      </view>
+      <view class="plrl-foot">
+        <text class="plrl-footl">心灵信箱 · 每天一页</text>
+        <text class="plrl-date">写于 {{v.dateLong}} </text>
+      </view>
+    </view>
+
+    <!-- 深夜处方笺：诊所抬头 + 双粗细线 + 表单栏 + 诊断/Rp 处方 + 红圈章 -->
+    <view wx:elif="{{paper.id === 'chufang'}}" class="pl-paper pl-cf">
+      <view class="plcf-head">
+        <view class="plcf-clinic">
+          <view class="plcf-clinic-cn">心灵信箱 · 深夜诊所</view>
+          <view class="plcf-clinic-en">MENTAL MAILBOX NIGHT CLINIC</view>
+        </view>
+        <view class="plcf-rxno">Rx No. {{v.mon2}}{{v.day2}}</view>
+      </view>
+      <view class="plcf-rule2"></view>
+      <view class="plcf-dx">
+        <view class="plcf-cap">诊断<text class="plcf-capen"></text></view>
+        <view class="plcf-dxtxt">{{v.question}}</view>
+      </view>
+      <view class="plcf-rp">
+        <view class="plcf-rpbody">
+          <view class="plcf-cap">处方</view>
+          <view class="plcf-rptxt">{{v.answer}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 终端笺：琥珀磷光屏 —— 提示符日志体 + 光标收尾 -->
+    <view wx:elif="{{paper.id === 'zhongduan'}}" class="pl-paper pl-tm">
+      <view class="pltm-bar">
+        <text>MENTAL-MAILBOX v{{v.yearText}}.{{v.mon2}}</text>
+        <text>TTY1 · 深夜</text>
+      </view>
+      <view class="pltm-file">FILE: ~/mailbox/{{v.yearText}}/{{v.mon2}}/{{v.day2}}.txt</view>
+      <view class="pltm-name">{{v.name}}</view>
+      <view class="pltm-sec pltm-q">
+        <view class="pltm-prompt"><text class="pltm-b">&gt; INPUT</text> / 来信问题 _</view>
+        <view class="pltm-txt">{{v.question}}</view>
+      </view>
+      <view class="pltm-sec pltm-a">
+        <view class="pltm-prompt"><text class="pltm-b">&gt; OUTPUT</text> / 处理结果 _</view>
+        <view class="pltm-txt">{{v.answer}}</view>
+      </view>
+      <view class="pltm-status">
+        <view>&gt; EXIT 0 · 已封存至 ~/mailbox/{{v.yearText}}/{{v.mon2}}/{{v.day2}}<text class="pltm-cursor"></text></view>
+      </view>
+      <view class="pltm-foot">
+        <text>MENTAL MAILBOX TERMINAL</text>
+        <text class="pltm-r">写于 {{v.dotDate}}</text>
+      </view>
+    </view>
+
+    <!-- 结业证书：古铜双线框 + 四角角花 + 课题/答卷 + 红印缎带落款 -->
+    <view wx:elif="{{paper.id === 'zhengshu'}}" class="pl-paper pl-zs">
+      <view class="plzs-c plzs-c1"></view>
+      <view class="plzs-c plzs-c2"></view>
+      <view class="plzs-c plzs-c3"></view>
+      <view class="plzs-c plzs-c4"></view>
+      <view class="plzs-head">
+        <view class="plzs-en">CERTIFICATE OF COMPLETION</view>
+        <view class="plzs-cn">结业证书</view>
+        <view class="plzs-orn">❖ ❖ ❖</view>
+      </view>
+      <view class="plzs-course">
+        <view class="plzs-cap">修习课题</view>
+        <view class="plzs-txt">{{v.question}}</view>
+      </view>
+      <view class="plzs-ans">
+        <view class="plzs-cap">结业答卷</view>
+        <view class="plzs-txt">{{v.answer}}</view>
+      </view>
+      <view class="plzs-date">写于 {{v.dateLong}}</view>
+    </view>
+
     <!-- 会员专属 premium：后台添加的专属版式，通用金线笺模板；颜色行内注入
-         （colors.bg/ink/gold），后台改配色即生效，无需改代码（与 paper-specs.js 的 premium 规格同构） -->
-    <view wx:elif="{{paper.premium}}" class="pl-paper pl-premium" style="background: {{paper.colors.bg}}; color: {{paper.colors.ink}};">
+         （colors.bg/ink/gold），后台改配色即生效，无需改代码（与 paper-specs.js 的 premium 规格同构）。
+         专属分支必须把黑胶让回给下面的 wx:else：后台「从已有款挑选」会复用官方 id
+         （member_items.item_id='vinyl'），theme 云函数 mergeLists 让专属款覆盖官方款，
+         下发的 papers 里 vinyl 会带 premium:true —— 若这里只判 premium，黑胶会被
+         通用金线笺顶掉（盘面/曲轨全丢）。其余 20 款官方版式在上方都有显式 id 分支、
+         先于本分支命中，不受影响；黑胶是唯一的 wx:else catch-all，须在此排除。
+         导出侧 specOf 先按 id 命中，两端口径一致（回归：tests/suites/share-canvas）。 -->
+    <view wx:elif="{{paper.premium && paper.id !== 'vinyl'}}" class="pl-paper pl-premium" style="background: {{paper.colors.bg}}; color: {{paper.colors.ink}};">
       <view class="plpm-rule" style="background: {{paper.colors.gold}};"></view>
       <view class="plpm-name" style="color: {{paper.colors.ink}};">{{v.name}}</view>
       <view class="plpm-rule2" style="background: {{paper.colors.gold}};"></view>

@@ -97,6 +97,31 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .badge.deactivated { background: #F7E3DF; color: var(--accent); }
 .badge.banned { background: #F3DEDA; color: #9C2F22; }
 .badge.vip { background: #F6E7C8; color: #8A6420; }
+/* 状态列两枚并排（专属款：👑 会员 + 上架/下架）留出间距 */
+.badge.vip + .badge { margin-left: 6px; }
+
+/* ── 列表拖动排序（主题管理 / 版式管理）── */
+/* 行首拖动块：2×3 六个点用 background 画，不依赖字体里的 braille 字符 */
+th.drag-col, td.drag-col { width: 34px; padding: 9px 4px 9px 10px; }
+.drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 26px; border-radius: 6px; color: var(--muted);
+  cursor: grab; user-select: none;
+  touch-action: none; /* 触屏上按住拖动块不触发页面滚动 */
+}
+.drag-handle::before {
+  content: ''; width: 10px; height: 15px;
+  background-image: radial-gradient(circle, currentColor 1.3px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+.drag-handle:hover { background: #F3EDDE; color: var(--ink); }
+.drag-handle:active { cursor: grabbing; }
+/* 拖动中的行：纸色加深 + 投影浮起。只改颜色与阴影，不改尺寸 ——
+   行高一变会让指针中线判定抖动（行自己触发位置重算）。 */
+tr.dragging td { background: #F6EFDC; }
+tr.dragging { box-shadow: 0 6px 16px rgba(60, 50, 30, 0.16); position: relative; z-index: 3; }
+tr.dragging .drag-handle { color: var(--accent); cursor: grabbing; }
+body.row-dragging { user-select: none; cursor: grabbing; }
 
 /* ── 会员管理 Tab ── */
 .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }

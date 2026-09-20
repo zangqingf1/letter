@@ -26,15 +26,19 @@ const readWxml = (page) =>
 const CLIPS_WXML = readWxml('clips');
 const RECYCLE_WXML = readWxml('recycle');
 
-// 本地默认款信封（write/themes.js 的 xiaowangzi）——无主题缓存时 envelopeThumbOf 的回落值
-const DEFAULT_ENV = '/assets/theme/xiaowangzi/envelope-thumb.jpg';
+// 本地默认款信封（services/theme.js DEFAULT_THEME_ID = 'cuican' 璀璨如初）——
+// 无主题缓存时 envelopeThumbOf 的回落值
+const DEFAULT_ENV = '/assets/theme/cuican/envelope-thumb.jpg';
+// 小王子的包内信封（官方款之一，非默认款）
+const XW_ENV = '/assets/theme/xiaowangzi/envelope-thumb.jpg';
 // 后台给专属主题配的信封素材（member_items.assets）
 const PREMIUM_ENV = '/assets/theme/guiniao/envelope.jpg';
 const DAY = 24 * 60 * 60 * 1000;
 
-// theme 云函数下发的列表：官方款按 sort 在前（默认款小王子是 list[0]），专属款追加在末尾。
-// 必须按这个形状造数据 —— 未知 theme_id 的回落口径就是「列表第一套」。
-const OFFICIAL_THEME = { id: 'xiaowangzi', name: '小王子', version: 2, envelopeThumb: DEFAULT_ENV, palette: { base: '#F9F3E4' } };
+// theme 云函数下发的列表：官方款按 sort 在前，专属款追加在末尾。未知 theme_id / 非 VIP
+// 专属款的回落口径是「按 id 找默认款璀璨如初」，列表里没有默认 id 时才退 list[0]。
+const DEFAULT_THEME = { id: 'cuican', name: '璀璨如初', version: 1, envelopeThumb: DEFAULT_ENV, palette: { base: '#F6F3EA' } };
+const OFFICIAL_THEME = { id: 'xiaowangzi', name: '小王子', version: 2, envelopeThumb: XW_ENV, palette: { base: '#F9F3E4' } };
 const PREMIUM_THEME = { id: 'guiniao', name: '归鸟', version: 1, premium: true, envelope: PREMIUM_ENV, palette: { base: '#E9DCCF' } };
 
 const VIP = { ok: true, membership: { state: 'vip', level: '守候', renew: false, remainingDays: 200 } };
@@ -43,11 +47,11 @@ const FREE = { ok: true, membership: { state: 'free', level: '', renew: false, r
 const tick = (ms) => new Promise((r) => setTimeout(r, ms || 0));
 
 const CLIP_LETTERS = [
-  { id: 'l1', name: '给失眠时的自己', theme_id: 'xiaowangzi', pinned: true, created_at: Date.now() },
-  { id: 'l2', name: '给三十岁的自己', theme_id: 'xiaowangzi', pinned: true, created_at: Date.now() }
+  { id: 'l1', name: '给失眠时的自己', theme_id: 'cuican', pinned: true, created_at: Date.now() },
+  { id: 'l2', name: '给三十岁的自己', theme_id: 'cuican', pinned: true, created_at: Date.now() }
 ];
 const RECYCLE_ITEMS = [
-  { id: 'r1', name: '没寄出的那封', theme_id: 'xiaowangzi', deleted_at: Date.now() - DAY }
+  { id: 'r1', name: '没寄出的那封', theme_id: 'cuican', deleted_at: Date.now() - DAY }
 ];
 
 /**
@@ -160,12 +164,12 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
   test('回形针：会员态回来后只校正专属款那一行，普通行不重渲染', async () => {
     const h = load('clips', {
       letters: [
-        { id: 'l1', name: '普通信', theme_id: 'xiaowangzi', pinned: true, created_at: Date.now() },
+        { id: 'l1', name: '普通信', theme_id: 'cuican', pinned: true, created_at: Date.now() },
         { id: 'l2', name: '专属信', theme_id: 'guiniao', pinned: true, created_at: Date.now() }
       ],
       membership: VIP,
       // 后台给专属主题配了信封素材；无 theme 缓存时首帧只能先画默认款
-      themes: [OFFICIAL_THEME, PREMIUM_THEME]
+      themes: [DEFAULT_THEME, OFFICIAL_THEME, PREMIUM_THEME]
     });
     const p = h.page();
     await tick(30);
@@ -185,7 +189,7 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
     const h = load('clips', {
       letters: [{ id: 'l1', name: '专属信', theme_id: 'guiniao', pinned: true, created_at: Date.now() }],
       membership: FREE,
-      themes: [OFFICIAL_THEME, PREMIUM_THEME]
+      themes: [DEFAULT_THEME, OFFICIAL_THEME, PREMIUM_THEME]
     });
     const p = h.page();
     await tick(230);
@@ -226,11 +230,11 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
   test('废纸篓：主题回源后同样只 patch 变化的行', async () => {
     const h = load('recycle', {
       recycle: [
-        { id: 'r1', name: '普通信', theme_id: 'xiaowangzi', deleted_at: Date.now() - DAY },
+        { id: 'r1', name: '普通信', theme_id: 'cuican', deleted_at: Date.now() - DAY },
         { id: 'r2', name: '专属信', theme_id: 'guiniao', deleted_at: Date.now() - 2 * DAY }
       ],
       membership: VIP,
-      themes: [OFFICIAL_THEME, PREMIUM_THEME]
+      themes: [DEFAULT_THEME, OFFICIAL_THEME, PREMIUM_THEME]
     });
     const p = h.page();
     await tick(230);

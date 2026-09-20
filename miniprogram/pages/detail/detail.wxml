@@ -1,6 +1,8 @@
-<!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层） -->
+<!-- 03 · 信件详情 / 拆信阅读 / 回信（三个状态：多次拆开 / 首次拆开 / 回信弹层）
+     页面背景随主题：desk 桌面色与拆信幕同源 —— 拆开后的阅读环境就是这封信的主题氛围；
+     无交接/读取失败时 BLANK_THEME 不带 desk，回落中性 #F4F3EE（与历史观感一致） -->
 <import src="../../styles/paper.wxml" />
-<view class="page" style="padding-top: {{statusBarHeight}}px;">
+<view class="page" style="padding-top: {{statusBarHeight}}px; background: {{theme.desk || '#F4F3EE'}};">
 
   <!-- 顶部轻导航：返回信匣 -->
   <view class="nav">
@@ -11,7 +13,7 @@
   <scroll-view class="body" scroll-y>
     <view class="body-inner">
 
-      <!-- 主信纸区：信纸自持版式（十款，papers.js 配置），
+      <!-- 主信纸区：信纸自持版式（二十一款，papers.js 配置），
            共享模板与写信预览/分享图完全同构；写于落款 -->
       <template is="paper-letter" data="{{ v: view, paper: paper }}" />
 
@@ -81,15 +83,26 @@
 </view>
 
 <!-- 阶段一：拆信动画（约 1.2s，点击任意处跳过）：
-     信封微浮起 → 信纸从信封中抽出并展开 → 信封淡出移出屏幕 -->
-<view wx:if="{{opening}}" class="unseal" bindtap="onSkipOpen">
+     信封微浮起 → 信纸从信封中抽出并展开 → 信封淡出移出屏幕。
+     背景随主题：desk 是该主题的桌面底色（信匣预览区同源）；无交接时 BLANK_THEME
+     没有 desk，回落中性 #EDE9DC（= 默认款的 desk，视觉不变，不提前亮出主题） -->
+<view wx:if="{{opening}}" class="unseal" style="background: {{theme.desk || '#EDE9DC'}};" bindtap="onSkipOpen">
   <view class="us-stage">
     <view class="us-paper" style="background: {{theme.palette.base}};">
       <view class="us-paper-headline"></view>
       <view class="us-paper-line" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"></view>
     </view>
     <view class="us-env">
-      <image class="us-env-img" src="{{theme.envelope}}" mode="widthFix" />
+      <!-- 信封只能画这封信真正的主题：envSrc 由详情页给出 —— 入口页跳转前就把主题
+           交接过来（services/handoff.js），并在点按瞬间预取了两级素材（home/clips 的
+           .env-pre 节点），首帧是列表页刚渲染过的小图（图片缓存命中，第一帧就有信封），
+           大图由下面那个屏幕外的节点加载完顶上。
+           没有交接时（外部直接打开本页）留空，等云函数，绝不凭空亮出小王子。
+           云端素材（cloud://）加载有网络延迟：envFade 挂载即透明，bindload 后淡入浮现，
+           包内素材不挂 fade、首帧即完整呈现。见 detail.js 的 BLANK_THEME / envPatchOf -->
+      <image wx:if="{{envSrc}}" class="us-env-img {{envFade ? 'fade' : ''}} {{envIn ? 'in' : ''}}" src="{{envSrc}}" mode="widthFix" bindload="onEnvImgLoad" />
+      <!-- 大图预取：放到屏幕外只为触发加载，加载完由 onEnvFullLoaded 换掉上面的小图 -->
+      <image wx:if="{{envFull}}" class="us-env-pre" src="{{envFull}}" mode="widthFix" bindload="onEnvFullLoaded" />
       <view class="us-env-name">{{letter.name}}</view>
       <view class="us-stamp">
         <text class="us-stamp-date">{{openStampText}}</text>

@@ -16,6 +16,13 @@ const cloud = require('../../services/cloud.js');
 // 首次寄出的账号提示标记（仅云模式需要；注销时随用户数据清除，见 services/user.js）
 const SEALED_ONCE_KEY = 'user_sealed_once';
 
+// 默认款（services/theme.js 显式按 id 解析，与列表顺序无关）：信纸留白志 / 主题璀璨如初。
+// 新信默认选中、云端列表对齐失败、非 VIP 专属款回退、编辑态未知 id —— 全部落到这两个 id。
+const DEFAULT_THEME_ID = themeService.DEFAULT_THEME_ID;
+const DEFAULT_PAPER_ID = themeService.DEFAULT_PAPER_ID;
+const defTheme = (list) => (list || []).find((t) => t.id === DEFAULT_THEME_ID) || (list || [])[0];
+const defPaper = (list) => (list || []).find((p) => p.id === DEFAULT_PAPER_ID) || (list || [])[0];
+
 // 埋点统一走 analytics 服务（事件名见 PRD 第十三节；letter_step2_view 替代已删除的 letter_preview）
 function track(event, data) {
   analytics.track(event, data);
@@ -28,9 +35,9 @@ Page({
     papers: PAPERS,
     isVip: false,           // 会员态：决定专属版式/主题是否可解锁（云端读 members，本地读演示态）
     currentIndex: 0,
-    currentTheme: THEMES[0],
+    currentTheme: defTheme(THEMES),
     currentPaperIndex: 0,
-    currentPaper: PAPERS[0],
+    currentPaper: defPaper(PAPERS),
     letter: { name: '', question: '', answer: '' },
     // 信纸渲染数据（共享模板 paper.wxml 只认 view 字段，与详情/分享同构）
     view: buildView({ name: '', question: '', answer: '' }, { created: new Date() }),
@@ -89,35 +96,37 @@ Page({
     }
 
     // 主题统一经 theme 服务获取（云端主题更新后本页同步，与信匣/详情同口径）；
-    // 信纸版式同样经 theme 服务（官方十款 + 会员专属款，premium 标记）；
+    // 信纸版式同样经 theme 服务（官方二十一款 + 会员专属款，premium 标记）；
     // 会员态经 member 服务（决定专属款是否锁定）。失败保留本地 THEMES/PAPERS 兜底。
     Promise.all([themeService.getThemes(), themeService.getPapers(), memberService.getMembership()])
       .then(([themes, papers, m]) => {
         const update = { isVip: !!(m && m.state === 'vip') };
         if (themes && themes.length) {
           const index = themes.findIndex((t) => t.id === this.data.currentTheme.id);
+          const defIndex = themes.findIndex((t) => t.id === DEFAULT_THEME_ID);
           update.themes = themes;
-          update.currentIndex = index > -1 ? index : 0;
-          update.currentTheme = themes[index > -1 ? index : 0];
+          update.currentIndex = index > -1 ? index : defIndex;
+          update.currentTheme = themes[index > -1 ? index : defIndex];
         }
         if (papers && papers.length) {
-          // 按当前选中版式 id 对齐云端列表序号（编辑态回选专用）
+          // 按当前选中版式 id 对齐云端列表序号（编辑态回选专用）；对不齐回落默认款
           const pIndex = papers.findIndex((p) => p.id === this.data.currentPaper.id);
+          const defPIndex = papers.findIndex((p) => p.id === DEFAULT_PAPER_ID);
           update.papers = papers;
-          update.currentPaperIndex = pIndex > -1 ? pIndex : 0;
-          update.currentPaper = papers[pIndex > -1 ? pIndex : 0];
+          update.currentPaperIndex = pIndex > -1 ? pIndex : defPIndex;
+          update.currentPaper = papers[pIndex > -1 ? pIndex : defPIndex];
         }
         // 编辑态对齐原信版式/主题（可能 eventChannel 早于会员态加载到达，在此修正）：
         // VIP 恢复原选专属款；非 VIP 会员过期后一律回退默认（数据保留，开通后自动恢复）
         if (this.data.editMode) {
           if (update.isVip === false) {
             if (update.currentPaper && update.currentPaper.premium) {
-              update.currentPaperIndex = 0;
-              update.currentPaper = update.papers[0];
+              update.currentPaperIndex = update.papers.findIndex((p) => p.id === DEFAULT_PAPER_ID);
+              update.currentPaper = defPaper(update.papers);
             }
             if (update.currentTheme && update.currentTheme.premium) {
-              update.currentIndex = 0;
-              update.currentTheme = update.themes[0];
+              update.currentIndex = update.themes.findIndex((t) => t.id === DEFAULT_THEME_ID);
+              update.currentTheme = defTheme(update.themes);
             }
           } else if (this._origPaperId || this._origThemeId) {
             if (this._origPaperId) {
@@ -174,19 +183,23 @@ Page({
       const vip = !!this.data.isVip;
       if (d.themeId) {
         const index = this.data.themes.findIndex((t) => t.id === d.themeId);
-        const found = this.data.themes[index > -1 ? index : 0];
-        // 非 VIP 专属主题回退默认展示（数据保留，恢复会员后原样还原）
-        const tIndex = found && found.premium && !vip ? 0 : index;
+        const found = index > -1 ? this.data.themes[index] : null;
+        // 非 VIP 专属主题回退默认展示（数据保留，恢复会员后原样还原）；未知 id 保持默认款不动
+        const tIndex = found && found.premium && !vip
+          ? this.data.themes.findIndex((t) => t.id === DEFAULT_THEME_ID)
+          : index;
         if (tIndex > -1) {
           update.currentIndex = tIndex;
           update.currentTheme = this.data.themes[tIndex];
         }
       }
-      // 编辑态回选原信纸版式（未知 id 回落第一套；非 VIP 专属版式回退默认）
+      // 编辑态回选原信纸版式（未知 id 保持默认款；非 VIP 专属版式回退默认）
       if (d.paperId) {
         const pIndex = this.data.papers.findIndex((p) => p.id === d.paperId);
-        const found = this.data.papers[pIndex > -1 ? pIndex : 0];
-        const target = found && found.premium && !vip ? 0 : pIndex;
+        const found = pIndex > -1 ? this.data.papers[pIndex] : null;
+        const target = found && found.premium && !vip
+          ? this.data.papers.findIndex((p) => p.id === DEFAULT_PAPER_ID)
+          : pIndex;
         if (target > -1) {
           this.setData({ currentPaperIndex: target, currentPaper: this.data.papers[target] });
         }
@@ -367,11 +380,11 @@ Page({
     // 非 VIP 编辑专属老信且仍在回退默认款（未主动更换版式/主题）时写回原专属 id，
     // 保留专属身份：会员恢复后自动还原（会员专区「过期回退/开通恢复」）
     if (!d.isVip) {
-      if (this._origPaperId && paper.id === d.papers[0].id) {
+      if (this._origPaperId && paper.id === defPaper(d.papers).id) {
         const origPaper = d.papers.find((p) => p.id === this._origPaperId);
         if (origPaper && origPaper.premium) paper = origPaper;
       }
-      if (this._origThemeId && theme.id === d.themes[0].id) {
+      if (this._origThemeId && theme.id === defTheme(d.themes).id) {
         const origTheme = d.themes.find((t) => t.id === this._origThemeId);
         if (origTheme && origTheme.premium) theme = origTheme;
       }
