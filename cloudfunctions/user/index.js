@@ -31,7 +31,7 @@ exports.main = async (event) => {
         if (u && u.status === 'banned') return { ok: false, error: 'banned' };
         return {
           ok: true,
-          profile: u ? { nickname: u.nickname || '', avatar: u.avatar_url || '' } : null,
+          profile: u ? { nickname: u.nickname || '', avatar: u.avatar_url || '', birthday: u.birthday || '' } : null,
           registerDays: u ? daysSince(u.created_at) : 1
         };
       }
@@ -44,6 +44,13 @@ exports.main = async (event) => {
         // 头像为本地临时文件时由前端先上传云存储并传 fileID
         if (typeof profile.avatar === 'string' && profile.avatar.indexOf('cloud://') === 0) {
           data.avatar_url = profile.avatar;
+        }
+        // 生日只存「MM-DD」月日，不收出生年份（后续「生日来信」只需月日，也少收一份隐私）。
+        // 合法月日写入；空串=清除；未传或非法值一律不动库（保留原值，非法注入不落库）。
+        if (typeof profile.birthday === 'string') {
+          if (profile.birthday === '' || validBirthday(profile.birthday)) {
+            data.birthday = profile.birthday;
+          }
         }
         const found = await db.collection('users').where({ _openid: OPENID }).limit(1).get();
         const cur = found.data[0];
@@ -91,4 +98,14 @@ exports.main = async (event) => {
 function daysSince(d) {
   if (!d) return 1;
   return Math.max(1, Math.floor((Date.now() - new Date(d).getTime()) / 86400000) + 1);
+}
+
+// 生日「MM-DD」合法性：月 01–12；日按月校验，二月恒按 29 天（闰日允许，无年份不判闰）。
+function validBirthday(s) {
+  if (!/^\d{2}-\d{2}$/.test(s)) return false;
+  const month = Number(s.slice(0, 2));
+  const day = Number(s.slice(3, 5));
+  if (month < 1 || month > 12) return false;
+  const maxDay = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  return day >= 1 && day <= maxDay;
 }

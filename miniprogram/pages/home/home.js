@@ -5,6 +5,10 @@ const memberService = require('../../services/member.js');
 const handoff = require('../../services/handoff.js');
 const { DATA_SOURCE } = require('../../config/env.js');
 
+// 会员过期横幅「已读」标记：点一次横幅即落此标记不再显示；重新开通会员（回 VIP）时清除，
+// 下次再过期仍会提示。只在首页读写，member 服务不感知（纯 UI 引导，不参与会员态判定）。
+const EXPIRED_BANNER_KEY = 'member_expired_banner_dismissed';
+
 // 今日来信（local 态）：同一天固定同一封（按日期种子确定性随机，次日重摇）；
 // 云端态由 today 云函数按「用户+日期」确定并返回 todayId（BR-07，见架构文档 §5.2）
 function pickTodayLetter(letters) {
@@ -51,7 +55,12 @@ Page({
     isTidy: false,
     // 信封预取节点（见 openDetail / prefetchEnv）：初始为空不挂载
     preEnv: '',
-    preEnvFull: ''
+    preEnvFull: '',
+    // 新用户福利引导（会员中心可领 3 天体验会员）：服务端判定 trialAvailable，
+    // 这里只负责显示横幅与跳转 —— 纯引导，不在首页发放/领取
+    trialAvailable: false,
+    // 会员过期横幅：服务端判定 expired（曾有会员但已到期）才显示，点一次即消失
+    memberExpiredBanner: false
   },
 
   onLoad() {
@@ -125,6 +134,14 @@ Page({
         this._hints = {};
         for (const l of sorted) this._hints[String(l.id)] = { id: l.id, name: l.name, theme_id: l.theme_id };
 
+        // 会员过期横幅（BR：过期告知）：云端 get 对「曾有会员但 expires_at 已过」回 expired
+        // 标记（与从未开通区分）。点过一次就落 storage 标记不再显示；重新开通成为 VIP 时
+        // 清掉标记，下次再过期仍会提示。读取失败（m 为 free 兜底）不带 expired，不会误报。
+        if (isVip && wx.getStorageSync(EXPIRED_BANNER_KEY)) {
+          wx.removeStorageSync(EXPIRED_BANNER_KEY);
+        }
+        const memberExpiredBanner = !!(m && m.expired) && !wx.getStorageSync(EXPIRED_BANNER_KEY);
+
         this.setData({
           loading: false,
           letters,
@@ -133,7 +150,9 @@ Page({
           isTidy,
           todayLetter,
           todayStamp: letters.length ? pad2(now.getMonth() + 1) + '.' + pad2(now.getDate()) : '',
-          todayYear: letters.length ? String(now.getFullYear()) : ''
+          todayYear: letters.length ? String(now.getFullYear()) : '',
+          trialAvailable: !!(m && m.trialAvailable),
+          memberExpiredBanner
         });
       })
       .catch((err) => {
@@ -152,6 +171,19 @@ Page({
     }
     // 今日来信直接进入拆信/详情页
     this.openDetail(this.data.todayLetter.id);
+  },
+
+  // 新用户福利横幅：纯引导 —— 跳会员中心领取（领取动作只发生在会员中心，云端校验资格）
+  onTapTrialBanner() {
+    wx.navigateTo({ url: '/pages/member/member' });
+  },
+
+  // 会员过期横幅：点击进会员中心，同时落「已读」标记让横幅消失（点一次即消失）。
+  // 重新开通会员后标记会被清掉（见 loadMailbox），下次再过期仍会提示。
+  onTapExpiredBanner() {
+    wx.setStorageSync(EXPIRED_BANNER_KEY, Date.now());
+    this.setData({ memberExpiredBanner: false });
+    wx.navigateTo({ url: '/pages/member/member' });
   },
 
   onTapLetter(e) {

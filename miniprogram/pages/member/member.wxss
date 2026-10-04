@@ -1,4 +1,4 @@
-/* 11 · 会员中心：会员状态卡 + 权益清单 + 专属主题/版式 + 订阅半屏拉手 */
+/* 11 · 会员中心：会员状态卡 + 选择会员方案 + 专属主题/版式 + 订阅方案半屏拉手 */
 @import "../../styles/paper.wxss";
 .page {
   box-sizing: border-box;
@@ -45,6 +45,49 @@
   font-size: 20rpx;
   color: var(--color-text-secondary);
   letter-spacing: 4rpx;
+}
+
+/* ── 新用户福利领取卡（金调，先于未开通卡出现） ── */
+.trial-claim {
+  margin: 12rpx 32rpx 0;
+  border-radius: 36rpx;
+  padding: 36rpx 32rpx 28rpx;
+  background: linear-gradient(135deg, #FAF4E6, #F3E7CB);
+  border: 2rpx solid rgba(198, 168, 112, 0.55);
+  box-sizing: border-box;
+  box-shadow: var(--shadow-warm-sm);
+}
+.trial-claim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.trial-claim-title {
+  font-family: var(--font-heading);
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #6B5426;
+}
+.trial-claim-tag {
+  font-size: 20rpx;
+  color: #8A6B2F;
+  border: 2rpx solid rgba(198, 168, 112, 0.75);
+  border-radius: 999rpx;
+  padding: 4rpx 16rpx;
+}
+.trial-claim-desc {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: #6B5E43;
+}
+.trial-claim-btn {
+  margin-top: 28rpx;
+}
+.trial-claim-note {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: rgba(107, 94, 67, 0.75);
+  text-align: center;
 }
 
 /* ── 会员状态卡 ── */
@@ -242,58 +285,100 @@
   font-size: 26rpx;
   color: #FDFAF3;
 }
+/* 体验会员到期提醒（状态卡内一行小字，引导转正） */
+.status-trial-note {
+  margin-top: 20rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: rgba(253, 250, 243, 0.78);
+}
 .status-card.vip .status-btn {
   margin-top: 36rpx;
 }
 
-/* ── 权益清单 ── */
-.benefit-list {
+/* ── 选择会员方案（方形横排三档，点选后在半屏拉手确认支付） ── */
+.plan-cards {
   margin: 20rpx 32rpx 0;
-  background: var(--color-base-surface);
-  border-radius: 28rpx;
-  box-shadow: var(--shadow-warm-sm);
-  padding: 8rpx 28rpx;
-}
-.benefit-item {
   display: flex;
-  align-items: center;
-  gap: 22rpx;
-  padding: 30rpx 0;
-  border-bottom: 2rpx solid var(--line);
+  gap: 20rpx;
 }
-.benefit-item:last-child {
-  border-bottom: none;
-}
-.benefit-icon {
-  flex: none;
-  font-size: 36rpx;
-}
-.benefit-body {
+.plan-card {
+  position: relative;
   flex: 1;
   min-width: 0;
-}
-.benefit-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.benefit-desc {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: var(--color-text-secondary);
-}
-.benefit-badge {
-  flex: none;
-  font-size: 20rpx;
-  color: var(--color-text-secondary);
-  padding: 8rpx 18rpx;
+  padding: 32rpx 0 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   border-radius: 24rpx;
   border: 2rpx solid var(--line);
+  background: var(--color-base-surface);
+  box-shadow: var(--shadow-warm-sm);
+  box-sizing: border-box;
+  overflow: hidden;
 }
-.benefit-badge.on {
+.plan-card-active {
+  border-color: var(--color-accent-primary);
+  background: rgba(107, 142, 133, 0.08);
+}
+.plan-card-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 18rpx;
+  line-height: 1;
+  padding: 8rpx 14rpx;
+  border-radius: 0 22rpx 0 18rpx;
+  background: #8F7350;
+  color: #FFF7E8;
+}
+.plan-card-name {
+  font-family: var(--font-heading);
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.plan-card-price {
+  margin-top: 12rpx;
+  font-family: var(--font-hand);
+  font-size: 46rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-accent-secondary);
+}
+.plan-card-unit {
+  font-size: 26rpx;
+}
+.plan-card-period {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--color-text-secondary);
+}
+.plan-card-tag {
+  margin-top: 10rpx;
+  font-size: 20rpx;
   color: #8F7350;
-  border-color: #C4A482;
-  background: rgba(196, 164, 130, 0.12);
+}
+.plan-card-check {
+  position: absolute;
+  top: 14rpx;
+  left: 14rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-primary);
+  color: var(--color-base-light);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.18s ease;
+}
+.plan-card-active .plan-card-check {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ── 会员专属 · 自定义主题与版式 ── */
@@ -484,38 +569,6 @@
   font-size: 22rpx;
   font-weight: 400;
   color: var(--color-text-secondary);
-}
-.agree {
-  margin-top: 28rpx;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 8rpx 4rpx;
-}
-.agree-check {
-  flex: none;
-  width: 36rpx;
-  height: 36rpx;
-  border-radius: 8rpx;
-  border: 2rpx solid var(--color-disabled);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  color: var(--color-base-light);
-  box-sizing: border-box;
-}
-.agree-check-on {
-  background: var(--color-accent-primary);
-  border-color: var(--color-accent-primary);
-}
-.agree-text {
-  font-size: 22rpx;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-.agree-link {
-  color: var(--color-accent-primary);
 }
 .sheet-btn {
   margin-top: 32rpx;

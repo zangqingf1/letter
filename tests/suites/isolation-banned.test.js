@@ -376,6 +376,35 @@ suite('主题下发 · theme', () => {
     eq(r.themes[0].premium, true);
   });
 
+  test('免费尝鲜款下发 freeTrial 标记（premium 保留供渲染分派，锁定判定在前端放行）', async () => {
+    const h = createHarness();
+    // 'gold' 在 theme 云函数 FREE_TRIAL_PAPERS 名单内；'canglan' 不在
+    h.seed('papers', { paper_id: 'liubai', name: '留白志', status: 'online', sort: 1, colors: {} });
+    h.seed('member_items', { kind: 'paper', item_id: 'gold', name: '鎏金笺', status: 'online', sort: 1, colors: {} });
+    h.seed('member_items', { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', status: 'online', sort: 2, colors: {} });
+    const main = h.load('theme');
+    const r = await main({ action: 'papers' });
+    const gold = r.papers.find((p) => p.id === 'gold');
+    const canglan = r.papers.find((p) => p.id === 'canglan');
+    eq(gold.premium, true, 'premium 标记必须保留（paper.wxml pl-premium 分支 / specOf 分派依赖它）');
+    eq(gold.freeTrial, true, '名单内款应带 freeTrial 标记');
+    eq(canglan.premium, true);
+    eq(canglan.freeTrial, false, '名单外专属款不得误标 freeTrial');
+  });
+
+  test('免费尝鲜三态：member_items 显式 free_trial 优先于代码默认名单（后台可关掉 gold）', async () => {
+    const h = createHarness();
+    h.seed('papers', { paper_id: 'liubai', name: '留白志', status: 'online', sort: 1, colors: {} });
+    // gold 显式 false：后台关掉默认尝鲜款 → 下发不再带 freeTrial
+    h.seed('member_items', { kind: 'paper', item_id: 'gold', name: '鎏金笺', status: 'online', sort: 1, colors: {}, free_trial: false });
+    // canglan 显式 true：后台把名单外的款设为尝鲜 → 下发带 freeTrial
+    h.seed('member_items', { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', status: 'online', sort: 2, colors: {}, free_trial: true });
+    const main = h.load('theme');
+    const r = await main({ action: 'papers' });
+    eq(r.papers.find((p) => p.id === 'gold').freeTrial, false, '显式 false 必须压过默认名单');
+    eq(r.papers.find((p) => p.id === 'canglan').freeTrial, true, '显式 true 对名单外语款同样生效');
+  });
+
   test('papers 只下发上架版式并映射为前端字段名', async () => {
     const h = createHarness();
     h.seed('papers', { paper_id: 'liubai', name: '留白志', status: 'online', sort: 1, colors: { bg: '#fff' } });

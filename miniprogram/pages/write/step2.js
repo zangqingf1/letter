@@ -34,8 +34,11 @@ Page({
     themes: THEMES,
     papers: PAPERS,
     isVip: false,           // 会员态：决定专属版式/主题是否可解锁（云端读 members，本地读演示态）
+    trial: false,           // 体验会员：专属款角标从 🔒 换成「体验」胶囊（右上角），提示到期收回
     currentIndex: 0,
     currentTheme: defTheme(THEMES),
+    // 信封卡片流定位（scroll-into-view）：编辑态回选原主题时把选中卡片滚进视口
+    themeScrollInto: '',
     currentPaperIndex: 0,
     currentPaper: defPaper(PAPERS),
     letter: { name: '', question: '', answer: '' },
@@ -100,7 +103,7 @@ Page({
     // 会员态经 member 服务（决定专属款是否锁定）。失败保留本地 THEMES/PAPERS 兜底。
     Promise.all([themeService.getThemes(), themeService.getPapers(), memberService.getMembership()])
       .then(([themes, papers, m]) => {
-        const update = { isVip: !!(m && m.state === 'vip') };
+        const update = { isVip: !!(m && m.state === 'vip'), trial: !!(m && m.trial) };
         if (themes && themes.length) {
           const index = themes.findIndex((t) => t.id === this.data.currentTheme.id);
           const defIndex = themes.findIndex((t) => t.id === DEFAULT_THEME_ID);
@@ -127,6 +130,7 @@ Page({
             if (update.currentTheme && update.currentTheme.premium) {
               update.currentIndex = update.themes.findIndex((t) => t.id === DEFAULT_THEME_ID);
               update.currentTheme = defTheme(update.themes);
+              update.themeScrollInto = '';
             }
           } else if (this._origPaperId || this._origThemeId) {
             if (this._origPaperId) {
@@ -141,6 +145,7 @@ Page({
               if (ti > -1) {
                 update.currentIndex = ti;
                 update.currentTheme = update.themes[ti];
+                update.themeScrollInto = 'theme-card-' + ti;
               }
             }
           }
@@ -162,7 +167,7 @@ Page({
     }
     memberService.getMembership()
       .then((m) => {
-        this.setData({ isVip: !!(m && m.state === 'vip') });
+        this.setData({ isVip: !!(m && m.state === 'vip'), trial: !!(m && m.trial) });
       })
       .catch(() => {});
   },
@@ -185,19 +190,22 @@ Page({
         const index = this.data.themes.findIndex((t) => t.id === d.themeId);
         const found = index > -1 ? this.data.themes[index] : null;
         // 非 VIP 专属主题回退默认展示（数据保留，恢复会员后原样还原）；未知 id 保持默认款不动
-        const tIndex = found && found.premium && !vip
+        // isLocked 同时排除免费尝鲜款（freeTrial）：鎏金笺等免费款编辑老信不会被回退
+        const tIndex = found && themeService.isLocked(found, vip)
           ? this.data.themes.findIndex((t) => t.id === DEFAULT_THEME_ID)
           : index;
         if (tIndex > -1) {
           update.currentIndex = tIndex;
           update.currentTheme = this.data.themes[tIndex];
+          // 把原主题卡片滚进视口（信封横滑流不自动跟随选中项）
+          update.themeScrollInto = 'theme-card-' + tIndex;
         }
       }
       // 编辑态回选原信纸版式（未知 id 保持默认款；非 VIP 专属版式回退默认）
       if (d.paperId) {
         const pIndex = this.data.papers.findIndex((p) => p.id === d.paperId);
         const found = pIndex > -1 ? this.data.papers[pIndex] : null;
-        const target = found && found.premium && !vip
+        const target = found && themeService.isLocked(found, vip)
           ? this.data.papers.findIndex((p) => p.id === DEFAULT_PAPER_ID)
           : pIndex;
         if (target > -1) {
@@ -277,8 +285,9 @@ Page({
       return;
     }
 
-    // 会员专属：当前选中的信纸/主题为专属款且非 VIP 时，寄出前引导开通
-    if (!d.isVip && (d.currentPaper.premium || d.currentTheme.premium)) {
+    // 会员专属：当前选中的信纸/主题为专属款且非 VIP 时，寄出前引导开通。
+    // 统一走 themeService.isLocked —— 免费尝鲜款（freeTrial，如鎏金笺）在此放行，不拦。
+    if (themeService.isLocked(d.currentPaper, d.isVip) || themeService.isLocked(d.currentTheme, d.isVip)) {
       this.onLockedItem();
       return;
     }

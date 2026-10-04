@@ -1,4 +1,4 @@
-/* 12 · 问题反馈：表单卡（文字 + 联系方式 + 多图截图），顶部轻导航与账号管理页同款 */
+/* 12 · 问题反馈：表单卡（文字 + 多图截图），顶部轻导航与账号管理页同款 */
 .page {
   display: flex;
   flex-direction: column;
@@ -79,18 +79,6 @@
   color: var(--color-text-secondary);
   margin-top: 8rpx;
 }
-.contact-input {
-  width: 100%;
-  box-sizing: border-box;
-  height: 76rpx;
-  font-size: 28rpx;
-  color: var(--color-text-primary);
-  background: var(--color-base-light);
-  border: 1rpx solid var(--line);
-  border-radius: 16rpx;
-  padding: 0 24rpx;
-}
-
 /* ── 截图三列网格 ── */
 .shots {
   display: flex;

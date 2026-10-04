@@ -11,15 +11,20 @@
 
 // 现网道具映射：plan → { productId, priceFen }
 // productId 与 MP 后台「虚拟支付 → 道具管理」创建并发布的道具 ID 完全一致；
-// 道具价格（元）→ priceFen（分）：9.9 / 25.9 / 99.9。
+// 道具价格（元）→ priceFen（分）：9.9 / 25.9 / 89.9。
 const PRODUCTS = {
   month: { productId: 'vip_month', priceFen: 990 },
   quarter: { productId: 'vip_quarter', priceFen: 2590 },
-  year: { productId: 'vip_year', priceFen: 9990 }
+  year: { productId: 'vip_year', priceFen: 8990 }
 };
 
 // 各档位会员有效期天数（与前端 member 页 PLANS 对齐）
 const PLAN_DAYS = { month: 31, quarter: 93, year: 366 };
+
+// 新用户体验会员天数（2026-09-20 起）：从未有过 members 记录的用户首次读会员态时，
+// 由 get 惰性发放一份限时体验会员（trial:true 标记），全部专属款在体验期内可用。
+// 发放判定只认「members 集合无记录」——曾开通过（哪怕已过期）的用户不补发。
+const TRIAL_DAYS = 3;
 
 // OfferID / AppKey 只从云函数环境变量读取：未配置时 configured() 为 false，
 // 下单接口直接返回 'xpay not configured'，绝不回落任何仓库内密钥。
@@ -36,4 +41,4 @@ function planConfigured(plan) {
   return !!p && !!p.productId;
 }
 
-module.exports = { PRODUCTS, PLAN_DAYS, OFFER_ID, APP_KEY, configured, planConfigured };
+module.exports = { PRODUCTS, PLAN_DAYS, TRIAL_DAYS, OFFER_ID, APP_KEY, configured, planConfigured };

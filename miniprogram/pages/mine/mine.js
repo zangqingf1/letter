@@ -142,7 +142,7 @@ Page({
   },
 
   onTapFeedback() {
-    // 问题反馈：自建反馈页（文字 + 联系方式 + 多图截图），云端落 feedback 集合
+    // 问题反馈：自建反馈页（文字 + 多图截图），云端落 feedback 集合
     wx.navigateTo({ url: '/pages/feedback/feedback' });
   },
 

@@ -77,9 +77,18 @@ const SEED_PAPERS = [
 const SEED_MEMBER_ITEMS = [
   { kind: 'paper', item_id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' } },
   { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', desc: '静谧深青 · 专属', version: 1, colors: { bg: '#DDEDEA', ink: '#2E4440', gold: '#9FC8C0' } },
-  { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } }
+  { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', desc: '墨银浮雕 · 专属', version: 1, colors: { bg: '#EDF0EE', ink: '#3A4240', gold: '#B9C4C0' } },
+  // 免费尝鲜款：落库为 member_items 的 free_trial 布尔字段（theme 云函数按三态解析：
+  // 文档显式 true/false 优先，未标注回落下方 DEFAULT_FREE_TRIAL 名单）。seed 只补缺，
+  // 线上既有 gold 文档由后台「会员专属内容」列表的尝鲜开关管理。
+  { kind: 'paper', item_id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, free_trial: true, colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' } }
   // 专属主题（原 归鸟/星汐）已移除：需要时在后台「会员管理 → 专属内容」自行新建 kind='theme' 条目。
 ];
+
+// 免费尝鲜默认名单（与 theme 云函数 FREE_TRIAL_PAPERS/FREE_TRIAL_THEMES 同源手工同步）：
+// 仅用于 memberItemList 计算存量数据（无 free_trial 字段）的「有效尝鲜态」展示，
+// 真正下发判定在 theme 云函数（同样的名单 + 同样的三态规则），两处必须一致。
+const DEFAULT_FREE_TRIAL = { paper: ['gold'], theme: [] };
 
 // 会员套餐中文名（memberGrant 写入 members.plan_name）
 const PLAN_NAMES = { month: '月卡', quarter: '季卡', year: '年卡', custom: '自定义' };
@@ -160,6 +169,8 @@ async function upsertMemberItem(data) {
     updated_at: now
   });
   if (data.assets && typeof data.assets === 'object') doc.assets = data.assets;
+  // 免费尝鲜标记：只认布尔（undefined = 不动既有值；编辑抽屉不传即不覆盖）
+  if (typeof data.free_trial === 'boolean') doc.free_trial = data.free_trial;
   const found = await db.collection('member_items').where({ kind: data.kind, item_id: data.item_id }).limit(1).get();
   if (found.data.length) {
     await db.collection('member_items').doc(found.data[0]._id).update({ data: doc });
@@ -617,6 +628,7 @@ async function handleAction(event) {
           plan_name: PLAN_NAMES[plan] || '自定义',
           expires_at: expiresAt,
           renew: !!event.renew,
+          trial: false, // 后台发卡是明确意愿的正价/补偿发放，清除体验标记
           granted_at: now,
           granted_by: 'admin',
           updated_at: now
@@ -645,7 +657,26 @@ async function handleAction(event) {
         if (event.kind === 'paper' || event.kind === 'theme') where.kind = event.kind;
         const base = Object.keys(where).length ? db.collection('member_items').where(where) : db.collection('member_items');
         const res = await base.orderBy('sort', 'asc').limit(200).get();
-        return { ok: true, items: res.data };
+        // free_trial_effective：前端展示用的「有效尝鲜态」——文档显式 free_trial 优先，
+        // 未标注的存量数据按 DEFAULT_FREE_TRIAL 名单兜底（与 theme 云函数三态规则一致）
+        const items = res.data.map((it) => Object.assign({}, it, {
+          free_trial_effective: it.free_trial === true
+            || (it.free_trial === undefined && (DEFAULT_FREE_TRIAL[it.kind] || []).indexOf(it.item_id) !== -1)
+        }));
+        return { ok: true, items };
+      }
+      // 免费尝鲜开关：只改 free_trial 一个布尔字段（落库后 theme 云函数下发时生效，
+      // 前端 theme 缓存 TTL 1h）
+      case 'memberItemFreeTrial': {
+        const kind = event.kind === 'paper' || event.kind === 'theme' ? event.kind : null;
+        const itemId = selectorField(event.item_id, 64);
+        if (!kind || !itemId) return { ok: false, error: 'kind 与 item_id 非法' };
+        if (typeof event.free_trial !== 'boolean') return { ok: false, error: 'free_trial 必须为布尔' };
+        const r = await db.collection('member_items').where({ kind: kind, item_id: itemId }).update({
+          data: { free_trial: event.free_trial, updated_at: new Date() }
+        });
+        if (!r.stats || !r.stats.updated) return { ok: false, error: '专属款不存在' };
+        return { ok: true, free_trial: event.free_trial };
       }
       case 'memberItemSave': {
         const item = event.item || {};

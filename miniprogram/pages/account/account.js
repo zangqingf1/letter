@@ -4,12 +4,31 @@
 const userService = require('../../services/user.js');
 const privacyService = require('../../services/privacy.js');
 
+// 生日只收「月 · 日」，不收出生年份：后续的「生日来信」只需要月日，也少收一份隐私。
+// 二月恒按 29 天（闰日出生也允许，来信时机由后续功能自行归到 2/28 或 3/1）。
+const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+const DAYS_OF_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const BIRTHDAY_RE = /^(\d{2})-(\d{2})$/;
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function dayLabelsOfMonth(monthIdx) {
+  const arr = [];
+  for (let i = 1; i <= DAYS_OF_MONTH[monthIdx]; i += 1) arr.push(i + ' 日');
+  return arr;
+}
+
 Page({
   data: {
     statusBarHeight: 20,
-    profile: { nickname: '', avatar: '' },
+    profile: { nickname: '', avatar: '', birthday: '' },
     avatarChar: '友',
-    wroteDays: ''
+    wroteDays: '',
+    birthdayRange: [MONTH_LABELS, dayLabelsOfMonth(0)],
+    birthdayIndex: [0, 0],
+    birthdayText: ''
   },
 
   onLoad() {
@@ -32,12 +51,62 @@ Page({
 
   loadProfile() {
     userService.getProfile().then((profile) => {
+      profile.birthday = profile.birthday || '';
       this.setData({
         profile,
         avatarChar: (profile.nickname || '友')[0],
         wroteDays: profile.wroteDays
       });
+      this.applyBirthday(profile.birthday);
     }).catch((err) => console.error('[account] 资料读取失败', err));
+  },
+
+  // 把已存的 MM-DD 回填到两列选择器（非法/为空时显示占位文案）
+  applyBirthday(birthday) {
+    let m = 0;
+    let d = 0;
+    let text = '';
+    const match = BIRTHDAY_RE.exec(birthday || '');
+    if (match) {
+      const mm = parseInt(match[1], 10);
+      const dd = parseInt(match[2], 10);
+      if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= DAYS_OF_MONTH[mm - 1]) {
+        m = mm - 1;
+        d = dd - 1;
+        text = (m + 1) + ' 月 ' + (d + 1) + ' 日';
+      }
+    }
+    this.setData({
+      birthdayRange: [MONTH_LABELS, dayLabelsOfMonth(m)],
+      birthdayIndex: [m, d],
+      birthdayText: text
+    });
+  },
+
+  // 切月份列时联动天数列（并把已选日夹回当月范围内）
+  onBirthdayColumn(e) {
+    if (e.detail.column !== 0) return;
+    const m = e.detail.value;
+    const days = dayLabelsOfMonth(m);
+    const d = Math.min(this.data.birthdayIndex[1], days.length - 1);
+    this.setData({ 'birthdayRange[1]': days, birthdayIndex: [m, d] });
+  },
+
+  onBirthdayPick(e) {
+    const v = e.detail.value || [];
+    const m = v[0] || 0;
+    const d = v[1] || 0;
+    const birthday = pad2(m + 1) + '-' + pad2(d + 1);
+    this.setData({
+      'profile.birthday': birthday,
+      birthdayText: (m + 1) + ' 月 ' + (d + 1) + ' 日'
+    });
+    this.saveProfile();
+  },
+
+  onBirthdayClear() {
+    this.setData({ 'profile.birthday': '', birthdayText: '' });
+    this.saveProfile();
   },
 
   // 官方头像填写能力回调：e.detail.avatarUrl 为微信临时路径，先落成本地文件再存，避免重启后失效

@@ -6,7 +6,6 @@
     <view class="nav-back" hover-class="nav-back-hover" bindtap="onTapBack">‹ 我的</view>
     <view class="nav-title">账号管理</view>
   </view>
-  <view class="page-note">你的名字与头像，只用于识别这是你的匣子。</view>
 
   <!-- 资料区：头像（open-type="chooseAvatar"）+ 昵称（type="nickname" 输入框） -->
   <view class="profile-card">
@@ -29,6 +28,26 @@
       />
       <view class="wrote-days">在这个匣子里写了 <text class="days-num">{{wroteDays}}</text> 天</view>
     </view>
+  </view>
+
+  <!-- 个人资料：生日（月/日两列选择器，不收出生年份；非法值云函数侧丢弃） -->
+  <view class="section-label">个人资料</view>
+  <view class="menu">
+    <picker
+      mode="multiSelector"
+      range="{{birthdayRange}}"
+      value="{{birthdayIndex}}"
+      bindcolumnchange="onBirthdayColumn"
+      bindchange="onBirthdayPick"
+    >
+      <view class="menu-item" hover-class="menu-item-hover">
+        <text class="menu-text-strong">生日</text>
+        <view class="birthday-value-wrap">
+          <text class="birthday-value {{birthdayText ? '' : 'birthday-empty'}}">{{birthdayText || '选择月 · 日'}}</text>
+          <text wx:if="{{birthdayText}}" class="birthday-clear" catchtap="onBirthdayClear">清除</text>
+        </view>
+      </view>
+    </picker>
   </view>
 
   <!-- 账号操作区 -->

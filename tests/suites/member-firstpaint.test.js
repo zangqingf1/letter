@@ -24,8 +24,9 @@ const WXML = fs.readFileSync(path.join(MINI_ROOT, 'pages', 'member', 'member.wxm
 
 const VIP = { ok: true, membership: { state: 'vip', level: '守候', renew: true, expireDate: '2027-01-01', planName: '年卡', remainingDays: 200 } };
 const FREE = { ok: true, membership: { state: 'free', level: '', renew: false, remainingDays: 0 } };
-// 本地兜底款（pages/member/premium.js）——首帧不该再出现它，除非连 theme 缓存都没有
-const LOCAL_PAPERS = ['鎏金笺', '苍蓝笺', '银厢笺'];
+// 本地兜底款（pages/member/premium.js）——首帧不该再出现它，除非连 theme 缓存都没有。
+// 鎏金笺自 2026-09-20 起为免费尝鲜款（freeTrial），已从「会员专属」兜底陈列中移出。
+const LOCAL_PAPERS = ['苍蓝笺', '银厢笺'];
 
 const tick = (ms) => new Promise((r) => setTimeout(r, ms || 0));
 
@@ -109,7 +110,8 @@ suite('会员中心首屏 · 缓存与骨架', () => {
 
     await tick(60);
     eq(p.data.state, 'vip', '回源后原地换成真值');
-    eq(p.data.benefits.filter((b) => b.unlocked).length, 3, '权益徽章随会员态一起落地');
+    eq(p.data.plans.length, 3, '三档方案卡数据就绪');
+    eq(p.data.plans.every((x) => x.tag.indexOf('元/天') !== -1), true, '档位标签为每日价口径');
   });
 
   test('有缓存首帧：VIP 直接画对，随后仍 force 回源', async () => {
@@ -121,7 +123,7 @@ suite('会员中心首屏 · 缓存与骨架', () => {
     eq(p.data.state, 'vip', '首帧直接是会员态，不闪「还未开通会员」');
     eq(p.data.remainingDays, 200, '剩余天数一并就位');
     eq(h.state.resolved, 0, 'onLoad/onShow 返回时一个云函数都还没回来');
-    eq(p.data.benefits.filter((b) => b.unlocked).length, 3, '首帧权益即已解锁');
+    eq(p.data.plans.length, 3, '首帧方案卡即已就绪');
 
     await tick(60);
     eq(h.calls().indexOf('member.get') !== -1, true, '首帧之后仍 force 回源，保证状态是新的');
@@ -177,14 +179,17 @@ suite('会员中心首屏 · 缓存与骨架', () => {
 
     await tick(20);
     eq(p.data.state, 'free', '读取失败按未开通处理，但必须退出骨架态（否则看起来像卡死）');
-    eq(p.data.benefits.filter((b) => b.unlocked).length, 0, '未开通态权益全部未解锁');
+    eq(p.data.plans.length, 3, '未开通态方案卡仍完整展示');
   });
 
-  test('骨架态在模板里有对应分支：state=loading 不会误落到会员卡', async () => {
+  test('骨架态在模板里有对应分支，且改版结构落位', () => {
     // 纯时序用例覆盖不到 WXML。若 loading 分支被删掉，`wx:if="{{state === 'free'}}"` 的
     // wx:else 会把骨架态渲染成「已开通」金卡（空昵称 + 0 天），这是比闪 free 更糟的回归。
     eq(WXML.indexOf('wx:if="{{state === \'loading\'}}"') !== -1, true, '状态卡有 loading 分支');
     eq(WXML.indexOf('wx:elif="{{state === \'free\'}}"') !== -1, true, 'free 分支降级为 elif，不再兜底 wx:else');
-    eq(WXML.indexOf('wx:elif="{{state !== \'loading\'}}"') !== -1, true, '骨架期不预告「未解锁」徽章');
+    eq(WXML.indexOf('benefit-list') === -1 && WXML.indexOf('我的权益') === -1, true, '「我的权益」清单已移除');
+    eq(WXML.indexOf('plan-cards') !== -1 && WXML.indexOf('选择会员方案') !== -1, true, '档位卡片前置到页内直接选择');
+    eq(WXML.indexOf('onToggleAgree') === -1 && WXML.indexOf('agree-check') === -1, true, '协议勾选已移除');
+    eq(WXML.indexOf('show-label">专属主题信封') !== -1 && WXML.indexOf('show-label">专属主题信封') < WXML.indexOf('show-label">专属信纸版式'), true, '专属展示信封在前、信纸在后');
   });
 });

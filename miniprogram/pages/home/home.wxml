@@ -66,6 +66,26 @@
     </block>
   </view>
 
+  <!-- 新用户福利横幅（纯引导）：服务端判定 trialAvailable 才显示，点击去会员中心领取 -->
+  <view wx:if="{{trialAvailable}}" class="trial-banner" hover-class="trial-banner-hover" bindtap="onTapTrialBanner">
+    <text class="trial-banner-emoji">🎁</text>
+    <view class="trial-banner-text">
+      <view class="trial-banner-title">新用户福利 · 3 天体验会员</view>
+      <view class="trial-banner-sub">全部专属信纸与信封随便用，去会员中心领取</view>
+    </view>
+    <view class="trial-banner-go">›</view>
+  </view>
+
+  <!-- 会员过期横幅：服务端 expired 标记才显示（与从未开通区分）；点击进会员中心，点一次即消失 -->
+  <view wx:if="{{memberExpiredBanner}}" class="expired-banner" hover-class="expired-banner-hover" bindtap="onTapExpiredBanner">
+    <text class="expired-banner-emoji">🕯️</text>
+    <view class="expired-banner-text">
+      <view class="expired-banner-title">会员已过期</view>
+      <view class="expired-banner-sub">专属信纸与信封已回落为默认款，去会员中心重新点亮</view>
+    </view>
+    <view class="expired-banner-go">›</view>
+  </view>
+
   <!-- 草稿横条（条件触发） -->
   <view wx:if="{{draftCount > 0 && hasLetters}}" class="draft-bar" bindtap="onTapDrafts">
     <text class="draft-emoji">📝</text> 有 <text class="draft-num">{{draftCount}}</text> 封没写完的信，点此处继续写

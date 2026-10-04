@@ -1,4 +1,4 @@
-<!-- 12 · 问题反馈：文字 + 联系方式 + 多张截图（从「我的」页功能列表进入） -->
+<!-- 12 · 问题反馈：文字 + 多张截图（从「我的」页功能列表进入） -->
 <view class="page" style="padding-top: {{statusBarHeight}}px;">
 
   <!-- 顶部轻导航：‹ 我的 + 居中标题（与账号管理页同款） -->
@@ -23,16 +23,6 @@
       bindinput="onContentInput"
     ></textarea>
     <view class="count">{{contentLen}} / {{contentMax}}</view>
-
-    <view class="field-label">联系方式（选填）</view>
-    <input
-      class="contact-input"
-      value="{{contact}}"
-      maxlength="{{contactMax}}"
-      placeholder="微信 / 手机号 / 邮箱，便于联系你"
-      placeholder-class="ph"
-      bindinput="onContactInput"
-    />
 
     <view class="field-label">问题截图（选填，最多 {{shotsMax}} 张）</view>
     <view class="shots">

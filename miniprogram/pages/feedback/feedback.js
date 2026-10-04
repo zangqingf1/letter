@@ -1,10 +1,9 @@
-// 12 · 问题反馈（从「我的」页功能列表进入）：文字（必填）+ 联系方式（选填）+ 多张截图（选填）
+// 12 · 问题反馈（从「我的」页功能列表进入）：文字（必填）+ 多张截图（选填）
 // 提交经 feedback 服务（云端落 feedback 集合，本地落 storage feedback_local）。
 const feedbackService = require('../../services/feedback.js');
 const privacyService = require('../../services/privacy.js');
 
 const CONTENT_MAX = 1000;
-const CONTACT_MAX = 40;
 const SHOTS_MAX = 9;
 // 单张截图上限 5MB：客户端预检（服务端只能拿到 fileID，无法便捷校验字节数），
 // 避免超大图长期占用云存储配额。
@@ -25,11 +24,9 @@ Page({
   data: {
     statusBarHeight: 20,
     contentMax: CONTENT_MAX,
-    contactMax: CONTACT_MAX,
     shotsMax: SHOTS_MAX,
     content: '',
     contentLen: 0,
-    contact: '',
     shots: [],
     submitting: false
   },
@@ -46,10 +43,6 @@ Page({
   onContentInput(e) {
     const content = e.detail.value;
     this.setData({ content, contentLen: content.length });
-  },
-
-  onContactInput(e) {
-    this.setData({ contact: e.detail.value });
   },
 
   // 追加截图：选图属隐私接口（收集你选中的照片或视频信息），
@@ -124,7 +117,6 @@ Page({
     feedbackService
       .submit({
         content,
-        contact: (this.data.contact || '').trim(),
         images: this.data.shots,
         device: buildDevice()
       })

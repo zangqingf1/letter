@@ -13,7 +13,7 @@ const FAKE_KEY = 'test-key-not-a-real-secret';
 
 // 每档道具 productId（与 cloudfunctions/member/config.js 同源）
 const PRODUCT = { month: 'vip_month', quarter: 'vip_quarter', year: 'vip_year' };
-const PRICE = { month: 990, quarter: 2590, year: 9990 };
+const PRICE = { month: 990, quarter: 2590, year: 8990 };
 const DAYS = { month: 31, quarter: 93, year: 366 };
 
 /** 构造一条「平台发货推送」正文（字段名照抄微信文档） */
@@ -63,13 +63,18 @@ suite('会员支付 · 发货安全', () => {
     eq(h.count('member_orders'), 0, '未配置时也不应落订单');
   });
 
-  test('MP-01b 未配置时 get 返回 free（不因缺配置而误判为会员）', async () => {
+  test('MP-01b 未配置支付时 claimTrial：体验照常发放（体验不依赖支付配置），但不落订单', async () => {
     withXpayEnv({});
     const h = createHarness({ openid: 'openid-A' });
     const main = h.load('member');
-    const r = await main({ action: 'get' });
+    const r = await main({ action: 'claimTrial' });
     eq(r.ok, true);
-    eq(r.membership.state, 'free');
+    eq(r.membership.state, 'vip', '体验会员按 vip 态放行专属款');
+    eq(r.membership.trial, true, '必须带体验标记，前端展示「体验会员」而非正式会员');
+    eq(r.membership.planName, '体验会员');
+    eq(r.membership.remainingDays, 3, '体验期与 config.TRIAL_DAYS 同源（3 天）');
+    eq(h.count('members'), 1, '领取落一条体验记录');
+    eq(h.count('member_orders'), 0, '未配置支付也绝不落真实订单');
   });
 
   test('MP-03 已配密钥但缺 code 时拒绝下单', async () => {
@@ -294,6 +299,140 @@ suite('会员支付 · 发货安全', () => {
     const r = await main({ action: 'get' });
     eq(r.membership.state, 'free', '过期即非会员');
     eq(r.membership.level, '', '过期后不应再返回等级称号');
+    eq(r.membership.expired, true, '过期应带 expired 标记（首页过期横幅据此显示）');
+  });
+
+  test('MP-10b 未开通/无记录用户不带 expired 标记（与过期用户区分）', async () => {
+    withXpayEnv({});
+    // 新用户（无 members 记录）：只有 trialAvailable，不回 expired
+    const h1 = createHarness({ openid: 'openid-A' });
+    const main1 = h1.load('member');
+    const r1 = await main1({ action: 'get' });
+    eq(r1.membership.trialAvailable, true, '新用户回可领取标记');
+    eq(r1.membership.expired, undefined, '从未开通不得带 expired（否则误报过期横幅）');
+    // 有记录但被撤销（state 非 vip）：同样不回 expired
+    const h2 = createHarness({ openid: 'openid-B' });
+    h2.seed('members', { _openid: 'openid-B', state: 'free', expires_at: new Date(Date.now() - DAY) });
+    const main2 = h2.load('member');
+    const r2 = await main2({ action: 'get' });
+    eq(r2.membership.state, 'free');
+    eq(r2.membership.expired, undefined, '非 vip 记录不得带 expired');
+  });
+
+  // ── 新用户体验会员（2026-09-20 起改「领取制」：get 只回 trialAvailable，发放只在 claimTrial）──
+  test('TR-01 新用户 get 只回 trialAvailable 标记，不自动发放落库', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    const main = h.load('member');
+    const r = await main({ action: 'get' });
+    eq(r.membership.state, 'free', '读取动作不得直接发放体验会员');
+    eq(r.membership.trialAvailable, true, '新用户应带回可领取标记');
+    eq(h.count('members'), 0, 'get 不得写 members（发放只发生在领取动作）');
+  });
+
+  test('TR-02 claimTrial 领取落库：3 天从领取时刻起算', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    const main = h.load('member');
+    const r = await main({ action: 'claimTrial' });
+    eq(r.ok, true);
+    eq(r.membership.state, 'vip');
+    eq(r.membership.trial, true);
+    const m = h.all('members')[0];
+    eq(m.trial, true, '落库记录须带 trial 标记');
+    eq(m.total_days, 3, '体验天数与 TRIAL_DAYS 同源');
+    ok(
+      Math.abs(new Date(m.expires_at).getTime() - (Date.now() + 3 * DAY)) < 2000,
+      '到期时间应为领取时刻+3 天（绝对时间戳口径）'
+    );
+    eq(m.granted_by, 'trial');
+  });
+
+  test('TR-03 重复领取幂等：记录仍是一条，到期时间不重算', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    const main = h.load('member');
+    const r1 = await main({ action: 'claimTrial' });
+    const r2 = await main({ action: 'claimTrial' });
+    eq(r2.ok, true, '重复领取不报错（幂等返回现有体验态）');
+    eq(h.count('members'), 1, '重复领取不得产生第二条记录');
+    eq(r2.membership.expireDate, r1.membership.expireDate, '到期时间不得因重复领取而顺延');
+    eq(r2.membership.trial, true);
+  });
+
+  test('TR-04 曾开通过（已过期）的用户无资格：claim not_eligible 且 get 不回可领标记', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    h.seed('members', {
+      _openid: 'openid-A',
+      state: 'vip',
+      plan_name: '月卡',
+      expires_at: new Date(Date.now() - DAY),
+      total_days: 31
+    });
+    const main = h.load('member');
+    const r = await main({ action: 'claimTrial' });
+    eq(r.ok, false, '老用户领取必须被拒绝');
+    eq(r.error, 'not_eligible');
+    eq(h.count('members'), 1, '不得为老用户补发体验记录');
+    const g = await main({ action: 'get' });
+    eq(g.membership.trialAvailable, false, '有历史记录的用户不显示福利引导');
+  });
+
+  test('TR-04b 封禁用户领取被门禁拦截', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    h.seed('users', { _openid: 'openid-A', status: 'banned' });
+    const main = h.load('member');
+    const r = await main({ action: 'claimTrial' });
+    eq(r.ok, false);
+    eq(r.error, 'banned');
+    eq(h.count('members'), 0);
+  });
+
+  test('TR-04 现役正式会员 get 不带体验标记', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    h.seed('members', {
+      _openid: 'openid-A',
+      state: 'vip',
+      plan_name: '月卡',
+      expires_at: new Date(Date.now() + 10 * DAY),
+      total_days: 40
+    });
+    const main = h.load('member');
+    const r = await main({ action: 'get' });
+    eq(r.membership.state, 'vip');
+    eq(r.membership.trial, false, '正式会员不得被误标为体验态');
+  });
+
+  test('TR-05 体验会员付款发货：体验记录升级为正式会员（trial 翻 false，体验剩余时间顺延保留）', async () => {
+    withXpayEnv({});
+    const h = createHarness({ openid: 'openid-A' });
+    const trialExp = new Date(Date.now() + 2 * DAY);
+    h.seed('members', {
+      _openid: 'openid-A',
+      state: 'vip',
+      level: 'trial',
+      plan_name: '体验会员',
+      expires_at: trialExp,
+      total_days: 3,
+      trial: true
+    });
+    const outTradeNo = seedOrder(h, { openid: 'openid-A', plan: 'month' });
+    const main = h.load('member');
+    const r = await main(notifyBody({ openid: 'openid-A', outTradeNo, productId: PRODUCT.month }));
+    eq(r.ErrCode, 0);
+    const m = h.all('members')[0];
+    eq(m.trial, false, '正价发货后不得再显示体验态');
+    eq(m.plan_name, '月卡');
+    const expected = trialExp.getTime() + DAYS.month * DAY;
+    ok(
+      Math.abs(new Date(m.expires_at).getTime() - expected) < 2000,
+      '体验未过期的剩余时间应在付款档位上顺延保留'
+    );
+    const after = await main({ action: 'get' });
+    eq(after.membership.trial, false, '发货后再读会员态也不再是体验标记');
   });
 
   test('VIP 状态返回剩余天数与到期时间', async () => {

@@ -307,7 +307,10 @@ suite('分享图版面（Canvas ↔ paper.wxss 同构）', () => {
       page.drawOps(ctx, l, colors, page.data.view);
       if (l.spec.abs) page.drawAbs(ctx, l, colors, page.data.view);
       ok(ctx.calls.length > 0, p.id + ' 应产生绘制调用');
-      ok(texts(l, 'name').length === 1, p.id + ' 题名入图');
+      // 处方笺（阅读页无姓名表单栏）与结业证书（阅读页不渲染信件名称）的
+      // 阅读页都不出现信件名称，导出侧同口径不画 —— 仅这两款例外
+      const expectName = p.id === 'chufang' || p.id === 'zhengshu' ? 0 : 1;
+      ok(texts(l, 'name').length === expectName, p.id + ' 题名入图');
       ok(texts(l, 'question').length === 1, p.id + ' 问题入图');
       ok(texts(l, 'answer').length === 1, p.id + ' 答案入图');
       ok(
@@ -413,15 +416,138 @@ suite('分享图版面（Canvas ↔ paper.wxss 同构）', () => {
   });
 
   test('abs 装饰名都有对应的绘制分支（写错名字不会静默不画）', () => {
-    const handled = ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu'];
+    const handled = ['blueprint', 'moye', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu'];
     for (const p of PAPERS) {
       const abs = specs.SPECS[p.id].abs;
       if (!abs) continue;
       ok(handled.indexOf(abs) > -1, p.id + ' 的 abs=' + abs + ' 必须有 drawAbs 分支');
     }
     // 需要出血装饰的版式一个都不能漏
-    for (const id of ['blueprint', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu']) {
+    for (const id of ['blueprint', 'moye', 'ticket', 'poster', 'bauhaus', 'vinyl', 'suwen', 'airmail2', 'yixian', 'juzhong', 'caiqie', 'xingtu', 'jiaopian', 'zhongduan', 'zhengshu']) {
       ok(specs.SPECS[id].abs, id + ' 缺 abs 分派');
     }
+  });
+
+  test('墨夜笺画暗夜渐变底；日历撕页文案与 paper.wxml 逐字一致（不画阅读页没有的字）', () => {
+    // 墨夜笺：paper.wxss 是 radial-gradient(ellipse at 50% 20%, #2A2F3A/#22262E/#1D2027)，
+    // 旧版导出只平铺 colors.bg，预览有夜空辉光、分享图是一片死平的暗色
+    eq(specs.SPECS.moye.abs, 'moye', '墨夜笺应有渐变底的 abs 分派');
+    const moyeColors = PAPERS.find((p) => p.id === 'moye').colors;
+    ok(moyeColors.bg1 && moyeColors.bg2 && moyeColors.bg3, 'papers.js moye 应预置渐变三色');
+    const mc = fakeCtx();
+    page.drawAbs(mc, lay('moye'), moyeColors, page.data.view);
+    ok(mc.calls.length > 0, '墨夜笺渐变底应产生绘制调用');
+
+    // 日历撕页：导出文案曾比阅读页多写「CALENDAR」与「· 本页永不撕去」
+    const l = lay('rili');
+    const all = [];
+    l.ops.forEach((o) => {
+      (o.lines || []).forEach((ln) => ln.text && all.push(ln.text));
+      if (o.runs) o.runs.forEach((r) => all.push(r.text));
+    });
+    ok(
+      all.every((t) => t.indexOf('CALENDAR') === -1 && t.indexOf('永不撕去') === -1),
+      '撕线右侧与页脚不得出现阅读页没有的文案：' + JSON.stringify(all)
+    );
+    ok(all.some((t) => t.indexOf('MENTAL MAILBOX · 2026') > -1), '撕线右侧应与 paper.wxml 同文');
+    ok(all.some((t) => t === '写于 2026年9月12日'), '页脚应与 paper.wxml 同文');
+
+    // 「问」角标：.plrl-cap 无 margin-top，紧贴题名之下（旧版错写 mt 43，基线会多沉 43rpx）
+    const name = texts(l, 'name')[0];
+    const cap = l.ops.filter((o) => o.k === 'text' && o.lines[0] && o.lines[0].text === '问')[0];
+    ok(cap, '日历撕页应有「问」角标');
+    const gap = cap.lines[0].y - name.lines[0].y;
+    ok(gap > 0 && gap < R(60), '「问」角标应紧随题名（.plrl-cap 无 margin-top，实测间距 ' + (gap / K).toFixed(1) + 'rpx）');
+  });
+
+  test('居中笺限宽块水平居中 + 限宽取 CSS max-width（旧版只在左锚定的限宽块内居中，整体偏左）', () => {
+    const l = lay('juzhong');
+    // CSS：.pljz-q max-width 395rpx / .pljz-a 425rpx，margin 0 auto —— 块本身先居中。
+    // 旧版把块锚在内容区左缘，文本只在块内居中 → 视觉中心偏左 (内容宽-块宽)/2。
+    const centered = texts(l).filter((t) => t.align === 'center');
+    ok(centered.length >= 5, '居中笺应有成排居中文本');
+    centered.forEach((t) => {
+      ok(
+        Math.abs(t.x + t.avail / 2 - EXPORT_W / 2) <= 1,
+        '「' + (t.lines[0] ? t.lines[0].text : '').slice(0, 12) + '」的版面块应在纸面中线居中（偏 ' + (t.x + t.avail / 2 - EXPORT_W / 2).toFixed(1) + 'px）'
+      );
+    });
+    const q = texts(l, 'question')[0];
+    const a = texts(l, 'answer')[0];
+    ok(Math.abs(q.avail - R(395)) <= 2, '问题限宽应≈max-width 395rpx（实际 ' + (q.avail / K).toFixed(1) + 'rpx）');
+    ok(Math.abs(a.avail - R(425)) <= 2, '答案限宽应≈max-width 425rpx（实际 ' + (a.avail / K).toFixed(1) + 'rpx）');
+  });
+
+  test('蓝图问答线框横跨整个内容区（旧版错把文本可用宽当盒宽，两侧各窄一圈 padding）', () => {
+    const l = lay('blueprint');
+    const boxes = l.ops.filter((o) => o.k === 'boxrect');
+    eq(boxes.length, 2, '蓝图应有问/答两个线框盒');
+    boxes.forEach((b) => {
+      eq(b.x, l.left, '线框盒左缘应与内容区左缘齐平（.plb-box 无 margin）');
+      eq(b.w, l.right - l.left, '线框盒应横跨整个内容区宽度');
+    });
+  });
+
+  test('存根竖排小字逐字下排、无逗号（旧版 String(数组) 把「凭此信·随时重读」连成逗号串）', () => {
+    const p = PAPERS.find((x) => x.id === 'ticket');
+    const l = lay('ticket');
+    const ctx = fakeCtx();
+    page.drawAbs(ctx, l, p.colors, page.data.view);
+    const vertical = ctx.calls.filter((c) => c.op === 'fillText' && c.t.length === 1 && '凭此信·随时重读'.indexOf(c.t) > -1);
+    eq(vertical.length, 8, '竖排小字应逐字画出 8 个字');
+    ok(
+      ctx.calls.every((c) => c.op !== 'fillText' || c.t !== ','),
+      '竖排小字不得出现逗号（数组被 String() 连接的痕迹）'
+    );
+  });
+
+  test('lr 行先量后画：两侧实测总宽放不下时整行等比缩小（手机端 mono 回落字宽偏大会叠字）', () => {
+    // 终端笺脚注：左「MENTAL MAILBOX TERMINAL」+ 右「写于 {{dotDate}}」，正常落款放得下、不缩
+    const normal = lay('zhongduan');
+    const foot = normal.ops.filter((o) => o.k === 'runs' && o.runs[1].text.indexOf('写于') > -1)[0];
+    ok(foot, '终端笺应有脚注行');
+    eq(foot.runs[0].size, R(19), '放得下时字号保持 .pltm-foot 的 19rpx');
+    // 故意塞进超长落款 → 总宽超出内容区 → 整行缩字号
+    const long = lay('zhongduan', { dotDate: '2026.09.12 · 这是一段故意超长的落款文案用来触发整行等比缩小' });
+    const foot2 = long.ops.filter((o) => o.k === 'runs' && o.runs[1].text.indexOf('写于') > -1)[0];
+    ok(foot2.runs[0].size < R(19) && foot2.runs[1].size < R(19), '放不下时左右两段都应等比缩小');
+    // 两侧实测宽 + 2px 余量必须装进内容区（防叠字的硬约束）
+    const mc = fakeCtx();
+    const room = long.right - long.left;
+    const widthOf = (r) => {
+      mc.font = (r.weight || '') + r.size + 'px sans-serif';
+      let w = 0;
+      for (const ch of r.text) w += mc.measureText(ch).width;
+      return w + r.ls * r.text.length;
+    };
+    ok(widthOf(foot2.runs[0]) + widthOf(foot2.runs[1]) <= room, '缩字后左右两段实测总宽不得超出内容区');
+  });
+
+  test('处方笺抬头先量后画：左块 + Rx 编号框放不下时整块等比缩小（英文行曾与编号框叠字）', () => {
+    // 放得下的行不动：蓝图眉行（.plb-eyebrow 18rpx）实测总宽 < 内容区 → 保持原字号
+    const bp = lay('blueprint');
+    const brow = bp.ops.filter((o) => o.k === 'runs')[0];
+    ok(brow, '蓝图应有眉行');
+    eq(brow.runs[0].size, R(18), '放得下时字号保持 .plb-eyebrow 的 18rpx');
+    // 处方笺抬头：英文行（27 字符 mono）+ 编号框在真机/桩模型下都放不下 → 必须缩，
+    // 且缩完编号框不得越过内容区右缘、不得与左块重叠
+    const cf = lay('chufang');
+    const head = cf.ops.filter((o) => o.k === 'rxhead')[0];
+    ok(head, '处方笺应有抬头 op');
+    const mc = fakeCtx();
+    const widthOf = (text, size, ls) => {
+      mc.font = size + 'px sans-serif';
+      let w = 0;
+      for (const ch of text) w += mc.measureText(ch).width;
+      return w + ls * text.length;
+    };
+    const enW = widthOf(head.en.text, head.en.size, head.en.ls);
+    const chipLeft = head.chip.x;
+    ok(enW <= chipLeft + 1, '英文诊所名不得压到编号框（实测英文行宽 ' + enW.toFixed(0) + 'px，框左缘 ' + chipLeft.toFixed(0) + 'px）');
+    // 超长编号 → 更放不下 → 相比正常版式进一步整块缩小
+    const long = lay('chufang', { mon2: '0123456789' });
+    const head2 = long.ops.filter((o) => o.k === 'rxhead')[0];
+    ok(head2.chip.size < head.chip.size && head2.cn.size < head.cn.size, '更放不下时应进一步等比缩小');
+    ok(head2.chip.x + head2.chip.w <= cf.right + 1, '编号框不得越过内容区右缘');
   });
 });

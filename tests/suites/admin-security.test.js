@@ -108,6 +108,53 @@ suite('admin · 选择器注入（可清空集合 / 批量误封）', () => {
     eq(h.count('member_items'), 2);
   });
 
+  test('memberItemFreeTrial 选择器注入与非布尔参数被拒', async () => {
+    const { h, call } = admin();
+    h.seed('member_items', [
+      { kind: 'paper', item_id: 'gold', name: '鎏金笺' },
+      { kind: 'paper', item_id: 'canglan', name: '苍蓝笺' }
+    ]);
+    eq((await call({ action: 'memberItemFreeTrial', kind: 'paper', item_id: INJECTION, free_trial: true })).ok, false, '对象 item_id 必须被拒');
+    eq((await call({ action: 'memberItemFreeTrial', kind: { $ne: null }, item_id: 'gold', free_trial: true })).ok, false, '对象 kind 必须被拒');
+    eq((await call({ action: 'memberItemFreeTrial', kind: 'paper', item_id: 'gold', free_trial: 'yes' })).ok, false, '非布尔 free_trial 必须被拒');
+    eq(h.find('member_items', (x) => x.item_id === 'gold')[0].free_trial, undefined, '被拒请求不得改库');
+    eq(h.count('member_items'), 2, '集合不得被清空或误改');
+  });
+
+  test('memberItemFreeTrial 正常开关只改目标款的 free_trial', async () => {
+    const { h, call } = admin();
+    h.seed('member_items', [
+      { kind: 'paper', item_id: 'gold', name: '鎏金笺' },
+      { kind: 'paper', item_id: 'canglan', name: '苍蓝笺' }
+    ]);
+    const on = await call({ action: 'memberItemFreeTrial', kind: 'paper', item_id: 'gold', free_trial: true });
+    eq(on.ok, true);
+    eq(on.free_trial, true);
+    eq(h.find('member_items', (x) => x.item_id === 'gold')[0].free_trial, true);
+    eq(h.find('member_items', (x) => x.item_id === 'canglan')[0].free_trial, undefined, '不得波及其它款');
+    const off = await call({ action: 'memberItemFreeTrial', kind: 'paper', item_id: 'gold', free_trial: false });
+    eq(off.ok, true);
+    eq(h.find('member_items', (x) => x.item_id === 'gold')[0].free_trial, false, '可显式关闭（覆盖代码默认名单）');
+    eq((await call({ action: 'memberItemFreeTrial', kind: 'paper', item_id: 'gone', free_trial: true })).ok, false, '不存在的款明确报错');
+  });
+
+  test('memberItemList 回传 free_trial_effective（显式字段优先，存量数据按默认名单兜底）', async () => {
+    const { h, call } = admin();
+    h.seed('member_items', [
+      { kind: 'paper', item_id: 'gold', name: '鎏金笺' },                                    // 存量无字段 → 名单兜底 true
+      { kind: 'paper', item_id: 'canglan', name: '苍蓝笺', free_trial: true },               // 显式开
+      { kind: 'paper', item_id: 'yinxiang', name: '银厢笺', free_trial: false },             // 显式关
+      { kind: 'theme', item_id: 'vip_theme', name: '专属主题' }                              // 名单外且无字段 → false
+    ]);
+    const r = await call({ action: 'memberItemList' });
+    const byId = {};
+    for (const it of r.items) byId[it.item_id] = it.free_trial_effective;
+    eq(byId.gold, true, 'gold 在默认名单内（存量数据无字段）应显示尝鲜中');
+    eq(byId.canglan, true);
+    eq(byId.yinxiang, false, '显式 false 必须压过名单');
+    eq(byId.vip_theme, false);
+  });
+
   test('userBan 传对象不能批量封禁全部用户', async () => {
     const { h, call } = admin();
     h.seed('users', [

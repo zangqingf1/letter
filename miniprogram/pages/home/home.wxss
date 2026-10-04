@@ -153,6 +153,83 @@
   line-height: 1.3;
 }
 
+/* ── 新用户福利横条（纯引导：与草稿横条同款便签纸感，金调区分） ── */
+.trial-banner {
+  margin: 12rpx 32rpx 0;
+  display: flex;
+  align-items: center;
+  border: 2rpx dashed rgba(198, 168, 112, 0.75);
+  border-radius: 20rpx;
+  padding: 18rpx 24rpx;
+  background: rgba(250, 244, 230, 0.75);
+}
+.trial-banner-hover {
+  background: rgba(250, 244, 230, 0.95);
+}
+.trial-banner-emoji {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+.trial-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.trial-banner-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #8A6B2F;
+}
+.trial-banner-sub {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: rgba(138, 107, 47, 0.8);
+}
+.trial-banner-go {
+  margin-left: 12rpx;
+  font-size: 36rpx;
+  line-height: 1;
+  color: rgba(138, 107, 47, 0.6);
+}
+
+/* ── 会员过期横条（服务端 expired 标记驱动；点一次进会员中心并消失）：
+     与福利横条同款便签条形制，降饱和暖灰金调 —— 告知的收敛语气，不渲染成促销感 ── */
+.expired-banner {
+  margin: 12rpx 32rpx 0;
+  display: flex;
+  align-items: center;
+  border: 2rpx dashed rgba(154, 133, 96, 0.55);
+  border-radius: 20rpx;
+  padding: 18rpx 24rpx;
+  background: rgba(245, 240, 228, 0.75);
+}
+.expired-banner-hover {
+  background: rgba(245, 240, 228, 0.95);
+}
+.expired-banner-emoji {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+.expired-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.expired-banner-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #7A6A4F;
+}
+.expired-banner-sub {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: rgba(122, 106, 79, 0.8);
+}
+.expired-banner-go {
+  margin-left: 12rpx;
+  font-size: 36rpx;
+  line-height: 1;
+  color: rgba(122, 106, 79, 0.6);
+}
+
 /* ── 草稿横条（便签纸感轻量横条） ── */
 .draft-bar {
   margin: 12rpx 32rpx 0;

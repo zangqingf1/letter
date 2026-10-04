@@ -96,8 +96,10 @@ module.exports = [
   // ── 会员专属版式（premium:true，后台 member_items kind='paper' 下发，与 admin seed 手工同步）──
   // 通用专属模板渲染（styles/paper.wxml pl-premium 分支 + paper-specs.js 的 premium 规格），
   // 只取 colors.bg/ink/gold 三色；后台改配色即生效，无需改代码。
+  // 免费尝鲜款：鎏金笺 freeTrial:true（与 theme 云函数 FREE_TRIAL_PAPERS 名单同步）——
+  // premium 标记保留供渲染分派，锁定判定放行，写信页角标显示「免费」。
   {
-    id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, premium: true,
+    id: 'gold', name: '鎏金笺', desc: '暖金细线 · 专属', version: 1, premium: true, freeTrial: true,
     colors: { bg: '#FAF4E6', ink: '#4A4033', gold: '#C6A870' }
   },
   {

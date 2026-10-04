@@ -4,9 +4,10 @@ Thumbs.db
 .zcode/
 
 # 临时输出（preflight / 验证脚本产物）
-pf-err.txt
-pf-out.txt
+pf-*.txt
 preflight-out.txt
+tests-out.txt
+gitcheck.txt
 scripts/tmp-verify.js
 scripts/verify-log.txt
 

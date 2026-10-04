@@ -213,11 +213,20 @@ function handle(data, payload) {
     case 'memberItemList': {
       let list = data.memberItems.slice();
       if (payload.kind) list = list.filter((i) => i.kind === payload.kind);
+      // 与 admin 云函数同口径：回传有效尝鲜态（此处 mock 数据无 free_trial 字段则视为关）
+      list = list.map((i) => Object.assign({}, i, { free_trial_effective: i.free_trial === true }));
       return { ok: true, items: list };
     }
 
     case 'memberItemSeed':
       return { ok: true, seeded: 0, skipped: data.memberItems.length };
+
+    case 'memberItemFreeTrial': {
+      const it = data.memberItems.find((x) => x.kind === payload.kind && x.item_id === payload.item_id);
+      if (!it) return { ok: false, error: '专属款不存在' };
+      it.free_trial = payload.free_trial === true;
+      return { ok: true, free_trial: it.free_trial };
+    }
 
     case 'memberItemSave': {
       const it = payload.item || {};

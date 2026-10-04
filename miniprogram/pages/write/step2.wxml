@@ -19,7 +19,9 @@
       <block wx:for="{{papers}}" wx:key="id">
         <swiper-item>
           <view class="pv-item">
-            <view wx:if="{{item.premium && !isVip}}" class="pv-lock">🔒</view>
+            <view wx:if="{{item.freeTrial}}" class="pv-free">限免</view>
+            <view wx:elif="{{trial && item.premium && !item.freeTrial}}" class="pv-trial">体验</view>
+            <view wx:elif="{{item.premium && !isVip}}" class="pv-lock">🔒</view>
             <template is="paper-letter" data="{{ v: view, paper: item, mode: flipping ? 'pl-flip' : '' }}" />
           </view>
         </swiper-item>
@@ -44,17 +46,20 @@
   <!-- 信封（主题）选择区：横滑卡片流（缩略图展示信封，素材未就绪的主题用色样占位） -->
   <view class="theme-area">
     <view class="theme-label">—— 信封 · <text class="theme-name">{{currentTheme.name}}{{currentIndex === 0 ? '（默认）' : ''}}</text> ——</view>
-    <scroll-view class="theme-row" scroll-x enhanced show-scrollbar="{{false}}">
+    <scroll-view class="theme-row" scroll-x enhanced show-scrollbar="{{false}}" scroll-into-view="{{themeScrollInto}}">
       <view
         wx:for="{{themes}}"
         wx:key="id"
+        id="theme-card-{{index}}"
         class="theme-card {{index === currentIndex ? 'sel' : ''}}"
         data-index="{{index}}"
         bindtap="onSelectTheme"
       >
         <image wx:if="{{item.ownEnvelope}}" class="tc-img" src="{{item.envelope}}" mode="aspectFill" />
         <view wx:else class="tc-swatch" style="background: {{item.premium ? (item.swatch || item.palette.base) : item.palette.base}};"></view>
-        <view wx:if="{{item.premium && !isVip}}" class="tc-lock">🔒</view>
+        <view wx:if="{{item.freeTrial}}" class="tc-free">限免</view>
+        <view wx:elif="{{trial && item.premium}}" class="tc-trial">体验</view>
+        <view wx:elif="{{item.premium && !isVip}}" class="tc-lock">🔒</view>
         <view class="tc-name">{{item.name}}</view>
       </view>
     </scroll-view>

@@ -13,11 +13,13 @@ const crypto = require('crypto');
 const https = require('https');
 const db = cloud.database({ throwOnNotFound: false });
 
-const { PRODUCTS, PLAN_DAYS, OFFER_ID, APP_KEY, configured, planConfigured } = require('./config.js');
+const { PRODUCTS, PLAN_DAYS, TRIAL_DAYS, OFFER_ID, APP_KEY, configured, planConfigured } = require('./config.js');
 
 const DAY_MS = 86400000;
 // 会员套餐中文名（与 admin 云函数 PLAN_NAMES 同口径，subscribe/发货写入 members.plan_name）
 const PLAN_NAMES = { month: '月卡', quarter: '季卡', year: '年卡', custom: '自定义' };
+// 体验会员档位名（trial 记录的 level/plan_name；前端据 trial 标记显示「体验会员」卡片）
+const TRIAL_PLAN_NAME = '体验会员';
 
 // 发货推送来源白名单（云函数环境变量 XPAY_NOTIFY_SOURCE，逗号分隔）。
 // 微信云开发把「平台消息推送」与「客户端 wx.cloud.callFunction」都送进同一个 main 入口，
@@ -94,6 +96,48 @@ async function isBanned(openid) {
   }
 }
 
+// ── 新用户体验会员（2026-09-20 起；同日起改为「用户主动领取」制）──
+// 资格：members 集合**从未有过记录**的用户（新用户）——曾开通过（含已过期/被撤销）
+// 一律无资格，避免「过期后再来领一次」被反复薅。get 只回 trialAvailable 标记（不落库），
+// 真正发放发生在用户在会员中心点「领取」时的 claimTrial action —— 3 天从领取那一刻起算。
+// 并发安全：领取可能被连点或两端同时触发，体验记录用确定性 _id（'trial_'+openid）落库，
+// 同 _id 二次 add 直接失败，后到者按「已发放」处理读取返回，不会产生重复记录。
+// 体验期用绝对时间戳 expires_at（与正式会员同口径），到期自然回落 free，不追溯已封存信件。
+async function grantTrial(openid) {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + TRIAL_DAYS * DAY_MS);
+  const doc = {
+    _id: 'trial_' + openid,
+    _openid: openid,
+    state: 'vip',
+    level: 'trial',
+    plan_name: TRIAL_PLAN_NAME,
+    expires_at: expiresAt,
+    total_days: TRIAL_DAYS,
+    renew: false,
+    trial: true,
+    granted_at: now,
+    granted_by: 'trial',
+    updated_at: now
+  };
+  try {
+    await db.collection('members').add({ data: doc });
+    console.log('[member] 已发放体验会员 openid=', openid, 'days=', TRIAL_DAYS);
+  } catch (e) {
+    // 并发下后到的 add（_id 冲突）说明记录已由另一次调用建好，直接按已有记录读取
+    console.log('[member] 体验会员已存在（并发或重复发放被挡）openid=', openid);
+  }
+  return {
+    state: 'vip',
+    level: '体验',
+    planName: TRIAL_PLAN_NAME,
+    expireDate: expiresAt.toISOString(),
+    remainingDays: TRIAL_DAYS,
+    renew: false,
+    trial: true
+  };
+}
+
 exports.main = async (event) => {
   // 虚拟支付消息推送回调（云开发「消息推送」→ 云函数模式，事件对象直接透传，无 action 字段）。
   // 来源校验：客户端 wx.cloud.callFunction 可携带任意 event 字段伪造 Event，故不能只看正文。
@@ -141,17 +185,25 @@ exports.main = async (event) => {
     // get 只是读取会员态（每个页面进入都读一次），把封禁校验与会员查询并发，省一个往返。
     if (action !== 'get' && (await isBanned(OPENID))) return { ok: false, error: 'banned' };
     switch (action) {
-      // 读会员状态：members 集合（后台 memberGrant/发货推送共用这张表）
-      case 'get': {
-        const FREE = { state: 'free', level: '', planName: '', expireDate: '', remainingDays: 0, renew: false };
-        const [banned, m] = await Promise.all([isBanned(OPENID), findMembership(OPENID)]);
-        if (banned) return { ok: false, error: 'banned' };
-        if (!m || m.state !== 'vip') {
-          return { ok: true, membership: FREE };
-        }
+    // 读会员状态：members 集合（后台 memberGrant/发货推送共用这张表）。
+    // 新用户（无任何 members 记录）只回 trialAvailable 标记，由前端引导到会员中心
+    // 主动领取（claimTrial）——读取动作本身不再自动发放（2026-09-20 起改领取制）。
+    case 'get': {
+      const FREE = { state: 'free', level: '', planName: '', expireDate: '', remainingDays: 0, renew: false, trial: false, trialAvailable: false };
+      const [banned, m] = await Promise.all([isBanned(OPENID), findMembership(OPENID)]);
+      if (banned) return { ok: false, error: 'banned' };
+      if (!m) {
+        // 新用户：未发放过任何体验（不落库），front 据此显示「新用户福利」引导
+        return { ok: true, membership: Object.assign({}, FREE, { trialAvailable: true }) };
+      }
+      if (m.state !== 'vip') {
+        return { ok: true, membership: FREE };
+      }
         const exp = m.expires_at ? new Date(m.expires_at).getTime() : 0;
         if (exp <= Date.now()) {
-          return { ok: true, membership: FREE };
+          // 已过期：回到 free 态，但带 expired 标记 —— 首页据此显示「会员已过期」横幅，
+          // 与「从未开通」（不回 expired，只显示新用户福利引导）区分开
+          return { ok: true, membership: Object.assign({}, FREE, { expired: true }) };
         }
         const remainingDays = Math.ceil((exp - Date.now()) / DAY_MS);
         return {
@@ -162,9 +214,43 @@ exports.main = async (event) => {
             planName: m.plan_name || PLAN_NAMES[m.level] || '',
             expireDate: new Date(exp).toISOString(),
             remainingDays,
-            renew: !!m.renew
+            renew: !!m.renew,
+            // 体验会员标记：正价发货/后台发卡都会把 trial 置回 false（见 deliverGoods / memberGrant），
+            // 这里只忠实透传，避免体验用户付款后仍被当体验态展示
+            trial: !!m.trial
           }
         };
+      }
+
+      // 领取新用户体验会员：仅 members 从无记录的用户有资格，3 天从领取时刻起算。
+      // 封禁门禁已由入口处统一拦截（action !== 'get' 都过 isBanned）。
+      case 'claimTrial': {
+        const m = await findMembership(OPENID);
+        if (m) {
+          // 已有记录：体验中未过期 → 幂等返回现有体验态（重复点领取不报错也不重算时间）；
+          // 其余（正式/已过期会员、体验已过期）一律无资格
+          if (m.trial && m.state === 'vip') {
+            const exp = m.expires_at ? new Date(m.expires_at).getTime() : 0;
+            if (exp > Date.now()) {
+              const remainingDays = Math.ceil((exp - Date.now()) / DAY_MS);
+              return {
+                ok: true,
+                membership: {
+                  state: 'vip',
+                  level: '体验',
+                  planName: m.plan_name || TRIAL_PLAN_NAME,
+                  expireDate: new Date(exp).toISOString(),
+                  remainingDays,
+                  renew: false,
+                  trial: true,
+                  trialAvailable: false
+                }
+              };
+            }
+          }
+          return { ok: false, error: 'not_eligible' };
+        }
+        return { ok: true, membership: await grantTrial(OPENID) };
       }
 
       // 下单：生成 outTradeNo + signData + paySig + signature，返回前端 wx.requestVirtualPayment 所需的 payData
@@ -308,6 +394,7 @@ async function deliverGoods(ev) {
       plan_name: PLAN_NAMES[plan] || '自定义',
       expires_at: expiresAt,
       renew: false,
+      trial: false, // 正价发货后不再是体验态（体验记录升级为正式会员，剩余体验时间按叠加口径保留）
       granted_at: now,
       granted_by: 'xpay',
       updated_at: now

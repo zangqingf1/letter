@@ -54,7 +54,7 @@ function checkIosVersion() {
 
 // 未开通会员的干净状态（与 member 云函数 get 的 FREE 同形）
 function freeMembership() {
-  return { state: 'free', level: '', renew: false, expireDate: '', planName: '', remainingDays: 0 };
+  return { state: 'free', level: '', renew: false, expireDate: '', planName: '', remainingDays: 0, trial: false, trialAvailable: false, expired: false };
 }
 
 // force=true 绕过内存缓存强刷（会员中心页与支付后轮询使用）。
@@ -72,9 +72,11 @@ function getMembership(force) {
         const m = normalize(r && r.membership);
         let value;
         if (m.state !== 'vip') {
-          // 服务端明确 free：顺手清掉历史遗留的演示标记，避免其它入口又把它读回来
+          // 服务端明确 free：顺手清掉历史遗留的演示标记，避免其它入口又把它读回来；
+          // trialAvailable（新用户可领取体验会员）要保留给首页/会员中心画引导，
+          // expired（会员已过期）要保留给首页画过期横幅
           resetDemo();
-          value = freeMembership();
+          value = Object.assign(freeMembership(), { trialAvailable: m.trialAvailable, expired: m.expired });
         } else {
           value = m;
         }
@@ -101,7 +103,8 @@ function demoMembership() {
   if (state === 'vip') {
     remainingDays = expiresAt ? Math.max(0, Math.ceil((expiresAt - Date.now()) / DAY_MS)) : 365;
   }
-  return normalize({ state, level: MOCK_MEMBER.level, renew: MOCK_MEMBER.renew, remainingDays });
+  // 演示会员过期同样带 expired 标记（与云端 get 口径一致，首页过期横幅本地模式可预览）
+  return normalize({ state, level: MOCK_MEMBER.level, renew: MOCK_MEMBER.renew, remainingDays, expired });
 }
 
 function normalize(r) {
@@ -111,8 +114,39 @@ function normalize(r) {
     renew: !!(r && r.renew) || MOCK_MEMBER.renew,
     expireDate: (r && r.expireDate) || '',
     planName: (r && r.planName) || '',
-    remainingDays: typeof r.remainingDays === 'number' ? Math.max(0, r.remainingDays) : 0
+    remainingDays: typeof r.remainingDays === 'number' ? Math.max(0, r.remainingDays) : 0,
+    // 体验会员（新用户 3 天体验）：服务端 members.trial 驱动，只透传不落任何本地凭据
+    trial: !!(r && r.trial),
+    // 新用户可领取体验会员：服务端判定（members 从无记录才为 true），同样只透传
+    trialAvailable: !!(r && r.trialAvailable),
+    // 会员已过期：服务端判定（曾有 vip 记录但 expires_at 已过），供首页过期横幅使用
+    expired: !!(r && r.expired)
   };
+}
+
+// 领取新用户体验会员（3 天，从领取时刻起算）：云端校验资格（members 从无记录才发），
+// 成功后写入内存缓存（与 getMembership 同一入口，各页面后续读到的是已生效的体验态）。
+// 失败把云函数错误码挂到 err.code（not_eligible / banned / ...）供页面分文案提示。
+// 仅云端模式可领：本地演示模式没有 members 集合，也没有「资格」可言。
+function claimTrial() {
+  if (DATA_SOURCE !== 'cloud') {
+    return Promise.reject(Object.assign(new Error('trial only in cloud mode'), { code: 'local_mode' }));
+  }
+  return cloud
+    .call('member', 'claimTrial', {})
+    .then((r) => {
+      const m = normalize(r && r.membership);
+      memCache = {
+        at: Date.now(),
+        value: m.state === 'vip' ? m : Object.assign(freeMembership(), { trialAvailable: m.trialAvailable })
+      };
+      return memCache.value;
+    })
+    .catch((err) => {
+      const match = String((err && err.message) || '').match(/^member\.claimTrial: (.+)$/);
+      err.code = match ? match[1] : 'network';
+      throw err;
+    });
 }
 
 // 订阅（真实支付）：返回 Promise。
@@ -212,6 +246,7 @@ function resetDemo() {
 module.exports = {
   getMembership,
   cachedMembership,
+  claimTrial,
   subscribe,
   checkIosVersion,
   resetDemo,

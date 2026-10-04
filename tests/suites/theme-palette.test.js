@@ -114,4 +114,25 @@ suite('主题 palette · 底色单键与回落', () => {
       eq(Object.keys(t.palette), ['base'], `${t.theme_id || t.item_id} 的 seed 只该有 base`);
     }
   });
+
+  test('pl-06 免费尝鲜款（freeTrial）带 premium 标记但不锁定', async () => {
+    const svc = loadThemeService([]);
+    const def = { id: svc.DEFAULT_THEME_ID, name: '默认款', palette: { base: '#F6F3EA' } };
+    const gold = { id: 'gold', name: '鎏金笺', premium: true, freeTrial: true, palette: { base: '#FAF4E6' } };
+    const canglan = { id: 'canglan', name: '苍蓝笺', premium: true, palette: { base: '#DDEDEA' } };
+    const list = [def, gold, canglan];
+    eq(svc.themeOf('gold', list, false).id, 'gold', '免费尝鲜款非 VIP 也不得回落默认款');
+    eq(svc.paperOf('gold', list, false).id, 'gold', '信纸版式同理');
+    eq(svc.themeOf('canglan', list, false).id, svc.DEFAULT_THEME_ID, '普通专属款非 VIP 仍回落默认款');
+    eq(svc.themeOf('canglan', list, true).id, 'canglan', 'VIP 正常使用专属款');
+  });
+
+  test('pl-07 isLocked 必须导出（step2 编辑落地/封存寄出直接调 themeService.isLocked）', () => {
+    const svc = loadThemeService([]);
+    eq(typeof svc.isLocked, 'function', 'theme 服务必须导出 isLocked —— 漏导出会在真机抛 isLocked is not a function（编辑/寄出全挂）');
+    eq(svc.isLocked({ premium: true }, false), true, '专属款非 VIP 锁定');
+    eq(svc.isLocked({ premium: true, freeTrial: true }, false), false, '免费尝鲜款不锁定');
+    eq(svc.isLocked({ premium: true }, true), false, 'VIP 不锁定');
+    eq(svc.isLocked(null, false), false, '空对象不锁定');
+  });
 });

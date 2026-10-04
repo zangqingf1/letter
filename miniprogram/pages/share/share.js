@@ -314,6 +314,10 @@ function layoutFlow(ctx, spec, view, scale) {
     if (box) {
       const bh = R(box.border.h);
       const boxH = bh * 2 + R(box.pt) + lines.length * rb.boxH + R(box.pb);
+      // 线框盒与 CSS 同构：外框横跨整个内容区（旧版错把「文本可用宽」当盒宽，
+      // 盒子两侧各窄一圈 padding+border，长行文字还会顶到右边框）
+      const bx0 = left + R(item.insetL || 0);
+      const boxW = contentW - R(item.insetL || 0) - R(item.insetR || 0);
       const lbl = box.label;
       let label = null;
       if (lbl) {
@@ -322,7 +326,7 @@ function layoutFlow(ctx, spec, view, scale) {
         ctx.font = fontStr(lSize, lbl.face, lbl.weight);
         const lw = adv(ctx, lbl.text, lbl.ls ? R(lbl.ls) : 0) + R(lbl.px) * 2;
         label = {
-          x: x0 + R(lbl.left) - R(lbl.px),
+          x: bx0 + R(lbl.left) - R(lbl.px),
           y: top + R(lbl.top),
           w: lw,
           h: lRun.boxH,
@@ -336,7 +340,7 @@ function layoutFlow(ctx, spec, view, scale) {
           base: top + R(lbl.top) + lRun.base
         };
       }
-      ops.push({ k: 'boxrect', x: x0, y: top, w: avail, h: boxH, color: box.border.color, lw: bh, label });
+      ops.push({ k: 'boxrect', x: bx0, y: top, w: boxW, h: boxH, color: box.border.color, lw: bh, label });
       inner += bh + R(box.pt);
       ctx.font = fontStr(size, item.face, item.weight);
     } else if (item.pt) {
@@ -344,9 +348,12 @@ function layoutFlow(ctx, spec, view, scale) {
     }
 
     const baseOffset = rb.half + rb.asc * size;
+    // frac 限宽块（CSS max-width + margin: 0 auto）：居中时块自身要先水平居中 ——
+    // 否则文本只在「左锚定的限宽块」内居中，整体向左偏 (avail-maxW)/2（居中笺内容偏左的病根）
+    const fracOff = item.frac && (item.align || 'left') === 'center' ? Math.round((avail - maxW) / 2) : 0;
     const op = {
       k: 'text',
-      x: x0,
+      x: x0 + fracOff,
       y: inner,
       avail: maxW,
       lines: lines.map((ln, i) => ({ text: ln.text, end: ln.end, w: ln.w, y: inner + i * rb.boxH + baseOffset })),
@@ -434,11 +441,38 @@ function layoutFlow(ctx, spec, view, scale) {
   function lrBlock(item, top) {
     const bl = item.full ? 0 : left;
     const br = item.full ? EXPORT_W : right;
-    const l = runBox(item.left.size, item.left.face, item.left.lh, k);
-    const r = runBox(item.right.size, item.right.face, item.right.lh, k);
+    const px = R(item.px || 0);
+    // 先量后画：左右两段按各自字体实测，总宽放不下时整行等比缩小（字号+字距一起缩）。
+    // 手机端 canvas 的字体回落字宽比 webview 宽（mono 尤甚），不缩的话
+    // 处方笺抬头 / 终端笺脚注这类长 mono 行会左右叠字 —— 导出图必须完整不重叠。
+    const lt = fmt(item.left.text, view);
+    const rt = fmt(item.right.text, view);
+    // 量 → 缩 → 再量：字号/字距按比例缩后会各自取整，取整可能吃掉缩小量，
+    // 所以缩完用真实取整几何复测，仍超宽再收一次 —— 保证任何字体度量下都不叠字。
+    const measurePair = (s) => {
+      const l = runBox(item.left.size * s, item.left.face, item.left.lh, k);
+      const r = runBox(item.right.size * s, item.right.face, item.right.lh, k);
+      const lLs = item.left.ls ? R(item.left.ls) * s : 0;
+      const rLs = item.right.ls ? R(item.right.ls) * s : 0;
+      ctx.font = fontStr(l.size, item.left.face, item.left.weight);
+      const lw = adv(ctx, lt, lLs);
+      ctx.font = fontStr(r.size, item.right.face, item.right.weight);
+      const rw = adv(ctx, rt, rLs);
+      return { l, r, lLs, rLs, total: lw + rw };
+    };
+    const room = br - bl - px * 2 - 2;
+    let g = measurePair(1);
+    if (g.total > room) {
+      let s = room / g.total;
+      g = measurePair(s);
+      if (g.total > room) g = measurePair((s * room) / g.total);
+    }
+    const l = g.l;
+    const r = g.r;
+    const lLs = g.lLs;
+    const rLs = g.rLs;
     const base = Math.max(l.base, r.base);
     const rowH = base + Math.max(l.below, r.below);
-    const px = R(item.px || 0);
     let inner = top;
     const bdBottom = !!(item.border && item.border.bottom);
     if (item.border && !bdBottom) {
@@ -457,8 +491,8 @@ function layoutFlow(ctx, spec, view, scale) {
     ops.push({
       k: 'runs',
       runs: [
-        { text: fmt(item.left.text, view), x: bl + px, y: runsY, align: 'left', ...l, ls: item.left.ls ? R(item.left.ls) : 0, face: item.left.face, weight: item.left.weight, color: item.left.color },
-        { text: fmt(item.right.text, view), x: br - px, y: runsY, align: 'right', ...r, ls: item.right.ls ? R(item.right.ls) : 0, face: item.right.face, weight: item.right.weight, color: item.right.color }
+        { text: lt, x: bl + px, y: runsY, align: 'left', ...l, ls: lLs, face: item.left.face, weight: item.left.weight, color: item.left.color },
+        { text: rt, x: br - px, y: runsY, align: 'right', ...r, ls: rLs, face: item.right.face, weight: item.right.weight, color: item.right.color }
       ]
     });
     return bottom;
@@ -670,29 +704,53 @@ function layoutFlow(ctx, spec, view, scale) {
       });
       y += rowH + R(it.mb || 0);
     } else if (it.k === 'rxhead') {
-      // 处方笺抬头：左诊所名两行 + 右上 Rx 编号框（顶对齐）
-      const cRun = runBox(it.cn.size, it.cn.face, it.cn.lh, k);
-      const eRun = runBox(it.en.size, it.en.face, it.en.lh, k);
-      const ch = it.chip;
-      const chipRun = runBox(ch.size, ch.face, ch.lh, k);
-      ctx.font = fontStr(R(ch.size), ch.face, ch.weight);
-      const chipText = fmt(ch.text, view);
-      const cbw = R(ch.border);
-      const cpx = R(ch.padX);
-      const cpy = R(ch.padY);
-      const chipW = cbw * 2 + cpx * 2 + adv(ctx, chipText, ch.ls ? R(ch.ls) : 0);
-      const chipH = cbw * 2 + cpy * 2 + chipRun.boxH;
-      const enMt = R(it.en.mt || 0);
-      const rowH = Math.max(cRun.boxH + enMt + eRun.boxH, chipH);
+      // 处方笺抬头：左诊所名两行 + 右上 Rx 编号框（顶对齐）。
+      // 先量后画：左块（CN/EN 取宽者）与编号框实测总宽放不下时整块等比缩小
+      // （字号/字距/内边距一起缩）—— 手机端 canvas 的 mono 回落字宽偏大，
+      // 不缩的话英文行会和编号框叠字。fit=1 时几何与 CSS 完全一致。
+      const rxGeom = (s) => {
+        const cn = it.cn;
+        const en = it.en;
+        const ch = it.chip;
+        const cRun = runBox(cn.size * s, cn.face, cn.lh, k);
+        const eRun = runBox(en.size * s, en.face, en.lh, k);
+        const chipRun = runBox(ch.size * s, ch.face, ch.lh, k);
+        const cbw = Math.max(1, Math.round(ch.border * s * k));
+        const cpx = Math.round(ch.padX * s * k);
+        const cpy = Math.round(ch.padY * s * k);
+        ctx.font = fontStr(chipRun.size, ch.face, ch.weight);
+        const chipText = fmt(ch.text, view);
+        const chipW = cbw * 2 + cpx * 2 + adv(ctx, chipText, ch.ls ? Math.round(ch.ls * s * k) : 0);
+        ctx.font = fontStr(cRun.size, cn.face, cn.weight);
+        const cnW = adv(ctx, fmt(cn.text, view), cn.ls ? Math.round(cn.ls * s * k) : 0);
+        ctx.font = fontStr(eRun.size, en.face, en.weight);
+        const enW = adv(ctx, fmt(en.text, view), en.ls ? Math.round(en.ls * s * k) : 0);
+        return { cRun, eRun, chipRun, chipText, cbw, cpx, cpy, chipW, leftW: Math.max(cnW, enW) };
+      };
+      let g = rxGeom(1);
+      const rxRoom = right - left - 2;
+      let rxScale = 1;
+      if (g.leftW + g.chipW > rxRoom) {
+        // 量 → 缩 → 再量：缩小后字号/内边距各自取整可能吃掉缩小量，复测仍超宽再收一次
+        rxScale = rxRoom / (g.leftW + g.chipW);
+        g = rxGeom(rxScale);
+        if (g.leftW + g.chipW > rxRoom) {
+          rxScale = (rxScale * rxRoom) / (g.leftW + g.chipW);
+          g = rxGeom(rxScale);
+        }
+      }
+      const enMt = Math.round((it.en.mt || 0) * rxScale * k);
+      const chipH = g.cbw * 2 + g.cpy * 2 + g.chipRun.boxH;
+      const rowH = Math.max(g.cRun.boxH + enMt + g.eRun.boxH, chipH);
       ops.push({
         k: 'rxhead',
         y: y,
-        cn: { text: fmt(it.cn.text, view), x: left, base: y + cRun.base, size: R(it.cn.size), face: it.cn.face, weight: it.cn.weight || '', ls: it.cn.ls ? R(it.cn.ls) : 0, color: it.cn.color },
-        en: { text: fmt(it.en.text, view), x: left, base: y + cRun.boxH + enMt + eRun.base, size: R(it.en.size), face: it.en.face, weight: it.en.weight || '', ls: it.en.ls ? R(it.en.ls) : 0, color: it.en.color },
+        cn: { text: fmt(it.cn.text, view), x: left, base: y + g.cRun.base, size: g.cRun.size, face: it.cn.face, weight: it.cn.weight || '', ls: it.cn.ls ? Math.round(it.cn.ls * rxScale * k) : 0, color: it.cn.color },
+        en: { text: fmt(it.en.text, view), x: left, base: y + g.cRun.boxH + enMt + g.eRun.base, size: g.eRun.size, face: it.en.face, weight: it.en.weight || '', ls: it.en.ls ? Math.round(it.en.ls * rxScale * k) : 0, color: it.en.color },
         chip: {
-          text: chipText, x: right - chipW, y: y, w: chipW, h: chipH, lw: cbw,
-          tx: right - chipW + cbw + cpx, base: y + cbw + cpy + chipRun.base,
-          size: R(ch.size), face: ch.face, weight: ch.weight || '', ls: ch.ls ? R(ch.ls) : 0, color: ch.color
+          text: g.chipText, x: right - g.chipW, y: y, w: g.chipW, h: chipH, lw: g.cbw,
+          tx: right - g.chipW + g.cbw + g.cpx, base: y + g.cbw + g.cpy + g.chipRun.base,
+          size: g.chipRun.size, face: it.chip.face, weight: it.chip.weight || '', ls: it.chip.ls ? Math.round(it.chip.ls * rxScale * k) : 0, color: it.chip.color
         }
       });
       y += rowH + R(it.mb || 0);
@@ -1121,6 +1179,10 @@ Page({
   // 不再存在 WXML 版式与 Canvas 版式两套口径的漂移（圆角/投影、字体度量、断行、
   // 渐变与旋转这几类差异全部随之消失）。代价是进页面要等一次绘制，用骨架过渡。
   // 失败时不静默：回落 WXML 版式预览（stage='fallback'），保存/分享时再重试一次。
+  // 【备选方案结论 2026-09-20】官方 <snapshot> 组件（WXML 直接出图）在 webview
+  // 渲染器下不可用（takeSnapshot 报 "webview renderer is not supported"，真机已证）
+  // —— 它是 Skyline 专属能力，而本项目全部页面为 webview 渲染，实验代码已删除，
+  // 维持 Canvas 管线。除非未来整页迁 Skyline，不再考虑此路线。
   ensureShot() {
     if (this._shotFile) return Promise.resolve(this._shotFile);
     // 生成中再来一次（连点保存）直接等同一张，不重复绘制
@@ -1685,15 +1747,17 @@ Page({
     if (op.rich) {
       op.rich.forEach((ln, i) => {
         const y = op.lines[i].y;
+        // 居中：indent 在 CSS 里参与整行居中，对字形的净偏移是 indent/2
         let tx;
-        if (op.align === 'center') tx = op.x + (op.avail - ln.w) / 2 + op.indent;
+        if (op.align === 'center') tx = op.x + (op.avail - ln.w) / 2 + op.indent / 2;
         else if (op.align === 'right') tx = op.x + op.avail - ln.w;
         else tx = op.x;
         let cx = tx;
         ln.parts.forEach((p) => {
           ctx.fillStyle = C(p.color);
           ctx.font = fontStr(op.size, op.face, p.weight);
-          if (op.ls) cx += drawSpaced(ctx, p.text, cx, y, op.ls, 'left') + op.ls;
+          // drawSpaced 的 total 已含末位字距，光标推进不再补 ls
+          if (op.ls) cx += drawSpaced(ctx, p.text, cx, y, op.ls, 'left');
           else {
             ctx.fillText(p.text, cx, y);
             cx += adv(ctx, p.text, 0);
@@ -1738,8 +1802,11 @@ Page({
         return;
       }
 
+      // 居中口径：CSS 的 text-indent 参与整行居中，对字形的净偏移是 indent/2；
+      // 带上标（号外头版）时上标也算进行宽一起居中（阅读页「心灵信箱号外」是一整行）
+      const supExtra = op.sup && !op.sup.block ? op.sup.gap + op.sup.w : 0;
       let tx;
-      if (op.align === 'center') tx = base + (limit - ln.w) / 2 + op.indent;
+      if (op.align === 'center') tx = base + (limit - ln.w - supExtra) / 2 + op.indent / 2;
       else if (op.align === 'right') tx = base + limit - ln.w;
       else tx = base + ind;
 
@@ -1761,9 +1828,15 @@ Page({
       if (op.sup && i === 0) {
         const sx = tx + ln.w + op.sup.gap;
         if (op.sup.block) {
-          // 实心块光标（终端笺）：vertical-align:-2rpx → 底缘在基线下方 4rpx
+          // 实心块光标（终端笺）：vertical-align:-2rpx → 底缘在基线下方 4rpx；
+          // 光标自带的磷光更亮（WXSS box-shadow 0 0 15rpx rgba(245,193,105,0.8)），
+          // 与正文辉光（0 0 11rpx rgba(232,163,61,0.35)）不同档，临时加强再还原
+          ctx.save();
+          ctx.shadowColor = 'rgba(245,193,105,0.8)';
+          ctx.shadowBlur = rpx(15);
           ctx.fillStyle = C(op.sup.color);
           ctx.fillRect(sx, ln.y + rpx(4) - op.sup.h, op.sup.w, op.sup.h);
+          ctx.restore();
         } else {
           ctx.fillStyle = C(op.sup.color);
           ctx.font = fontStr(op.sup.size, op.sup.face, op.sup.weight);
@@ -1792,6 +1865,7 @@ Page({
   drawAbs(ctx, layout, colors, view) {
     const which = layout.spec.abs;
     if (which === 'blueprint') this.drawAbsBlueprint(ctx, layout, colors);
+    else if (which === 'moye') this.drawAbsMoye(ctx, layout, colors);
     else if (which === 'ticket') this.drawAbsTicket(ctx, layout, colors, view);
     else if (which === 'poster') this.drawAbsPoster(ctx, layout, colors);
     else if (which === 'bauhaus') this.drawAbsBauhaus(ctx, layout, colors);
@@ -1805,6 +1879,31 @@ Page({
     else if (which === 'jiaopian') this.drawAbsFilm(ctx, layout, colors, view);
     else if (which === 'zhongduan') this.drawAbsTerminal(ctx, layout, colors);
     else if (which === 'zhengshu') this.drawAbsCert(ctx, layout, colors);
+  },
+
+  // 墨夜笺：暗夜径向渐变底
+  // WXSS radial-gradient(ellipse at 50% 20%, #2A2F3A 0%, #22262E 60%, #1D2027 100%)。
+  // CSS 椭圆缺省 farthest-corner：水平/纵向半径各自取到最远角的距离 ——
+  // 圆心 (50%, 20%) 时 rx = 半纸宽、ry = 纸底到圆心的距离；Canvas 用 scale(1, ry/rx)
+  // 把圆渐变压成同款椭圆，色标取 papers.js moye 预置的 bg1/bg2/bg3。
+  drawAbsMoye(ctx, layout, colors) {
+    const H = layout.paperH;
+    const cx = EXPORT_W / 2;
+    const cy = H * 0.2;
+    const rx = EXPORT_W / 2;
+    const ry = H - cy;
+    const s = ry / rx;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, s);
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    grad.addColorStop(0, colors.bg1 || '#2A2F3A');
+    grad.addColorStop(0.6, colors.bg2 || '#22262E');
+    grad.addColorStop(1, colors.bg3 || colors.bg || '#1D2027');
+    ctx.fillStyle = grad;
+    // 缩放空间里铺满整张纸（y 向按 1/s 反缩放，设备空间恰好覆盖 0..H）
+    ctx.fillRect(-cx, -cy / s, EXPORT_W, H / s);
+    ctx.restore();
   },
 
   // 一线笺：左侧一根贯纸细线 + 线顶空心圆（全部装饰仅此而已）
@@ -1855,6 +1954,21 @@ Page({
   // 星图观测笺：夜空网格 + 上下金色刻度尺 + 四角角标 + 右上出血星座连线群
   drawAbsXingtu(ctx, layout, colors) {
     const H = layout.paperH;
+    // 右上蓝紫辉光（radial-gradient(ellipse at 75% 20%, rgba(90,110,180,0.14), transparent 55%)；
+    // CSS 最底层，先画 —— farthest-corner 椭圆，55% 尺寸）
+    const gx = EXPORT_W * 0.75;
+    const gy = H * 0.2;
+    const gs = (H - gy) / gx; // 纵向半径（到纸底最远）/ 横向半径（到左缘最远）
+    const gr = gx * 0.55;
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.scale(1, gs);
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, gr);
+    glow.addColorStop(0, 'rgba(90,110,180,0.14)');
+    glow.addColorStop(1, 'rgba(90,110,180,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-gx, -gy / gs, EXPORT_W, H / gs);
+    ctx.restore();
     // 细网格（repeating-linear-gradient 双向 47rpx 周期）
     ctx.fillStyle = colors.grid;
     const step = rpx(47);
@@ -1951,13 +2065,13 @@ Page({
     const fw = EXPORT_W - rpx(84);
     const fh = H - rpx(210);
     ctx.strokeRect(fx - rpx(1.5), fy - rpx(1.5), fw + rpx(3), fh + rpx(3));
-    // 框内角标：FRAME 24A（左上）/ 35MM（右下）
+    // 框内角标：FRAME 24A（左上）—— 阅读页只有这一个角标（.plfm-mark-tl），
+    // 右下 35MM 曾是导出侧多画的，已对齐裁掉
     ctx.fillStyle = colors.mark;
     ctx.font = fontStr(rpx(18), 'mono', '');
     const mRun = runBox(18, 'mono', null, K);
     ctx.textAlign = 'left';
     drawSpaced(ctx, 'FRAME 24A', fx + rpx(18), fy + rpx(14) + mRun.base, rpx(5), 'left');
-    drawSpaced(ctx, '35MM', fx + fw - rpx(18), fy + fh - rpx(14) - mRun.below, rpx(5), 'right');
     ctx.textAlign = 'left';
   },
 
@@ -1980,15 +2094,11 @@ Page({
     ctx.shadowBlur = rpx(11);
   },
 
-  // 结业证书：古铜双线框 + 四角角花
+  // 结业证书：四角角花（.plzs-c）
+  // 阅读页没有古铜双线框（WXSS 的 .pl-zs 无 border，样式只在设计稿里），
+  // 导出侧曾多画两圈描边框，2026-09-20 对齐裁掉，只留角花。
   drawAbsCert(ctx, layout, colors) {
     const H = layout.paperH;
-    ctx.strokeStyle = colors.frame;
-    ctx.lineWidth = Math.max(1, rpx(5));
-    ctx.strokeRect(rpx(18), rpx(18), EXPORT_W - rpx(36), H - rpx(36));
-    ctx.strokeStyle = colors.innerFrame;
-    ctx.lineWidth = Math.max(1, rpx(2));
-    ctx.strokeRect(rpx(36), rpx(36), EXPORT_W - rpx(72), H - rpx(72));
     ctx.strokeStyle = colors.frame;
     ctx.lineWidth = Math.max(1, rpx(5));
     const ci = rpx(43);
@@ -2070,7 +2180,10 @@ Page({
     const d1 = runBox(34, 'mono', null, K);
     const nRun = runBox(20, 'hei', 1.6, K);
     const stubDate = r1.boxH + rpx(6) + d1.boxH + rpx(4) + r1.boxH;
-    const chars = String(view.stubChars || '');
+    // stubChars 是逐字数组（paper-view.js 的 split('')）：String(数组) 会得到
+    // 「凭,此,信,…」逗号连接串，竖排小字因此每字之间多一个逗号 —— 数组直接用，字符串才切。
+    const stubRaw = view.stubChars;
+    const chars = Array.isArray(stubRaw) ? stubRaw : String(stubRaw || '').split('');
     const noteH = chars.length * nRun.boxH;
     const total = rivet * 2 + stubDate + noteH;
     const gap = Math.max(0, (H - padY * 2 - total) / 3);
@@ -2407,9 +2520,11 @@ const QR_SRC = '/assets/qrcode.jpg';
 // 逐字距绘制（canvas 无通用 letterSpacing）
 // 这里逐字给的是「左边缘」坐标，所以绘制期间必须强制 textAlign: left ——
 // 否则调用方若设了 center/right，每个字会各自再偏移半个字宽，整行向左跑。
+// total 含末位字距（与 adv() 同口径）：CSS 的 letter-spacing 在每个字之后都有
+// （含最后一个字），居中/右对齐的锚点若不计尾距，整行会偏 ls/2 / ls。
 function drawSpaced(ctx, text, x, y, spacing, align) {
   const chars = String(text).split('');
-  const total = chars.reduce((acc, ch) => acc + ctx.measureText(ch).width, 0) + spacing * (chars.length - 1);
+  const total = chars.reduce((acc, ch) => acc + ctx.measureText(ch).width, 0) + spacing * chars.length;
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
   const prev = ctx.textAlign;
   ctx.textAlign = 'left';

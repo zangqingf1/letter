@@ -83,8 +83,9 @@ function normalizeThemes(list) {
 
 // 会员专属回退：非 VIP 时专属主题/版式一律按默认款渲染（老信不破坏数据，
 // 开通会员后自动恢复，见 AGENTS.md 会员专区）。isVip 由各页面经 member 服务传入。
+// 免费尝鲜款（freeTrial:true，如鎏金笺）带 premium 标记但不锁定：所有人可免费封存使用。
 function isLocked(item, isVip) {
-  return !!(item && item.premium) && !isVip;
+  return !!(item && item.premium && !item.freeTrial) && !isVip;
 }
 
 // 主题解析（同步，无云调用）：未知/缺失 theme_id 回落默认款（璀璨如初，按 id 显式解析），
@@ -159,5 +160,6 @@ function paperOf(paperId, papers, isVip) {
 
 module.exports = {
   getThemes, cachedThemes, themeOf, envelopeThumbOf, getPapers, cachedPapers, paperOf,
+  isLocked,
   DEFAULT_THEME_ID, DEFAULT_PAPER_ID
 };

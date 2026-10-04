@@ -17,6 +17,23 @@ function mergeLists(base, premium) {
   return Object.keys(byId).map((id) => byId[id]);
 }
 
+// 免费尝鲜款（2026-09-20 起新用户体验转化钩子）：member_items 专属款下发时追加
+// freeTrial:true —— 渲染分派（paper.wxml pl-premium 分支 / share.js specOf）仍认
+// premium:true 不动，但锁定判定（services/theme.js isLocked）放行，所有人可免费封存使用。
+// 管理入口在 Web 后台「会员专属内容」（admin 云函数 memberItemFreeTrial / 编辑抽屉），
+// 落库为 member_items 文档的 free_trial 布尔字段；本名单只是**存量数据兜底默认值**
+// （文档未显式标注 free_trial 时按名单判定），显式 true/false 一律以数据为准 ——
+// 因此后台关掉名单内的款（如 gold）也会真正生效。
+const FREE_TRIAL_PAPERS = ['gold']; // 鎏金笺（存量默认）
+const FREE_TRIAL_THEMES = [];       // 无默认尝鲜主题
+
+// 三态解析：文档显式 true/false 优先，未标注（undefined）回落默认名单
+function trialFlag(id, flag, defaults) {
+  if (flag === true) return true;
+  if (flag === false) return false;
+  return defaults.indexOf(id) !== -1;
+}
+
 exports.main = async (event) => {
   if (event.action !== 'list' && event.action !== 'papers') {
     return { ok: false, error: 'unknown action' };
@@ -42,7 +59,9 @@ exports.main = async (event) => {
         desc: p.desc || '',
         version: p.version || 1,
         colors: p.colors || {},
-        premium: true
+        premium: true,
+        // 免费尝鲜款：保留 premium 标记供渲染分派，freeTrial 由锁定判定放行
+        freeTrial: trialFlag(p.item_id, p.free_trial, FREE_TRIAL_PAPERS)
       }));
       return { ok: true, papers: mergeLists(papers, premium) };
     }
@@ -79,7 +98,8 @@ exports.main = async (event) => {
       palette: t.palette || '',
       desk: t.desk || '',
       swatch: t.swatch || '',
-      premium: true
+      premium: true,
+      freeTrial: trialFlag(t.item_id, t.free_trial, FREE_TRIAL_THEMES)
     }));
     return { ok: true, themes: mergeLists(themes, premium) };
   } catch (e) {

@@ -918,20 +918,23 @@ async function renderMemberItems() {
       </div>
       <div class="card">
         ${r.items.length ? `<table>
-          <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>色样</th><th style="text-align:right">操作</th></tr>
+          <tr><th>排序</th><th>ID</th><th>名称</th><th>状态</th><th>尝鲜</th><th>色样</th><th style="text-align:right">操作</th></tr>
           ${r.items.map((it) => `<tr>
             <td class="num">${it.sort ?? ''}</td>
             <td>${esc(it.item_id)}</td>
             <td>${esc(it.name)} <span style="color:var(--muted)">· ${esc(it.desc || '')}</span></td>
             <td><span class="badge ${it.status === 'online' ? 'online' : 'offline'}">${it.status === 'online' ? '上架' : '下架'}</span></td>
+            <td>${it.free_trial_effective ? '<span class="badge online">免费尝鲜</span>' : '<span style="color:var(--muted)">—</span>'}</td>
             <td><span class="chip" style="display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:${esc(swatchOf(it)) || 'transparent'}"></span></td>
             <td style="text-align:right">
               <button class="btn small" data-edit="${esc(it.kind)}|${esc(it.item_id)}">编辑</button>
               <button class="btn small" data-toggle="${esc(it.kind)}|${esc(it.item_id)}">${it.status === 'online' ? '下架' : '上架'}</button>
+              <button class="btn small" data-trial="${esc(it.kind)}|${esc(it.item_id)}">${it.free_trial_effective ? '取消尝鲜' : '设为尝鲜'}</button>
               <button class="btn small danger" data-del="${esc(it.kind)}|${esc(it.item_id)}">删除</button>
             </td>
           </tr>`).join('')}
         </table>` : `<p class="empty-tip">暂无专属${MEMBER_KIND_LABEL[memberItemKind]}。可点「＋ 新建」手动创建，或从已有${MEMBER_KIND_LABEL[memberItemKind]}中挑选加入。</p>`}
+        <p style="font-size:11px;color:var(--muted);padding:10px 14px 14px">「免费尝鲜」款对所有用户免费开放（写信页角标显示「限免」、信封名后缀「（限免）」，寄出不拦截）。开关落库后由 theme 云函数下发生效，小程序端缓存约 1 小时。</p>
       </div>`;
     box.querySelectorAll('[data-mikind]').forEach((b) => {
       b.addEventListener('click', () => { memberItemKind = b.dataset.mikind; renderMemberItems(); });
@@ -954,6 +957,21 @@ async function renderMemberItems() {
       await api('memberItemSave', { item: Object.assign({}, it, { status: it.status === 'online' ? 'offline' : 'online' }) });
       toast(it.status === 'online' ? '已下架' : '已上架');
       renderMemberItems();
+    }));
+    box.querySelectorAll('[data-trial]').forEach((b) => b.addEventListener('click', async () => {
+      const [kind, id] = b.dataset.trial.split('|');
+      const it = r.items.find((x) => x.kind === kind && x.item_id === id);
+      const on = !it.free_trial_effective;
+      if (!confirm(on
+        ? `把「${it.name}」设为免费尝鲜款？所有用户（含非会员）将可免费使用并封存。`
+        : `取消「${it.name}」的免费尝鲜？该款将恢复为会员专属（已用它封存的老信不受影响）。`)) return;
+      try {
+        await api('memberItemFreeTrial', { kind, item_id: id, free_trial: on });
+        toast(on ? '已设为免费尝鲜' : '已恢复会员专属');
+        renderMemberItems();
+      } catch (e) {
+        alert('操作失败：' + e.message);
+      }
     }));
     box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
       const [kind, id] = b.dataset.del.split('|');

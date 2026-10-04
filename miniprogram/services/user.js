@@ -58,6 +58,7 @@ function getProfile(opts) {
   return Promise.resolve({
     nickname: (saved && saved.nickname) || MOCK_USER.nickname,
     avatar: (saved && saved.avatar) || '',
+    birthday: (saved && saved.birthday) || '',
     wroteDays: MOCK_USER.wroteDays
   });
 }
@@ -71,6 +72,7 @@ function fetchProfile(silent) {
     const data = {
       nickname: p.nickname || MOCK_USER.nickname,
       avatar: p.avatar || '',
+      birthday: p.birthday || '',
       wroteDays: (r && r.registerDays) || MOCK_USER.wroteDays
     };
     if (myEpoch === epoch) profileCache = { at: Date.now(), data };
@@ -95,9 +97,10 @@ function cachedProfile() {
   return profileCache ? profileCache.data : null;
 }
 
-// 保存头像/昵称（官方头像昵称填写能力回传后调用）。
+// 保存头像/昵称/生日（官方头像昵称填写能力回传后调用）。
 // 云端只收 cloud:// fileID：头像还是本地临时/存留文件时，先上传云存储换 fileID 再落库，
-// 否则「我的」页名片从云端拉资料时头像会丢
+// 否则「我的」页名片从云端拉资料时头像会丢。
+// 生日（MM-DD，月日）随整份 profile 直传，合法性由 user 云函数兜底校验。
 function saveProfile(profile) {
   if (DATA_SOURCE === 'cloud') {
     const avatar = (profile && profile.avatar) || '';

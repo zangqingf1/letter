@@ -1,4 +1,4 @@
-// 反馈服务：问题反馈提交（文字 + 联系方式 + 多张截图）
+// 反馈服务：问题反馈提交（文字 + 多张截图；联系方式输入框已移除，字段保留兼容旧数据）
 // 云端调 feedback 云函数 add，落 feedback 集合（含 _openid、images fileID 数组）；
 // 本地演示态写 storage 键 feedback_local（数组，保留最近 MAX_LOCAL 条，截图存本地临时路径）。
 const { DATA_SOURCE } = require('../config/env.js');
@@ -12,6 +12,7 @@ const MAX_LOCAL = 20;
 // local：直接写 storage。
 // 返回 Promise，成功 resolve，失败 reject（由页面 Toast 提示）。
 function submit({ content, contact, images, device }) {
+  // contact 已不再由前端收集；保留可选入参仅为兼容，未传时按空串落库
   const payload = {
     content: typeof content === 'string' ? content : '',
     contact: typeof contact === 'string' ? contact : '',

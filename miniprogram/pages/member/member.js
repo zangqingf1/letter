@@ -1,4 +1,4 @@
-// 11 · 会员中心：会员状态卡 + 权益清单 + 专属主题/版式锁定 + 订阅方案半屏拉手。
+// 11 · 会员中心：会员状态卡 + 选择会员方案 + 专属主题/版式锁定 + 订阅方案半屏拉手。
 // 接入真实虚拟支付（个人·道具直购）：subscribe 云端下单 → wx.requestVirtualPayment 拉起支付 →
 // 支付成功后轮询会员状态翻成 vip（发货由 member 云函数收发货推送完成）。页面一切数据经 member 服务读取。
 const memberService = require('../../services/member.js');
@@ -6,13 +6,6 @@ const themeService = require('../../services/theme.js');
 const userService = require('../../services/user.js');
 const { buildView } = require('../write/paper-view.js');
 const PREMIUM = require('./premium.js');
-
-// 权益清单（type: 'papers'|'themes'|'cap' 用于按会员态标注已解锁/未解锁）
-const BENEFITS = [
-  { icon: '📜', title: '专属信纸版式', desc: '解锁会员专享信纸款', type: 'papers' },
-  { icon: '📮', title: '专属主题信封', desc: '解锁会员专享主题信封', type: 'themes' },
-  { icon: '📦', title: '专属内容全解锁', desc: '会员专属版式与主题全部可用', type: 'cap' }
-];
 
 // 支付失败错误码 → 用户可读提示（错误码见 wx.requestVirtualPayment 官方文档）
 const PAY_ERROR_HINTS = {
@@ -28,19 +21,20 @@ const PAY_ERROR_HINTS = {
   '-15017': '收款功能受限，暂不可支付'
 };
 
-// 订阅档位（一次性月卡/季卡/年卡；价格须与 MP 后台「道具管理」发布道具一致）
+// 订阅档位（一次性月卡/季卡/年卡；价格须与 MP 后台「道具管理」发布道具一致；tag 为每日价）
 const PLANS = [
-  { id: 'month', name: '月卡', price: 9.9, unit: '¥', period: '/31 天', tag: '31 天有效期' },
-  { id: 'quarter', name: '季卡', price: 25.9, unit: '¥', period: '/93 天', tag: '93 天有效期' },
-  { id: 'year', name: '年卡', price: 99.9, unit: '¥', period: '/366 天', tag: '最划算 · 约合 8.2 元/月' }
+  { id: 'month', name: '月卡', price: 9.9, unit: '¥', period: '/31 天', tag: '≈ 0.32 元/天' },
+  { id: 'quarter', name: '季卡', price: 25.9, unit: '¥', period: '/93 天', tag: '≈ 0.28 元/天' },
+  { id: 'year', name: '年卡', price: 89.9, unit: '¥', period: '/366 天', tag: '≈ 0.25 元/天' }
 ];
 
 // 从 theme 服务下发的列表里挑出会员专属款（后台 member_items 标记 premium:true）。
 // 主题与版式分别判定：两份缓存版本错位时（一份有一份没有）不至于把已有的也一并丢掉。
+// 免费尝鲜款（freeTrial:true，如鎏金笺）虽带 premium 标记但不收费，不进「会员专属」陈列。
 function pickPremium(papers, themes) {
   const update = {};
-  const premiumPapers = (papers || []).filter((p) => p.premium);
-  const premiumThemes = (themes || []).filter((t) => t.premium);
+  const premiumPapers = (papers || []).filter((p) => p.premium && !p.freeTrial);
+  const premiumThemes = (themes || []).filter((t) => t.premium && !t.freeTrial);
   if (premiumPapers.length) update.premiumPapers = premiumPapers;
   if (premiumThemes.length) update.premiumThemes = premiumThemes;
   return update;
@@ -54,12 +48,12 @@ Page({
     state: 'loading',         // loading（会员态未定，骨架）/ free / vip
     level: '守候',
     renew: false,
+    trial: false,             // 体验会员（新用户 3 天体验）：状态卡显示体验文案与到期提醒
+    trialAvailable: false,    // 新用户福利可领取（服务端判定 members 从无记录才为 true）
     remainingDays: 0,         // 会员剩余天数（云端按 members.expires_at 计算）
-    benefits: BENEFITS,
     plans: PLANS,
     selectedPlan: 'year',
     payText: '',
-    agreed: false,
     premiumPapers: PREMIUM.papers,
     premiumThemes: PREMIUM.themes,
     showPaperPreview: false,     // 专属信纸真实样式示例预览
@@ -149,20 +143,37 @@ Page({
       state: m.state,
       level: m.level,
       renew: m.renew,
-      remainingDays: m.remainingDays,
-      benefits: this.decorateBenefits(m.state)
+      trial: !!m.trial,
+      // 可领体验会员（free 态才有领取卡）：vip/体验中一律置 false，避免已生效还挂着领取卡
+      trialAvailable: m.state !== 'vip' && !!m.trialAvailable,
+      remainingDays: m.remainingDays
     });
   },
 
-  // 按会员态给权益标注「已解锁 / 未解锁」，信封上限文案随态切换
-  decorateBenefits(state) {
-    const isVip = state === 'vip';
-    return BENEFITS.map((b) => {
-      const unlocked = isVip;
-      let desc = b.desc;
-      if (b.type === 'cap') desc = isVip ? '已解锁全部专属版式与主题' : '开通后解锁全部专属版式与主题';
-      return Object.assign({}, b, { unlocked, desc });
-    });
+  // 领取新用户福利（3 天体验会员）：云端校验资格，成功后状态卡原地切体验态。
+  // _claiming 旗标防连点重复发起（云端有确定性 _id 兜底，这里只是省一次无效请求）。
+  onTapClaimTrial() {
+    if (this._claiming) return;
+    this._claiming = true;
+    memberService
+      .claimTrial()
+      .then((m) => {
+        this._claiming = false;
+        this.applyMembership(m);
+        wx.showToast({ title: '已领取 · 体验会员已生效', icon: 'none' });
+      })
+      .catch((err) => {
+        this._claiming = false;
+        const code = err && err.code;
+        const title = code === 'not_eligible'
+          ? '该福利仅限新用户领取'
+          : code === 'banned'
+            ? '当前账号无法领取'
+            : '领取没有成功，稍后再试试';
+        wx.showToast({ title, icon: 'none' });
+        // 无资格时把领取卡收掉（回源结果可能滞后于资格变化）
+        if (code === 'not_eligible') this.setData({ trialAvailable: false });
+      });
   },
 
   // 打开订阅拉手（未开通态任意「开通/专属卡片」触发；iOS 需微信 ≥ 8.0.68）
@@ -223,10 +234,6 @@ Page({
     this.openSheet();
   },
 
-  onToggleAgree() {
-    this.setData({ agreed: !this.data.agreed });
-  },
-
   // 当前所选方案（普通方法，避免 Page 对象上 getter 不可靠）
   currentPlan() {
     return this.data.plans.find((p) => p.id === this.data.selectedPlan) || this.data.plans[0];
@@ -235,10 +242,6 @@ Page({
   // 确认支付：云端真实下单 → wx.requestVirtualPayment 拉起支付 → 成功后轮询会员状态翻成 vip。
   // 未配置支付时明确提示「暂未开通」，云端模式下不会回落成免费会员（演示态仅本地模式生效）。
   onConfirmPay() {
-    if (!this.data.agreed) {
-      wx.showToast({ title: '请先勾选《会员服务协议》', icon: 'none' });
-      return;
-    }
     if (this.data.paying) return;
     this.setData({ paying: true });
     const plan = this.currentPlan();
