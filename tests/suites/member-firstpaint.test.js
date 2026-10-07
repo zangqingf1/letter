@@ -48,8 +48,7 @@ function load(opts) {
 
   const handlers = {
     'member.get': () => reply(o.membership, o.memberDelay),
-    'theme.list': () => reply({ ok: true, themes: o.themes }, o.themeDelay),
-    'theme.papers': () => reply({ ok: true, papers: o.papers }, o.themeDelay),
+    'theme.all': () => reply({ ok: true, themes: o.themes, papers: o.papers }, o.themeDelay),
     'user.getProfile': () => Promise.resolve({ ok: true, profile: { nickname: '林深', avatar: '' }, registerDays: 7 })
   };
 

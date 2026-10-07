@@ -9,6 +9,13 @@ const { DATA_SOURCE } = require('../../config/env.js');
 // 下次再过期仍会提示。只在首页读写，member 服务不感知（纯 UI 引导，不参与会员态判定）。
 const EXPIRED_BANNER_KEY = 'member_expired_banner_dismissed';
 
+// onShow 时间闸（30s）：从详情/写信返回、Tab 切回时，若 30s 内已拉过信匣且期间没有
+// 任何数据变化（letter/draft/member 服务的写操作都会置信匣脏标记，letter.js
+// MAILBOX_DIRTY_KEY），就跳过重拉 —— today.mailbox 不用每次回首页都打一遍云函数
+//（省调用次数；冷启动场景下还省 1~2s 的容器拉起等待）。
+// 寄出回传（letter_just_arrived）与脏标记都绕过闸门，数据变化永远即时可见。
+const RELOAD_GATE_MS = 30 * 1000;
+
 // 今日来信（local 态）：同一天固定同一封（按日期种子确定性随机，次日重摇）；
 // 云端态由 today 云函数按「用户+日期」确定并返回 todayId（BR-07，见架构文档 §5.2）
 function pickTodayLetter(letters) {
@@ -77,6 +84,15 @@ Page({
       wx.removeStorageSync('letter_just_arrived');
       arrivingId = flag;
     }
+
+    // 时间闸：30s 内已成功加载、无寄出回传、且无任何服务写脏标记时短路。
+    // 短路是「什么都不做」：数据没变，屏上就是最新的；_lastLoadAt 只在成功后写入，
+    // 上一次拉取失败时它不会存在，闸门自然常开（每次 onShow 都重试）。
+    const dirty = wx.getStorageSync(letterService.MAILBOX_DIRTY_KEY);
+    if (!arrivingId && !dirty && this._lastLoadAt && Date.now() - this._lastLoadAt < RELOAD_GATE_MS) {
+      return;
+    }
+
     this.loadMailbox(arrivingId);
     if (arrivingId) {
       // 动效播完（约 500ms）移除到达标记，避免后续刷新重播
@@ -154,6 +170,11 @@ Page({
           trialAvailable: !!(m && m.trialAvailable),
           memberExpiredBanner
         });
+
+        // 时间闸记账：本次成功加载的时刻 + 消费脏标记（拉取已覆盖变化，标记作废）。
+        // 只在成功路径落账：失败时 _lastLoadAt 不更新、脏标记保留，下次 onShow 必然重试。
+        this._lastLoadAt = Date.now();
+        wx.removeStorageSync(letterService.MAILBOX_DIRTY_KEY);
       })
       .catch((err) => {
         // 信匣加载失败不再静默空白：报错留痕 + 温和提示（文案语气见设计规范）；

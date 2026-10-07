@@ -74,7 +74,7 @@ function load(page, opts) {
   const handlers = {
     'today.mailbox': () => reply({ ok: true, letters: o.letters, draftCount: 0, todayId: '' }, o.letterDelay),
     'letter.listRecycle': () => reply({ ok: true, items: o.recycle }, o.letterDelay),
-    'theme.list': () => reply({ ok: true, themes: o.themes }, o.themeDelay),
+    'theme.all': () => reply({ ok: true, themes: o.themes }, o.themeDelay),
     'member.get': () => reply(o.membership, o.memberDelay),
     'analytics.batch': () => reply({ ok: true }, 0)
   };
@@ -147,7 +147,7 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
     eq(p.data.items.length, 2, '两封别着回形针的信都已渲染');
     eq(p.data.items[0].env, DEFAULT_ENV, '信封已就位（无主题缓存时回落本地默认款）');
     eq(h.done('member.get'), false, '会员态还没回来 —— 但它不该挡住信封');
-    eq(h.done('theme.list'), false, '主题列表也还没回来');
+    eq(h.done('theme.all'), false, '主题列表也还没回来');
   });
 
   test('回形针：主题缓存缺失不炸，直接回落默认款（envelopeThumbOf 收空数组）', async () => {
@@ -174,7 +174,7 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
     const p = h.page();
     await tick(30);
     eq(p.data.items.map((x) => x.env), [DEFAULT_ENV, DEFAULT_ENV], '首帧两款都是默认信封');
-    eq(h.done('theme.list'), false, '主题还没回来');
+    eq(h.done('theme.all'), false, '主题还没回来');
 
     await tick(220);
     eq(p.data.items[0].env, DEFAULT_ENV, '普通行的信封前后一致 → 不该产生渲染');
@@ -224,7 +224,7 @@ suite('回形针 / 废纸篓首屏 · 信封不被会员态与主题挡住', () 
     eq(p.data.items.length, 1, '废纸篓行已渲染');
     eq(p.data.items[0].env, DEFAULT_ENV, '信封已就位');
     eq(h.done('member.get'), false, '会员态还没回来 —— 但不挡信封');
-    eq(h.done('theme.list'), false, '主题列表也还没回来');
+    eq(h.done('theme.all'), false, '主题列表也还没回来');
   });
 
   test('废纸篓：主题回源后同样只 patch 变化的行', async () => {

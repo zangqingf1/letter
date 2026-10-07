@@ -34,42 +34,40 @@ function trialFlag(id, flag, defaults) {
   return defaults.indexOf(id) !== -1;
 }
 
-exports.main = async (event) => {
-  if (event.action !== 'list' && event.action !== 'papers') {
-    return { ok: false, error: 'unknown action' };
-  }
-  try {
-    // papers：二十一款信纸版式的配色配置（colors 与小程序 papers.js 同形状），只下发上架的。
-    // 末尾追加上架的会员专属版式（member_items kind='paper'，premium:true），由前端按会员态解锁。
-    if (event.action === 'papers') {
-      const [paperRes, premiumRes] = await Promise.all([
-        db.collection('papers').where({ status: 'online' }).orderBy('sort', 'asc').limit(50).get(),
-        db.collection('member_items').where({ kind: 'paper', status: 'online' }).orderBy('sort', 'asc').limit(50).get()
-      ]);
-      const papers = paperRes.data.map((p) => ({
-        id: p.paper_id,
-        name: p.name,
-        desc: p.desc || '',
-        version: p.version || 1,
-        colors: p.colors || {}
-      }));
-      const premium = premiumRes.data.map((p) => ({
-        id: p.item_id,
-        name: p.name,
-        desc: p.desc || '',
-        version: p.version || 1,
-        colors: p.colors || {},
-        premium: true,
-        // 免费尝鲜款：保留 premium 标记供渲染分派，freeTrial 由锁定判定放行
-        freeTrial: trialFlag(p.item_id, p.free_trial, FREE_TRIAL_PAPERS)
-      }));
-      return { ok: true, papers: mergeLists(papers, premium) };
-    }
-    // themes：官方主题 + 上架的会员专属主题（member_items kind='theme'，premium:true）
-    const [themeRes, premiumRes] = await Promise.all([
-      db.collection('themes').where({ status: 'online' }).orderBy('sort', 'asc').limit(50).get(),
-      db.collection('member_items').where({ kind: 'theme', status: 'online' }).orderBy('sort', 'asc').limit(50).get()
-    ]);
+// papers：二十一款信纸版式的配色配置（colors 与小程序 papers.js 同形状），只下发上架的。
+// 末尾追加上架的会员专属版式（member_items kind='paper'，premium:true），由前端按会员态解锁。
+function listPapers() {
+  return Promise.all([
+    db.collection('papers').where({ status: 'online' }).orderBy('sort', 'asc').limit(50).get(),
+    db.collection('member_items').where({ kind: 'paper', status: 'online' }).orderBy('sort', 'asc').limit(50).get()
+  ]).then(([paperRes, premiumRes]) => {
+    const papers = paperRes.data.map((p) => ({
+      id: p.paper_id,
+      name: p.name,
+      desc: p.desc || '',
+      version: p.version || 1,
+      colors: p.colors || {}
+    }));
+    const premium = premiumRes.data.map((p) => ({
+      id: p.item_id,
+      name: p.name,
+      desc: p.desc || '',
+      version: p.version || 1,
+      colors: p.colors || {},
+      premium: true,
+      // 免费尝鲜款：保留 premium 标记供渲染分派，freeTrial 由锁定判定放行
+      freeTrial: trialFlag(p.item_id, p.free_trial, FREE_TRIAL_PAPERS)
+    }));
+    return mergeLists(papers, premium);
+  });
+}
+
+// themes：官方主题 + 上架的会员专属主题（member_items kind='theme'，premium:true）
+function listThemes() {
+  return Promise.all([
+    db.collection('themes').where({ status: 'online' }).orderBy('sort', 'asc').limit(50).get(),
+    db.collection('member_items').where({ kind: 'theme', status: 'online' }).orderBy('sort', 'asc').limit(50).get()
+  ]).then(([themeRes, premiumRes]) => {
     const themes = themeRes.data.map((t) => ({
       id: t.theme_id,
       name: t.name,
@@ -101,7 +99,25 @@ exports.main = async (event) => {
       premium: true,
       freeTrial: trialFlag(t.item_id, t.free_trial, FREE_TRIAL_THEMES)
     }));
-    return { ok: true, themes: mergeLists(themes, premium) };
+    return mergeLists(themes, premium);
+  });
+}
+
+exports.main = async (event) => {
+  // all = 主题 + 版式一次往返：详情/写信第二步/分享页每次进入都要成对使用，
+  // 前端合并后从两次云调用降为一次（list / papers 保留给旧版客户端兼容）。
+  if (event.action !== 'all' && event.action !== 'list' && event.action !== 'papers') {
+    return { ok: false, error: 'unknown action' };
+  }
+  try {
+    if (event.action === 'all') {
+      const [themes, papers] = await Promise.all([listThemes(), listPapers()]);
+      return { ok: true, themes, papers };
+    }
+    if (event.action === 'papers') {
+      return { ok: true, papers: await listPapers() };
+    }
+    return { ok: true, themes: await listThemes() };
   } catch (e) {
     // 错误详情只进日志：不回传 DB/SDK 原始 message
     console.error('[theme] 读取失败', event.action, e);

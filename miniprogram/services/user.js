@@ -16,6 +16,7 @@ const USER_DATA_KEYS = [
   'letter_draft_current',
   'letter_edit_current',
   'letter_just_arrived',
+  'mailbox_dirty', // 信匣脏标记（letter.js）：首页时间闸的绕过信号，随会话数据一并清除
   'user_sealed_once',
   'demo_removed_ids',
   'recycle_demo_seeded',

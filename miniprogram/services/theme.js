@@ -23,6 +23,35 @@ function pickDefault(list, id) {
   return arr.find((it) => it.id === id) || arr[0];
 }
 
+// 主题与版式合并取回（theme 云函数 all action）：详情/写信第二步/分享页每次进入都要
+// 成对使用，分两次调用多付一次往返（冷启动场景可达秒级）。这里用一份 in-flight Promise
+// 去重 —— getThemes 与 getPapers 同帧调用只发一次云函数，结果各写各的缓存
+// （theme_cache / papers_cache 键与结构不变，旧缓存无缝兼容）。
+// list / papers 两个 action 保留在云函数里给旧版客户端，前端一律走 all。
+let allPending = null;
+function fetchAll() {
+  if (allPending) return allPending;
+  allPending = cloud
+    .call('theme', 'all', {})
+    .then((r) => {
+      allPending = null;
+      const themes = normalizeThemes((r && r.themes) || []);
+      const papers = normalizePapers((r && r.papers) || []);
+      // 与旧版同口径：云端为空的类别不写缓存，读取侧回落本地静态配置
+      if (themes.length) wx.setStorageSync(CACHE_KEY, { at: Date.now(), list: themes });
+      if (papers.length) wx.setStorageSync(PAPERS_CACHE_KEY, { at: Date.now(), list: papers });
+      return {
+        themes: themes.length ? themes : normalizeThemes(LOCAL_THEMES),
+        papers: papers.length ? papers : normalizePapers(LOCAL_PAPERS)
+      };
+    })
+    .catch((err) => {
+      allPending = null;
+      throw err;
+    });
+  return allPending;
+}
+
 // 主题统一出口。force=true 时绕过本地缓存强刷（会员页用于即时展示后台新增的专属款）。
 function getThemes(force) {
   if (DATA_SOURCE === 'cloud') {
@@ -30,17 +59,8 @@ function getThemes(force) {
     if (!force && cached && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
       return Promise.resolve(cached.list);
     }
-    return cloud
-      .call('theme', 'list', {})
-      .then((r) => {
-        const list = (r && r.themes) || [];
-        if (list.length) {
-          const normalized = normalizeThemes(list);
-          wx.setStorageSync(CACHE_KEY, { at: Date.now(), list: normalized });
-          return normalized;
-        }
-        return normalizeThemes(LOCAL_THEMES);
-      })
+    return fetchAll()
+      .then((r) => r.themes)
       .catch(() => normalizeThemes(LOCAL_THEMES));
   }
   return Promise.resolve(normalizeThemes(LOCAL_THEMES));
@@ -123,20 +143,14 @@ function normalizePapers(list) {
 function getPapers(force) {
   if (DATA_SOURCE !== 'cloud') return Promise.resolve(normalizePapers(LOCAL_PAPERS));
   // 与 getThemes 同口径的本地缓存：详情/分享/写信第二步每次进入都取版式，
-  // 无缓存会每次都打一次 theme/papers 云函数（含 member_items 聚合）。
+  // 无缓存会每次都打一次 theme 云函数（含 member_items 聚合）。
   const cached = wx.getStorageSync(PAPERS_CACHE_KEY);
   if (!force && cached && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
     return Promise.resolve(cached.list);
   }
-  return cloud
-    .call('theme', 'papers', {})
-    .then((r) => {
-      const list = (r && r.papers) || [];
-      if (!list.length) return normalizePapers(LOCAL_PAPERS);
-      const normalized = normalizePapers(list);
-      wx.setStorageSync(PAPERS_CACHE_KEY, { at: Date.now(), list: normalized });
-      return normalized;
-    })
+  // 与 getThemes 共享同一次 all 调用（fetchAll 内有 in-flight 去重），不再单独打 papers
+  return fetchAll()
+    .then((r) => r.papers)
     .catch(() => normalizePapers(LOCAL_PAPERS));
 }
 

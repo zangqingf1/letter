@@ -389,3 +389,14 @@
     transform: translateY(5px);
   }
 }
+
+/* 大图预取节点：屏幕外挂载（不 display:none，否则不触发下载），只为把
+   currentTheme.envelope 提前拉进微信图片缓存 —— 寄出完成幕 fx-env-img 直接命中 */
+.env-pre {
+  position: fixed;
+  left: -2000rpx;
+  top: 0;
+  width: 10rpx;
+  height: 10rpx;
+  opacity: 0;
+}

@@ -6,6 +6,9 @@
 const { DATA_SOURCE } = require('../config/env.js');
 const cloud = require('./cloud.js');
 const { MOCK_MEMBER } = require('../pages/member/mock.js');
+// 会员态变化（支付成功/领取体验会员/测试桩 invalidate）会影响首页横幅（福利/过期）：
+// 复用信匣脏标记（letter.js），供首页 30s 时间闸识别，回家立刻重拉会员态
+const { markMailboxDirty } = require('./letter.js');
 
 // 仅演示（本地模式）：开通一次后本地保持 vip 态，用于预览；云端模式一律不读取此标记
 const STATE_KEY = 'member_demo_state';
@@ -25,6 +28,9 @@ const MEM_TTL = 30 * 1000;
 let memCache = null; // { at, value }
 
 function clearCache() {
+  // 纯内存丢弃，不置信匣脏标记：getMembership 对 free 用户也会走 resetDemo→clearCache，
+  // 在这里置脏会让非 VIP 用户每次都打穿首页时间闸。置脏只发生在「会员态真的变了」
+  // 的入口（subscribe 支付成功 / claimTrial 领取成功 / invalidate 显式失效）。
   memCache = null;
 }
 
@@ -36,9 +42,13 @@ function cachedMembership() {
   return memCache ? memCache.value : null;
 }
 
-// iOS 需微信客户端 ≥ 8.0.68（虚拟支付官方要求）；非 iOS 直接放行
+// iOS 需微信客户端 ≥ 8.0.68（虚拟支付官方要求）；非 iOS 直接放行。
+// 用拆分后的新 API（getDeviceInfo/getAppBaseInfo，替代已停维护的 getSystemInfoSync，
+// 与 feedback.js 同款兼容写法）：极老基础库没有新 API 时回落旧接口。
 function checkIosVersion() {
-  const sys = wx.getSystemInfoSync();
+  const dev = wx.getDeviceInfo ? wx.getDeviceInfo() : {};
+  const app = wx.getAppBaseInfo ? wx.getAppBaseInfo() : {};
+  const sys = Object.assign({}, dev, app);
   if (sys.platform !== 'ios') return true;
   const cur = String(sys.version || '').split('.').map(Number);
   const base = [8, 0, 68];
@@ -140,6 +150,7 @@ function claimTrial() {
         at: Date.now(),
         value: m.state === 'vip' ? m : Object.assign(freeMembership(), { trialAvailable: m.trialAvailable })
       };
+      markMailboxDirty(); // 领取成功 = 会员态变化，首页福利横幅要随之消失
       return memCache.value;
     })
     .catch((err) => {
@@ -162,8 +173,10 @@ function subscribe(plan) {
         return requestVirtualPayment(r.payData);
       })
       .then((v) => {
-        // 支付已成功：清掉内存里的旧会员态，否则支付后的轮询会被 30s 缓存挡住而翻不亮
+        // 支付已成功：清掉内存里的旧会员态，否则支付后的轮询会被 30s 缓存挡住而翻不亮；
+        // 同时置信匣脏标记 —— 回首页时时间闸放行，福利/过期横幅随新会员态即时刷新
         clearCache();
+        markMailboxDirty();
         return v;
       })
       .catch((err) => {
@@ -243,6 +256,12 @@ function resetDemo() {
   wx.removeStorageSync(EXPIRE_KEY);
 }
 
+// 显式失效（页面/测试桩用）：丢缓存并置信匣脏标记 —— 会员态已变化，首页时间闸必须放行
+function invalidate() {
+  clearCache();
+  markMailboxDirty();
+}
+
 module.exports = {
   getMembership,
   cachedMembership,
@@ -250,6 +269,6 @@ module.exports = {
   subscribe,
   checkIosVersion,
   resetDemo,
-  invalidate: clearCache,
+  invalidate,
   STATE_KEY
 };

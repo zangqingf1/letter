@@ -16,3 +16,6 @@ scripts/verify-log.txt
 
 # 设计源素材（不入库）
 picture/
+
+# 文档转换流水线临时目录（output/ 下仅保留报告类产物）
+output/*/

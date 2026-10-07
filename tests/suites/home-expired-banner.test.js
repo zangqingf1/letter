@@ -37,7 +37,7 @@ function load(opts) {
 
   const handlers = {
     'today.mailbox': () => reply({ ok: true, letters: LETTERS, draftCount: 0, todayId: '' }),
-    'theme.list': () => reply({ ok: true, themes: [] }),
+    'theme.all': () => reply({ ok: true, themes: [] }),
     'member.get': () => reply(o.member, 40)
   };
 

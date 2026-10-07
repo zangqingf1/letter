@@ -15,6 +15,15 @@ const {
 
 const LETTERS_KEY = 'letters_mock';
 const RECYCLE_KEY = 'recycle_mock';
+// 信匣脏标记：信件数据在任何页面发生变化（寄出/编辑/回形针/删除/取回/彻底删除）时置位，
+// 首页 onShow 的 30s 时间闸（home.js）读到它就放弃短路、强制重拉信匣 —— 脏标记保证
+// 时间闸永远不会把「刚发生的数据变化」挡在门外。与 letter_just_arrived 同类：
+// 页面可自持的 UI 状态位（不在数据键黑名单内），注销清单会一并清除。
+// draft / member 服务的写操作（草稿增删、会员态变化）也复用同一标记，见各服务内说明。
+const MAILBOX_DIRTY_KEY = 'mailbox_dirty';
+function markMailboxDirty() {
+  wx.setStorageSync(MAILBOX_DIRTY_KEY, Date.now());
+}
 // 演示信交互落成记录：被用户操作过（删除/回形针/回信）的演示信 id，从演示池中剔除，
 // 避免删除后又从演示数据里"复活"
 const DEMO_REMOVED_KEY = 'demo_removed_ids';
@@ -141,7 +150,10 @@ function demoLetter() {
 // 返回新信 id。
 function create(data) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'create', data).then((r) => r.id);
+    return cloud.call('letter', 'create', data).then((r) => {
+      markMailboxDirty();
+      return r.id;
+    });
   }
   const newLetterId = 'l' + Date.now();
   const letters = readLetters();
@@ -158,6 +170,7 @@ function create(data) {
     created_at: Date.now()
   });
   writeLetters(letters);
+  markMailboxDirty();
   return Promise.resolve(newLetterId);
 }
 
@@ -165,7 +178,10 @@ function create(data) {
 // 重读记录与回信静默原样保留）。返回是否真正落库（演示数据不持久化）。
 function update(id, data) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'update', Object.assign({ id }, data)).then(() => true);
+    return cloud.call('letter', 'update', Object.assign({ id }, data)).then(() => {
+      markMailboxDirty(); // 编辑会改名称（信匣网格展示），同样置脏
+      return true;
+    });
   }
   const letters = readLetters();
   const index = letters.findIndex((l) => String(l.id) === String(id));
@@ -181,13 +197,17 @@ function update(id, data) {
     updated_at: Date.now()
   });
   writeLetters(letters);
+  markMailboxDirty();
   return Promise.resolve(true);
 }
 
 // ── 回形针（BR-06：只改排序与角标）。传入信件对象（演示信落成真实信）。返回点亮结果。
 function setPinned(letter, pinned) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'pin', { id: letter.id, pinned }).then(() => pinned);
+    return cloud.call('letter', 'pin', { id: letter.id, pinned }).then(() => {
+      markMailboxDirty(); // 回形针优先展示（BR-06），信匣排序随它变
+      return pinned;
+    });
   }
   ensureReal(letter);
   const letters = readLetters();
@@ -195,6 +215,7 @@ function setPinned(letter, pinned) {
   if (index === -1) return Promise.resolve(pinned);
   letters[index].pinned = pinned;
   writeLetters(letters);
+  markMailboxDirty();
   return Promise.resolve(pinned);
 }
 
@@ -274,7 +295,10 @@ function persist(letter) {
 // 入废纸篓的是 ensureReal 补全后的完整信件（含 created_at 等字段兜底）
 function moveToRecycle(letter) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'moveToRecycle', { id: letter.id });
+    return cloud.call('letter', 'moveToRecycle', { id: letter.id }).then((r) => {
+      markMailboxDirty();
+      return r;
+    });
   }
   const wasReal = readLetters().some((l) => String(l.id) === String(letter.id));
   const real = ensureReal(letter);
@@ -283,6 +307,7 @@ function moveToRecycle(letter) {
   const recycle = wx.getStorageSync(RECYCLE_KEY) || [];
   recycle.push(Object.assign({}, real, { deleted_at: Date.now() }));
   wx.setStorageSync(RECYCLE_KEY, recycle);
+  markMailboxDirty();
   return Promise.resolve(true);
 }
 
@@ -313,7 +338,10 @@ function listRecycle() {
 // ── 取回：原样恢复回信匣（含重读记录与回信）；演示来源的记录按名称补全正文 ──
 function restoreFromRecycle(id) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'restore', { id });
+    return cloud.call('letter', 'restore', { id }).then((r) => {
+      markMailboxDirty();
+      return r;
+    });
   }
   const recycle = wx.getStorageSync(RECYCLE_KEY) || [];
   const restored = recycle.find((l) => String(l.id) === String(id));
@@ -325,13 +353,17 @@ function restoreFromRecycle(id) {
     removeDemoRemoved(id);
     ensureReal(restored);
   }
+  markMailboxDirty();
   return Promise.resolve(!!restored);
 }
 
 // ── 彻底删除（BR-12：物理删除不可恢复）──
 function purgeFromRecycle(id) {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('letter', 'purge', { id });
+    return cloud.call('letter', 'purge', { id }).then((r) => {
+      markMailboxDirty();
+      return r;
+    });
   }
   const recycle = wx.getStorageSync(RECYCLE_KEY) || [];
   wx.setStorageSync(
@@ -340,6 +372,7 @@ function purgeFromRecycle(id) {
   );
   // 若为演示来源的记录，同步从演示池剔除，避免网格"复活"
   addDemoRemoved(id);
+  markMailboxDirty();
   return Promise.resolve(true);
 }
 
@@ -362,5 +395,7 @@ module.exports = {
   moveToRecycle,
   listRecycle,
   restoreFromRecycle,
-  purgeFromRecycle
+  purgeFromRecycle,
+  MAILBOX_DIRTY_KEY,
+  markMailboxDirty
 };

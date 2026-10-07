@@ -83,8 +83,7 @@ function load(opts) {
 
   const handlers = {
     'letter.get': () => reply({ ok: true, letter: o.letter }, 5),
-    'theme.list': () => reply({ ok: true, themes: themesOf() }, 10),
-    'theme.papers': () => reply({ ok: true, papers: o.papers }, 10),
+    'theme.all': () => reply({ ok: true, themes: themesOf(), papers: o.papers }, 10),
     'member.get': () => reply(FREE, 10)
   };
 
@@ -145,7 +144,7 @@ suite('详情页拆信幕 · 信封只画真实主题', () => {
     eq(p.data.envSrc, '', '首帧没有信封可画：主题还没解析到，留空而不是回落默认款');
     eq(p.data.envFull, '', '预取节点也不该有地址');
     eq(p.data.theme.envelope, '', '主题同样留空，避免任何一处误用默认款');
-    eq(h.calls().length, 4, '四个读接口都已发出但都还没回来');
+    eq(h.calls().length, 3, '三个读接口都已发出但都还没回来（themes+papers 已合并为一次 theme.all）');
   });
 
   test('df-02 从首帧到云函数返回，任何一帧都不出现本地默认款的信封图', async () => {
@@ -166,7 +165,7 @@ suite('详情页拆信幕 · 信封只画真实主题', () => {
     h.put({ id: LETTER.id, name: '给失眠时的自己', theme: YINHUA });
     const p = h.page();
 
-    eq(h.calls().length, 4, '四个读接口都还没回来（下面断言取的确实是首帧，不是云函数结果）');
+    eq(h.calls().length, 3, '三个读接口都还没回来（themes+papers 已合并为一次 theme.all；下面断言取的确实是首帧，不是云函数结果）');
     eq(p.data.envSrc, YINHUA_THUMB, '首帧画的是列表页刚渲染过的小图信封：图片缓存命中，第一帧就有信封');
     eq(p.data.envFull, YINHUA_ENV, '大图交给屏幕外的预取节点');
     eq(p.data.theme.id, 'yinhua', '主题已就位（拆信幕的纸色等同批落地）');

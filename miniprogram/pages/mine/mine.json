@@ -1,4 +1,5 @@
 {
   "navigationStyle": "custom",
-  "backgroundColor": "#F4F3EE"
+  "backgroundColor": "#F4F3EE",
+  "initialRenderingCache": "static"
 }

@@ -55,7 +55,9 @@
         data-index="{{index}}"
         bindtap="onSelectTheme"
       >
-        <image wx:if="{{item.ownEnvelope}}" class="tc-img" src="{{item.envelope}}" mode="aspectFill" />
+        <!-- 卡片用缩略信封：显示尺寸 128×84rpx，240px 的 thumb 绰绰有余；
+             不渲染大图 —— 否则进页即把全部主题的大图拉一遍（云化素材后是实打实的网络量） -->
+        <image wx:if="{{item.ownEnvelope}}" class="tc-img" src="{{item.envelopeThumb || item.envelope}}" mode="aspectFill" />
         <view wx:else class="tc-swatch" style="background: {{item.premium ? (item.swatch || item.palette.base) : item.palette.base}};"></view>
         <view wx:if="{{item.freeTrial}}" class="tc-free">限免</view>
         <view wx:elif="{{trial && item.premium}}" class="tc-trial">体验</view>
@@ -80,5 +82,10 @@
     </view>
     <view class="fx-copy">{{editMode ? '已重新封存。那些新的思考，也一起安放好了。' : '已封存。未来的某一天，它会在这里等你。'}}</view>
   </view>
+
+  <!-- 大图预取（与 home 的 env-pre 同款手法）：完成幕 fx-env-img 与这里是同一个 src ——
+       进页/换主题即挂屏幕外节点提前下载进图片缓存，封存那一刻完成幕直接命中，
+       不会「幕已起、图未到」。素材云化（envelope 为 cloud://）后这条是完成幕的唯一图源保障 -->
+  <image wx:if="{{currentTheme.envelope}}" class="env-pre" src="{{currentTheme.envelope}}" />
 
 </view>

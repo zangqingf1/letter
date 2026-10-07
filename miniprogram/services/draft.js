@@ -9,6 +9,8 @@
 
 const { DATA_SOURCE } = require('../config/env.js');
 const cloud = require('./cloud.js');
+// 草稿增删会改首页草稿横条的数量：复用信匣脏标记（letter.js），供首页 30s 时间闸识别
+const { markMailboxDirty } = require('./letter.js');
 
 const DRAFTS_KEY = 'letter_drafts';
 const LEGACY_DRAFT_KEY = 'letter_draft_current';
@@ -101,30 +103,43 @@ function save(draft) {
   if (DATA_SOURCE === 'cloud') {
     return cloud
       .call('draft', 'save', { draft: item })
-      .then((r) => (r && r.ok ? Object.assign({}, item, { id: (r && r.id) || item.id }) : null))
+      .then((r) => {
+        if (r && r.ok) markMailboxDirty();
+        return r && r.ok ? Object.assign({}, item, { id: (r && r.id) || item.id }) : null;
+      })
       .catch(() => Object.assign(upsertLocal(item), { _cloudFailed: true }));
   }
-  return Promise.resolve(upsertLocal(item));
+  const saved = upsertLocal(item);
+  markMailboxDirty();
+  return Promise.resolve(saved);
 }
 
 // 删除单条草稿：直接移除，不进废纸篓（草稿未寄出，无重读/回信可恢复）
 function remove(id) {
   if (!id) return Promise.resolve(true);
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('draft', 'remove', { id }).catch(() => null);
+    return cloud.call('draft', 'remove', { id }).then((r) => {
+      markMailboxDirty();
+      return r;
+    }).catch(() => null);
   }
   const drafts = (wx.getStorageSync(DRAFTS_KEY) || []).filter((d) => d.id !== id);
   wx.setStorageSync(DRAFTS_KEY, drafts);
+  markMailboxDirty();
   return Promise.resolve(true);
 }
 
 // 清空全部新信草稿（注销等场景）；编辑草稿见 clearEdit
 function clearAll() {
   if (DATA_SOURCE === 'cloud') {
-    return cloud.call('draft', 'clearAll', {}).catch(() => null);
+    return cloud.call('draft', 'clearAll', {}).then((r) => {
+      markMailboxDirty();
+      return r;
+    }).catch(() => null);
   }
   wx.removeStorageSync(DRAFTS_KEY);
   wx.removeStorageSync(LEGACY_DRAFT_KEY);
+  markMailboxDirty();
   return Promise.resolve(true);
 }
 

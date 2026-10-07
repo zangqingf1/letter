@@ -15,14 +15,18 @@ App({
     // 心灵信箱：首次进入不强制登录（PRD 第六节）
     if (DATA_SOURCE === 'cloud' && wx.cloud) {
       wx.cloud.init({ env: CLOUD_ENV, traceUser: true });
-      // 静默建档：首次调用时确保 users 档案存在（无授权弹窗，授权固定在寄出时触发）
-      const ready = wx.cloud
+      // 静默建档：首次调用时确保 users 档案存在（无授权弹窗，授权固定在寄出时触发）。
+      // 建档失败不阻塞启动，寄出/保存时还会重试。
+      // 建档与「我的」页预热**并行**发出（旧版串行 then，预热被推迟一个云函数往返，
+      // 冷启动场景约 0.5~1.5s）：getProfile 对无建档用户本就回落默认值（新账号注册
+      // 天数本来就是 1），老账号 users 记录早已存在，两侧都不依赖先后顺序。
+      wx.cloud
         .callFunction({ name: 'user', data: { action: 'ensure' } })
         .catch(() => { /* 建档失败不阻塞启动，寄出/保存时还会重试 */ });
       // 「我的」页数据预热（静默）：stats 云函数只被「我的」页调用，常年冷启动，
-      // 不预热则冷启动后首次切到「我的」要空等 1~3s。建档完成后并行拉资料与统计，
+      // 不预热则冷启动后首次切到「我的」要空等 1~3s。与建档同时并行拉资料与统计，
       // 等用户切 Tab 时缓存已就绪，首屏同步渲染（详见 services/user.js 的 prefetch）
-      ready.then(() => userService.prefetch());
+      userService.prefetch();
     }
   }
 });

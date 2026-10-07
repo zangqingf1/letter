@@ -32,16 +32,22 @@ exports.main = async (event) => {
     const today = todayKey();
 
     // BR-08：草稿不进网格、不参与今日来信随机；首页草稿横条只需数量。
-    // 草稿计数与信件列表互不依赖，一次并发取回（旧版先 await 计数再查列表，多一个往返）。
-    const [draftRes, res] = await Promise.all([
+    // 草稿计数、封禁检查与信件列表互不依赖，一次并发取回（封禁检查原先串行挡在
+    // 最前面，多付一次 DB 往返；封禁属运营管控非安全边界，晚几毫秒返回无碍）。
+    // 信件查询加 field 投影：网格只需要 5 个字段，不把 answer（单封可达 2000 字）、
+    // replies、opens 拉进函数内存 —— 100 封信匣时少传输约 90% 的文档体积。
+    const [banned, draftRes, res] = await Promise.all([
+      isBanned(OPENID),
       db.collection('drafts').where({ _openid: OPENID }).count(),
       db
         .collection('letters')
         .where({ _openid: OPENID, status: 'active' })
         .orderBy('created_at', 'desc')
         .limit(100)
+        .field({ _id: true, name: true, theme_id: true, pinned: true, created_at: true, today_letter_of: true })
         .get()
     ]);
+    if (banned) return { ok: false, error: 'banned' };
     const draftCount = draftRes.total;
     let all = res.data;
 
