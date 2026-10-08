@@ -370,14 +370,14 @@ Page({
     });
   },
 
-  // 寄出动效时间轴（纸张物理感，全程可点击跳过）：
-  // 火漆按压 300ms（预览信纸轻沉折起）→ 完成幕：信封落定 → 固定文案 ≈1s → 幕布淡出 → 回首页
+  // 寄出动效时间轴（纸张物理感，全程可点击跳过；时长 = 原设定 × 1.3，与 wxss 同步）：
+  // 火漆按压 390ms（预览信纸轻沉折起）→ 完成幕：信封落定 → 固定文案 ≈1.4s → 幕布淡出 → 回首页
   startSealFx(newLetterId) {
     this._newLetterId = newLetterId || '';
     this._leaving = false;
     this.setData({ sealing: true });
-    this._fxTimer1 = setTimeout(() => this.setData({ fx: true }), 300);
-    this._fxTimer2 = setTimeout(() => this.leaveSeal(), 1350);
+    this._fxTimer1 = setTimeout(() => this.setData({ fx: true }), 390);
+    this._fxTimer2 = setTimeout(() => this.leaveSeal(), 1755);
   },
 
   // 编辑保存：只更新内容/主题/信纸版式（写于保留、记改于），重读记录与回信静默原样保留（PRD 5.6）
@@ -455,7 +455,7 @@ Page({
         };
     if (this.data.fx && !this.data.fxOut) {
       this.setData({ fxOut: true });
-      setTimeout(leave, 220);
+      setTimeout(leave, 290); // 与 wxss fx-out 290ms 同步
     } else {
       leave();
     }

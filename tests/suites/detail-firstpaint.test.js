@@ -15,8 +15,10 @@
  * 现在的口径（本文件守的就是它）：
  *   ① 入口页在 wx.navigateTo **之前**解析主题并写进同步交接槽（services/handoff.js），
  *      详情页 onLoad 同步取出、与 statusBarHeight 同批 setData ⇒ 首帧即正确；
- *   ② 信封两级 src：首帧用列表页刚渲染过的小图（envelopeThumb，图片缓存命中 → 第一帧
- *      就有信封），大图由屏幕外的预取节点加载完顶上，且回源后不回退成小图；
+ *   ② 信封两级 src：**能画大图就画大图** —— 本会话内下载过的大图（services/theme.js
+ *      markEnvReady 登记：入口页预取 / 首页 Wi-Fi 批量预取 / 上次详情页顶上）首帧直接画
+ *      大图（缓存按地址共享，秒出）；没进过缓存才先画列表页刚渲染过的小图（envelopeThumb，
+ *      第一帧就有信封），大图由屏幕外的预取节点加载完顶上，且回源后不回退成小图；
  *   ③ 没有交接时（外部直接打开本页）留空等云函数，绝不凭空亮出默认款。
  *
  * 断言三层：行为（首帧 / 升级 / 交接语义）+ 结构（WXML 与两个入口页）。
@@ -189,6 +191,30 @@ suite('详情页拆信幕 · 信封只画真实主题', () => {
     p.onUnload();
   });
 
+  test('df-09 大图本会话已下载过 → 首帧直接画大图，不再先画小图（小图放大糊）', () => {
+    const h = load({});
+    // 与 detail.js 同实例的 theme 服务（load() 清过 MINI_ROOT 缓存，这里是首次 require）：
+    // 模拟「入口页预取 / 首页 Wi-Fi 批量预取 / 上次打开」已把这张大图下载进框架缓存
+    const themeService = require(path.join(MINI_ROOT, 'services', 'theme.js'));
+    themeService.markEnvReady(YINHUA_ENV);
+    h.put({ id: LETTER.id, name: '给失眠时的自己', theme: YINHUA });
+    const p = h.page();
+
+    eq(p.data.envSrc, YINHUA_ENV, '登记过的大图首帧直接画：图片缓存命中秒出，不经历小图糊窗期');
+    eq(p.data.envFull, '', '大图已就位，预取节点不必再挂');
+    p.onUnload();
+  });
+
+  test('df-09b 大图没登记过 → 仍先画小图兜底，慢网首帧不至于空信封', () => {
+    const h = load({});
+    h.put({ id: LETTER.id, name: '给失眠时的自己', theme: YINHUA });
+    const p = h.page();
+
+    eq(p.data.envSrc, YINHUA_THUMB, '没下过的大图直接绑 cloud:// 会白等：首帧仍用列表缓存里的小图');
+    eq(p.data.envFull, YINHUA_ENV, '大图交给屏幕外的预取节点继续下载');
+    p.onUnload();
+  });
+
   test('df-05 交接只服务刚点开的那封信：取用即清，id 不匹配丢弃', () => {
     const h = load({});
 
@@ -261,5 +287,24 @@ suite('详情页拆信幕 · 信封只画真实主题', () => {
     ok(/envFade/.test(img) && /bindload="onEnvImgLoad"/.test(img), '拆信幕信封图按 envFade 挂淡入类并以 bindload 揭示');
     ok(/\.us-env\s*\{[\s\S]*?min-height/.test(DETAIL_WXSS), '.us-env 要预留信封高度：迟到的云图不把名字/邮戳顶得跳位');
     ok(/\.us-env-img\.fade\s*\{[\s\S]*?opacity:\s*0/.test(DETAIL_WXSS), 'fade 类挂载即透明，靠 bindload 后淡入，不突现');
+  });
+
+  test('df-10 结构：大图就绪登记链路完整 —— 入口页 bindload 登记 / 首页批量预取 / 详情页顶上登记', () => {
+    // 「能画大图就画大图」靠会话级登记表（services/theme.js markEnvReady）转起来：
+    // 三个登记来源缺一，首帧就会长期退回小图糊窗（用户反馈：缩略图放大太糊）。
+    ok(/markEnvReady/.test(DETAIL_JS), 'detail.js 大图顶上时要 markEnvReady 登记');
+    ok(/isEnvReady/.test(DETAIL_JS), 'detail.js 首帧要查 isEnvReady 决定直接画大图还是先画小图');
+    ok(/markEnvReady/.test(require('fs').readFileSync(path.join(MINI_ROOT, 'services', 'theme.js'), 'utf8')), 'theme.js 要提供会话级 markEnvReady / isEnvReady');
+
+    const HOME_WXML = read(path.join('pages', 'home', 'home.wxml'));
+    const CLIPS_WXML = read(path.join('pages', 'clips', 'clips.wxml'));
+    ok(/preEnvFull\s*\}\}"[^>]*bindload="onPreEnvFullLoad"/.test(HOME_WXML), 'home 点按预取大图节点要 bindload 登记');
+    ok(/preEnvFull\s*\}\}"[^>]*bindload="onPreEnvFullLoad"/.test(CLIPS_WXML), 'clips 点按预取大图节点要 bindload 登记');
+    ok(HOME_JS.indexOf('onPreEnvFullLoad') > -1 && CLIPS_JS.indexOf('onPreEnvFullLoad') > -1, '两个入口页都要实现 onPreEnvFullLoad 处理器');
+
+    ok(HOME_WXML.indexOf('bgEnvFull') > -1, 'home.wxml 要有批量预取节点');
+    ok(HOME_JS.indexOf('prefetchAllEnvFull') > -1, 'home.js 要有批量预取入口');
+    ok(HOME_JS.indexOf('getNetworkType') === -1, '批量预取不分网络直接跑（用户明确要求，不设 Wi-Fi 门槛）');
+    ok(HOME_JS.indexOf('onBgEnvFullLoad') > -1, '批量预取节点下载完要登记并泵下一张');
   });
 });

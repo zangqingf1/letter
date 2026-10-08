@@ -107,7 +107,7 @@
     <scroll-view class="show-scroll" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="show-row">
         <view class="show-card" wx:for="{{premiumThemes}}" wx:key="id" data-index="{{index}}" bindtap="onTapTheme">
-          <image wx:if="{{item.ownEnvelope}}" class="theme-preview-img" src="{{item.envelope}}" mode="aspectFill" />
+          <image wx:if="{{item.ownEnvelope}}" class="theme-preview-img" src="{{item.envelope || item.envelopeThumb}}" mode="aspectFill" />
           <view wx:else class="theme-preview" style="background: {{item.swatch || item.palette.base}};"></view>
           <view class="show-name">{{item.name}}</view>
           <view wx:if="{{state === 'vip'}}" class="show-state unlocked">✓</view>

@@ -78,7 +78,7 @@
        背景随主题：与预览区同一个 desk（桌面底色），封存的一刻整屏都是这个主题的氛围 -->
   <view wx:if="{{fx}}" class="send-fx {{fxOut ? 'fx-out' : ''}}" style="background: {{currentTheme.desk || '#F4F3EE'}};" catchtap="onSkipFx">
     <view class="fx-env">
-      <image class="fx-env-img" src="{{currentTheme.envelope}}" mode="aspectFill" />
+      <image class="fx-env-img" src="{{currentTheme.envelope || currentTheme.envelopeThumb}}" mode="aspectFill" />
     </view>
     <view class="fx-copy">{{editMode ? '已重新封存。那些新的思考，也一起安放好了。' : '已封存。未来的某一天，它会在这里等你。'}}</view>
   </view>

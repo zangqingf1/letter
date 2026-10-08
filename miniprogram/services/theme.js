@@ -10,6 +10,10 @@ const LOCAL_PAPERS = require('../pages/write/papers.js');
 const CACHE_KEY = 'theme_cache';
 const PAPERS_CACHE_KEY = 'papers_cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1h：后台改主题/版式/专属内容后尽快生效
+// 缓存结构版本：v2 起信封大图下沉云存储（envelope 可为空/为 cloud://）。v1 缓存里的
+// envelope 还是已删除的包内路径（渲染层报 Failed to load image / 127.0.0.1），必须
+// 整体作废重拉 —— 版本号写入缓存对象，读取时不匹配即视为无缓存。改字段语义时记得递增。
+const CACHE_VERSION = 2;
 
 // 默认款 / 回落款（2026-09-20 起显式按 id 解析，不再依赖「列表第一套」）：
 //   信纸默认 = 留白志 liubai；主题默认 = 璀璨如初 cuican。
@@ -26,7 +30,8 @@ function pickDefault(list, id) {
 // 主题与版式合并取回（theme 云函数 all action）：详情/写信第二步/分享页每次进入都要
 // 成对使用，分两次调用多付一次往返（冷启动场景可达秒级）。这里用一份 in-flight Promise
 // 去重 —— getThemes 与 getPapers 同帧调用只发一次云函数，结果各写各的缓存
-// （theme_cache / papers_cache 键与结构不变，旧缓存无缝兼容）。
+// （键不变，结构带 CACHE_VERSION 版本号：v1 旧缓存读取时整体作废重拉一次，
+// 见 CACHE_VERSION 处注释 —— 大图下沉改造改了字段语义，不能沿用旧结构）。
 // list / papers 两个 action 保留在云函数里给旧版客户端，前端一律走 all。
 let allPending = null;
 function fetchAll() {
@@ -38,8 +43,8 @@ function fetchAll() {
       const themes = normalizeThemes((r && r.themes) || []);
       const papers = normalizePapers((r && r.papers) || []);
       // 与旧版同口径：云端为空的类别不写缓存，读取侧回落本地静态配置
-      if (themes.length) wx.setStorageSync(CACHE_KEY, { at: Date.now(), list: themes });
-      if (papers.length) wx.setStorageSync(PAPERS_CACHE_KEY, { at: Date.now(), list: papers });
+      if (themes.length) wx.setStorageSync(CACHE_KEY, { v: CACHE_VERSION, at: Date.now(), list: themes });
+      if (papers.length) wx.setStorageSync(PAPERS_CACHE_KEY, { v: CACHE_VERSION, at: Date.now(), list: papers });
       return {
         themes: themes.length ? themes : normalizeThemes(LOCAL_THEMES),
         papers: papers.length ? papers : normalizePapers(LOCAL_PAPERS)
@@ -56,8 +61,10 @@ function fetchAll() {
 function getThemes(force) {
   if (DATA_SOURCE === 'cloud') {
     const cached = wx.getStorageSync(CACHE_KEY);
-    if (!force && cached && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
-      return Promise.resolve(cached.list);
+    if (!force && cached && cached.v === CACHE_VERSION && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
+      // 读时再归一化一遍（幂等）：缓存若是在 liveSrc/字段兜底上线前写入的，
+      // 里面可能还残留死路径等旧值，读时过滤保证出口永远干净
+      return Promise.resolve(normalizeThemes(cached.list));
     }
     return fetchAll()
       .then((r) => r.themes)
@@ -71,7 +78,7 @@ function getThemes(force) {
 function cachedThemes() {
   if (DATA_SOURCE !== 'cloud') return normalizeThemes(LOCAL_THEMES);
   const cached = wx.getStorageSync(CACHE_KEY);
-  if (cached && cached.list && cached.list.length) return cached.list;
+  if (cached && cached.v === CACHE_VERSION && cached.list && cached.list.length) return normalizeThemes(cached.list);
   return [];
 }
 
@@ -87,18 +94,39 @@ function uniqueById(list) {
   return (list || []).filter((it) => (seen[it.id] ? false : (seen[it.id] = true)));
 }
 
+// 包内大图已全部删除（2026-10 下沉云存储，包内只留 thumb）：云端记录若残留
+// `/assets/theme/<id>/envelope.jpg` 这类包内大图路径必然 404（渲染层报 Failed to
+// load image / 127.0.0.1），这里当「未配置」丢弃，走 thumb 兜底静默回落；迁移完成
+// 后云端值是 cloud:// 真值不受影响。注意只杀大图（/envelope.jpg 结尾）—— 包内
+// 缩略图 envelope-thumb.jpg 依然存在且合法，不能误杀（否则 thumb 兜底链会掉到
+// cloud:// 大图上，列表行白白解码高清图）。
+function liveSrc(v) {
+  if (typeof v !== 'string' || !v) return '';
+  if (v.indexOf('/assets/') === 0 && /\/envelope\.jpg$/.test(v)) return '';
+  return v;
+}
+
 function normalizeThemes(list) {
   const def = pickDefault(LOCAL_THEMES, DEFAULT_THEME_ID);
-  return uniqueById((list || []).map((t) =>
-    Object.assign({}, t, {
-      ownEnvelope: !!t.envelope,
-      envelope: t.envelope || def.envelope,
-      envelopeThumb: t.envelopeThumb || t.envelope || def.envelopeThumb,
+  return uniqueById((list || []).map((t) => {
+    const env = liveSrc(t.envelope);
+    const thumb = liveSrc(t.envelopeThumb);
+    return Object.assign({}, t, {
+      // ownEnvelope = 是否有可用的信封图（大图或缩略图任一即可）：2026-10 起大图下沉
+      // 云存储、本地回落的 envelope 为空，卡片只靠 thumb 渲染，判定必须把 thumb 算进去，
+      // 否则本地/离线场景所有卡片都退化成色样。死路径不算素材（按未配置处理）。
+      ownEnvelope: !!(env || thumb),
+      // envelope 兜底到 thumb：大图下沉云存储后，云端记录未配好（或本地/离线回落）时
+      // envelope 可能为空，而写信完成幕、会员中心预览直接绑 envelope，为空就白块。
+      // 回落 thumb 后这些位置至少有图（缩略图放大略糊但可见）；云端记录配好 cloud://
+      // 后 t.envelope 为真值，自然走回大图，本兜底自动失效。
+      envelope: env || thumb || def.envelopeThumb,
+      envelopeThumb: thumb || env || def.envelopeThumb,
       palette: (t.palette && t.palette.base) ? t.palette : def.palette,
       desk: t.desk || def.desk,
       swatch: t.swatch || (t.palette && t.palette.base) || (def.palette && def.palette.base) || ''
-    })
-  ));
+    });
+  }));
 }
 
 // 会员专属回退：非 VIP 时专属主题/版式一律按默认款渲染（老信不破坏数据，
@@ -145,7 +173,7 @@ function getPapers(force) {
   // 与 getThemes 同口径的本地缓存：详情/分享/写信第二步每次进入都取版式，
   // 无缓存会每次都打一次 theme 云函数（含 member_items 聚合）。
   const cached = wx.getStorageSync(PAPERS_CACHE_KEY);
-  if (!force && cached && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
+  if (!force && cached && cached.v === CACHE_VERSION && Date.now() - cached.at < CACHE_TTL && cached.list && cached.list.length) {
     return Promise.resolve(cached.list);
   }
   // 与 getThemes 共享同一次 all 调用（fetchAll 内有 in-flight 去重），不再单独打 papers
@@ -160,7 +188,7 @@ function getPapers(force) {
 function cachedPapers() {
   if (DATA_SOURCE !== 'cloud') return normalizePapers(LOCAL_PAPERS);
   const cached = wx.getStorageSync(PAPERS_CACHE_KEY);
-  if (cached && cached.list && cached.list.length) return cached.list;
+  if (cached && cached.v === CACHE_VERSION && cached.list && cached.list.length) return cached.list;
   return [];
 }
 
@@ -172,8 +200,23 @@ function paperOf(paperId, papers, isVip) {
   return isLocked(paper, isVip) ? pickDefault(list, DEFAULT_PAPER_ID) : paper;
 }
 
+// 会话级「信封大图已下载」登记表：微信图片缓存按地址全局共享，某张大图在本会话内
+// bindload 过一次后，再绑同一地址就是缓存秒出。拆信幕据此决定首帧直接画大图还是
+// 先画小图等大图顶上（见 pages/detail/detail.js 的 envPatchOf）。登记来源：
+// 入口页预取节点 / 首页 Wi-Fi 批量预取 / 详情页大图顶上（onEnvFullLoaded）。
+// 只存内存不落 storage —— 冷启动后框架缓存是否仍在无法确知，宁可当作没下过
+//（退回小图兜底，不会白块；小王子等包内素材本来就秒出，不受影响）。
+const envReadySet = {};
+function markEnvReady(src) {
+  if (typeof src === 'string' && src) envReadySet[src] = true;
+}
+function isEnvReady(src) {
+  return !!(src && envReadySet[src] === true);
+}
+
 module.exports = {
   getThemes, cachedThemes, themeOf, envelopeThumbOf, getPapers, cachedPapers, paperOf,
   isLocked,
+  markEnvReady, isEnvReady,
   DEFAULT_THEME_ID, DEFAULT_PAPER_ID
 };

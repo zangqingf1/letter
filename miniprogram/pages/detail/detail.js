@@ -1,6 +1,6 @@
 // 03 · 信件详情 / 拆信阅读 / 回信
 // 状态：多次拆开（邮戳墙 + 多条回信 + 回形针点亮）/ 首次拆开（1 枚邮戳 0 回信）/ 回信半屏弹层。
-// 进入即播放拆信动画（≤1.2s 可点击跳过），并按 BR-09 自动产生一条重读记录。
+// 进入即播放拆信动画（开头 0.65s 静置缓冲 + 1.69s 动画，全程 ≤2.34s 可点击跳过），并按 BR-09 自动产生一条重读记录。
 
 const letterService = require('../../services/letter.js');
 const themeService = require('../../services/theme.js');
@@ -52,28 +52,35 @@ const BLANK_THEME = {
   palette: Object.assign({}, (THEMES.find((t) => t.id === 'cuican') || THEMES[0]).palette)
 };
 
-// 拆信幕信封的两级 src：首帧先用列表页刚渲染过的小图（envelopeThumb —— 同一张图的
-// 微信图片缓存命中，拆信动画第一帧就有信封，不必等大图下载），大图交给屏幕外的预取节点，
-// 加载完再顶上（那时大图也进了缓存，切换不掉帧）。云端没单独配小图（归一化时回落主图）
-// 时两者同源，只画一张。loadedFull 是已经顶上过的大图地址：loadLetter 回源换了主题对象
-// 但大图没变时，保持大图，不回退成小图。
-// envFade：云端素材（cloud://）的加载有网络延迟（入口页已点按即预取，见 home/clips 的
-// prefetchEnv，但慢网络仍可能赶不上首帧），挂载即透明、bindload 后淡入浮现，不突现；
-// 包内素材零延迟，不挂 fade、首帧即完整呈现。envIn 不在这里重置 —— 由 onEnvImgLoad
-// 置位后保持，回源换主题/大图顶上的换 src 不重播淡入（换 src 期间旧图一直挂着，本就无缝）。
+// 拆信幕信封的两级 src：**能画大图就画大图**（用户明确反馈小图放大糊），小图只作
+// 「大图还没进缓存」的兜底。首帧直接画大图的两个条件 —— 本页已经顶上过（loadedFull，
+// 回源换主题对象不回退），或登记表里这张大图本会话已下载过（themeService.isEnvReady：
+// 入口页预取/首页 Wi-Fi 批量预取/上次打开同一主题时下载的，框架缓存按地址共享，秒出）。
+// 其余情形仍先画小图：从没下过的大图直接绑 cloud://，首帧是透明占位等淡入，慢网时
+// 整段动画都见不到信封 —— 这正是当年两级 src 要解决的问题，不能倒退。
+// 云端没单独配小图（归一化时回落主图）时两者同源，只画一张。
+// envFade：信封图与信封名**同拍淡入**的开关 —— 只要有图就挂 fade：挂载即透明，
+// 大图 bindload 后两者同时淡入浮现（用户明确要求「大图和名称同时出现同时淡入」，
+// 包内小图曾因不挂 fade 而让名字在进入瞬间直接蹦出来）。envIn 不在这里重置 ——
+// 由 onEnvImgLoad 置位后保持，回源换主题/大图顶上的换 src 不重播淡入（换 src 期间
+// 旧图一直挂着，本就无缝）。
 function envPatchOf(theme, loadedFull) {
   const full = (theme && theme.envelope) || '';
   const thumb = (theme && theme.envelopeThumb) || '';
-  const src = loadedFull && full === loadedFull ? full : thumb || full;
+  const fullReady = !!full && ((loadedFull && full === loadedFull) || themeService.isEnvReady(full));
+  const src = fullReady ? full : thumb || full;
   return {
     envSrc: src,
     envFull: full && full !== src ? full : '',
-    envFade: /^cloud:\/\//.test(src)
+    envFade: !!src
   };
 }
 
-// 拆信动画时长；REVEAL_CAP_MS 是揭幕兜底 —— 数据迟迟不到也不让页面停在动画上
-const OPEN_ANIM_MS = 1300;
+// 拆信动画总时长 = 全程节奏 ×1.3 后的口径：0.65s 开场静置缓冲（仅整幕与信纸延迟，
+// 信封本体不延迟——「等图」由 .us-env-img.fade 的 bindload 淡入处理；wxss 的
+// unseal-fade/paper-out 的 delay 与此同步）+ 1.69s 动画本体；REVEAL_CAP_MS 是揭幕
+// 兜底 —— 数据迟迟不到也不让页面停在动画上
+const OPEN_ANIM_MS = 2340;
 const REVEAL_CAP_MS = 4000;
 
 Page({
@@ -81,7 +88,8 @@ Page({
     statusBarHeight: 20,
     letter: { name: '', question: '', answer: '' },
     theme: BLANK_THEME,
-    // 拆信幕信封：envSrc 是实际在画的那张（首帧=列表缓存的小图），envFull 是待顶上的大图；
+    // 拆信幕信封：envSrc 是实际在画的那张（能画大图就画大图，见 envPatchOf；没进过
+    // 缓存时首帧=列表缓存的小图），envFull 是待顶上的大图；
     // envFade=云端素材挂载即透明、envIn=已加载完可淡入（见 envPatchOf / onEnvImgLoad）
     envSrc: '',
     envFull: '',
@@ -253,10 +261,12 @@ Page({
 
   // 信封大图就绪（wxml 里那个屏幕外的预取节点）：换成大图，撤掉预取节点。
   // 记下已顶上过的大图地址 —— loadLetter 回源时主题对象会换一份新的，但大图没变，
-  // 这时要接着用大图而不是退回小图（见 envPatchOf）。
+  // 这时要接着用大图而不是退回小图（见 envPatchOf）；同时登记进会话级「已下载」表，
+  // 本会话内再打开同一主题的信，首帧就直接画大图（services/theme.js markEnvReady）。
   onEnvFullLoaded() {
     const full = this.data.envFull;
     if (!full) return;
+    themeService.markEnvReady(full);
     this._envFullLoaded = full;
     this.setData({ envSrc: full, envFull: '' });
   },

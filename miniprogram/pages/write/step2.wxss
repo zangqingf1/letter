@@ -321,9 +321,10 @@
   flex: none;
 }
 
-/* ── 寄出动效：火漆按压时预览信纸轻沉折起（位移 + 微缩，无弹跳） ── */
+/* ── 寄出动效：火漆按压时预览信纸轻沉折起（位移 + 微缩，无弹跳）
+   全程节奏 = 原设定 × 1.3（与拆信动画同口径放慢） ── */
 .preview .pl {
-  transition: transform 400ms ease, opacity 400ms ease;
+  transition: transform 520ms ease, opacity 520ms ease;
 }
 .preview-sealing .pl {
   transform: translateY(8rpx) scale(0.985);
@@ -345,14 +346,14 @@
   align-items: center;
   justify-content: center;
   background: rgba(244, 243, 238, 0.96);
-  animation: fx-in 220ms ease;
+  animation: fx-in 290ms ease;
 }
 @keyframes fx-in {
   from { opacity: 0; }
 }
-/* 幕布淡出后跳转信匣 */
+/* 幕布淡出后跳转信匣（时长与 step2.js leaveSeal 的 setTimeout 同步改） */
 .send-fx.fx-out {
-  animation: fx-out 220ms ease forwards;
+  animation: fx-out 290ms ease forwards;
 }
 @keyframes fx-out {
   to { opacity: 0; }
@@ -362,8 +363,8 @@
   width: 420rpx;
   border-radius: 16rpx;
   box-shadow: var(--shadow-warm-sm);
-  /* 信封从上方 10px 落定（位移方向模拟投进信匣） */
-  animation: fx-env-in 380ms ease-out;
+  /* 信封从上方 10px 落定（位移方向模拟投进信匣）；495ms = 原 380ms × 1.3 */
+  animation: fx-env-in 495ms ease-out;
 }
 @keyframes fx-env-in {
   from {
@@ -381,7 +382,8 @@
   margin-top: 40rpx;
   font-size: 26rpx;
   color: var(--color-text-secondary);
-  animation: fx-copy-in 260ms ease 520ms backwards;
+  /* 340ms 淡入 @ 680ms 延迟（均 = 原 × 1.3，幕内仍是「信封落定 → 文案」次序） */
+  animation: fx-copy-in 340ms ease 680ms backwards;
 }
 @keyframes fx-copy-in {
   from {

@@ -95,15 +95,15 @@
     <view class="us-env">
       <!-- 信封只能画这封信真正的主题：envSrc 由详情页给出 —— 入口页跳转前就把主题
            交接过来（services/handoff.js），并在点按瞬间预取了两级素材（home/clips 的
-           .env-pre 节点），首帧是列表页刚渲染过的小图（图片缓存命中，第一帧就有信封），
-           大图由下面那个屏幕外的节点加载完顶上。
+           .env-pre 节点）。能画大图就画大图（isEnvReady 登记过 → 缓存秒出），
+           没进过缓存才先画小图，大图由下面那个屏幕外的节点加载完顶上。
            没有交接时（外部直接打开本页）留空，等云函数，绝不凭空亮出小王子。
-           云端素材（cloud://）加载有网络延迟：envFade 挂载即透明，bindload 后淡入浮现，
-           包内素材不挂 fade、首帧即完整呈现。见 detail.js 的 BLANK_THEME / envPatchOf -->
+           信封图与名字同拍淡入：envFade 挂载即透明（有图就挂），bindload 后两者同时
+           浮现。见 detail.js 的 BLANK_THEME / envPatchOf -->
       <image wx:if="{{envSrc}}" class="us-env-img {{envFade ? 'fade' : ''}} {{envIn ? 'in' : ''}}" src="{{envSrc}}" mode="widthFix" bindload="onEnvImgLoad" />
       <!-- 大图预取：放到屏幕外只为触发加载，加载完由 onEnvFullLoaded 换掉上面的小图 -->
       <image wx:if="{{envFull}}" class="us-env-pre" src="{{envFull}}" mode="widthFix" bindload="onEnvFullLoaded" />
-      <view class="us-env-name">{{letter.name}}</view>
+      <view class="us-env-name {{envFade ? 'fade' : ''}} {{envIn ? 'in' : ''}}">{{letter.name}}</view>
       <view class="us-stamp">
         <text class="us-stamp-date">{{openStampText}}</text>
         <text class="us-stamp-label">重读邮戳</text>

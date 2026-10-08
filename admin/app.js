@@ -456,7 +456,7 @@ function themeDrawer(t, nextSort) {
     <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信纸底色 palette.base（拆信动画抽出的那张纸 + 无信封款的选择卡色样）。
     信纸的墨色与排版由版式（papers）自持，主题不再参与，故此处只有一个取色框。</p>
     ${colorField('palette.base', '底色 palette.base', p.base)}
-    <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信封素材（小程序包内路径，如 /assets/theme/xiaowangzi/envelope.jpg；留空则回落默认信封）</p>
+    <p style="font-size:12px;color:var(--muted);margin:14px 0 8px">信封素材（2026-10 起大图统一存云存储：envelope 填 cloud:// fileID，如 cloud://cloudbase-d1gp46d6he3bbf9f0.636c-cloudbase-d1gp46d6he3bbf9f0-1477338373/theme/xiaowangzi/envelope.jpg；包内路径已停用；留空则各渲染位回落缩略图/色样。缩略图 envelopeThumb 仍为包内路径 /assets/theme/&lt;id&gt;/envelope-thumb.jpg）</p>
     ${textField('assets.envelope', '信封大图 envelope', a.envelope || '')}
     ${textField('assets.envelopeThumb', '信封缩略图 envelopeThumb', a.envelopeThumb || '')}
     <div class="form-actions">
@@ -1045,7 +1045,7 @@ async function memberItemDrawer(it, nextSort, presetKind) {
       document.querySelector('#mi-swatch').innerHTML = colorField('swatch', '色样 swatch', it.swatch);
       document.querySelector('#mi-desk').innerHTML = colorField('desk', '桌面底色 desk', it.desk || '');
       document.querySelector('#mi-palette-base').innerHTML = colorField('paletteBase', '信纸底色 palette.base', pal.base || '');
-      document.querySelector('#mi-env-envelope').innerHTML = textField('envEnvelope', '信封大图 envelope', a.envelope || '');
+      document.querySelector('#mi-env-envelope').innerHTML = textField('envEnvelope', '信封大图 envelope（cloud:// fileID）', a.envelope || '');
       document.querySelector('#mi-env-thumb').innerHTML = textField('envThumb', '信封缩略图 envelopeThumb', a.envelopeThumb || '');
       bindColorPairs(body);
     }

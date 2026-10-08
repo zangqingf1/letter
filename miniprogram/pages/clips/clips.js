@@ -127,6 +127,12 @@ Page({
     this.setData({ preEnv: thumb, preEnvFull: full !== thumb ? full : '' });
   },
 
+  // 点按预取的大图下载完：登记进会话级「已下载」表（services/theme.js markEnvReady），
+  // 拆信幕首帧从此对这张大图直接秒出，不再先画小图（与 home.js 同口径）
+  onPreEnvFullLoad() {
+    themeService.markEnvReady(this.data.preEnvFull);
+  },
+
   onTapBack() {
     wx.navigateBack();
   }

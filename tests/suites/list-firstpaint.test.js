@@ -31,15 +31,16 @@ const RECYCLE_WXML = readWxml('recycle');
 const DEFAULT_ENV = '/assets/theme/cuican/envelope-thumb.jpg';
 // 小王子的包内信封（官方款之一，非默认款）
 const XW_ENV = '/assets/theme/xiaowangzi/envelope-thumb.jpg';
-// 后台给专属主题配的信封素材（member_items.assets）
-const PREMIUM_ENV = '/assets/theme/guiniao/envelope.jpg';
+// 后台给专属主题配的信封素材（member_items.assets）：大图下沉云存储后为 cloud://
+// 真值，包内只发缩略图（自有 thumb 路径仍有效，归一化时 envelopeThumb 优先用它）
+const PREMIUM_ENV = '/assets/theme/guiniao/envelope-thumb.jpg';
 const DAY = 24 * 60 * 60 * 1000;
 
 // theme 云函数下发的列表：官方款按 sort 在前，专属款追加在末尾。未知 theme_id / 非 VIP
 // 专属款的回落口径是「按 id 找默认款璀璨如初」，列表里没有默认 id 时才退 list[0]。
 const DEFAULT_THEME = { id: 'cuican', name: '璀璨如初', version: 1, envelopeThumb: DEFAULT_ENV, palette: { base: '#F6F3EA' } };
 const OFFICIAL_THEME = { id: 'xiaowangzi', name: '小王子', version: 2, envelopeThumb: XW_ENV, palette: { base: '#F9F3E4' } };
-const PREMIUM_THEME = { id: 'guiniao', name: '归鸟', version: 1, premium: true, envelope: PREMIUM_ENV, palette: { base: '#E9DCCF' } };
+const PREMIUM_THEME = { id: 'guiniao', name: '归鸟', version: 1, premium: true, envelope: 'cloud://test-env.test-bucket/theme/guiniao/envelope.jpg', envelopeThumb: PREMIUM_ENV, palette: { base: '#E9DCCF' } };
 
 const VIP = { ok: true, membership: { state: 'vip', level: '守候', renew: false, remainingDays: 200 } };
 const FREE = { ok: true, membership: { state: 'free', level: '', renew: false, remainingDays: 0 } };

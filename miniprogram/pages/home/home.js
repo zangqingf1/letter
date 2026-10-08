@@ -63,6 +63,8 @@ Page({
     // 信封预取节点（见 openDetail / prefetchEnv）：初始为空不挂载
     preEnv: '',
     preEnvFull: '',
+    // 批量预取节点（见 prefetchAllEnvFull）：与点按预取各用各的节点，互不干扰
+    bgEnvFull: '',
     // 新用户福利引导（会员中心可领 3 天体验会员）：服务端判定 trialAvailable，
     // 这里只负责显示横幅与跳转 —— 纯引导，不在首页发放/领取
     trialAvailable: false,
@@ -175,6 +177,10 @@ Page({
         // 只在成功路径落账：失败时 _lastLoadAt 不更新、脏标记保留，下次 onShow 必然重试。
         this._lastLoadAt = Date.now();
         wx.removeStorageSync(letterService.MAILBOX_DIRTY_KEY);
+
+        // 顺手把本列表涉及的信封大图全部预取进缓存（每会话一次，任何网络），
+        // 让拆信动画首帧永远直接画大图（见 prefetchAllEnvFull）
+        this.prefetchAllEnvFull(themes, isVip);
       })
       .catch((err) => {
         // 信匣加载失败不再静默空白：报错留痕 + 温和提示（文案语气见设计规范）；
@@ -240,6 +246,49 @@ Page({
     const thumb = (theme && theme.envelopeThumb) || '';
     const full = (theme && theme.envelope) || '';
     this.setData({ preEnv: thumb, preEnvFull: full !== thumb ? full : '' });
+  },
+
+  // 点按预取的大图下载完：登记进会话级「已下载」表（services/theme.js markEnvReady），
+  // 拆信幕首帧从此对这张大图直接秒出，不再先画小图。
+  onPreEnvFullLoad() {
+    themeService.markEnvReady(this.data.preEnvFull);
+  },
+
+  // 把信匣里出现的信封大图逐张预取进缓存（非阻塞、失败静默，任何网络都执行 —— 用户
+  // 明确要求不设 Wi-Fi 门槛）：下载完逐张登记进 markEnvReady，之后拆信动画首帧一律
+  // 直接画大图 —— 首次打开某主题的信也不再经历「小图先顶、大图后换」的糊窗期。
+  // 只取列表里真实出现的主题，去重且跳过已登记的；每会话只跑一次。
+  prefetchAllEnvFull(themes, isVip) {
+    if (this._envPrefetchDone) return;
+    this._envPrefetchDone = true;
+    const seen = {};
+    const queue = [];
+    for (const key of Object.keys(this._hints || {})) {
+      const theme = themeService.themeOf(this._hints[key].theme_id, themes, isVip);
+      const full = (theme && theme.envelope) || '';
+      if (full && !seen[full] && !themeService.isEnvReady(full)) {
+        seen[full] = true;
+        queue.push(full);
+      }
+    }
+    this._envQueue = queue;
+    this.pumpEnvQueue();
+  },
+
+  // 批量预取的泵：一次只挂一张（节点就一个），bindload 后再挂下一张
+  pumpEnvQueue() {
+    if (this._envBusy) return;
+    const next = (this._envQueue || []).shift();
+    if (!next) return;
+    this._envBusy = true;
+    this.setData({ bgEnvFull: next });
+  },
+
+  // 批量预取节点下载完：登记 + 泵下一张
+  onBgEnvFullLoad() {
+    themeService.markEnvReady(this.data.bgEnvFull);
+    this._envBusy = false;
+    this.pumpEnvQueue();
   },
 
   onTapDrafts() {

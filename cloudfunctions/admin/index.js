@@ -23,25 +23,25 @@ const DAY = 86400000;
 // 集合仍留有这批旧记录，需在后台「主题管理」逐条删除，否则会继续下发。
 const SEED_THEMES = [
   // palette 只放底色 base：三档墨色（title/text/tag）已随「信纸自持」改版失去消费方，2026-09 清理
-  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4' }, desk: '#EDE9DC', assets: { envelope: '/assets/theme/xiaowangzi/envelope.jpg', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } },
+  { theme_id: 'xiaowangzi', name: '小王子', desc: '温柔童话', version: 2, swatch: '', palette: { base: '#F9F3E4' }, desk: '#EDE9DC', assets: { envelope: '', envelopeThumb: '/assets/theme/xiaowangzi/envelope-thumb.jpg' } },
   // 印花 2026-09-18 上线时素材存云存储，2026-09 起搬进包内（assets 改包内路径，云存储旧图可删）。
   // themeSeed 只补缺不覆盖：线上既有 yinhua 文档需在后台「主题管理」把两个素材路径改成包内路径。
-  { theme_id: 'yinhua', name: '印花', desc: '纸间花草', version: 1, swatch: '', palette: { base: '#F0ECE2' }, desk: '#E4E6DA', assets: { envelope: '/assets/theme/yinhua/envelope.jpg', envelopeThumb: '/assets/theme/yinhua/envelope-thumb.jpg' } },
+  { theme_id: 'yinhua', name: '印花', desc: '纸间花草', version: 1, swatch: '', palette: { base: '#F0ECE2' }, desk: '#E4E6DA', assets: { envelope: '', envelopeThumb: '/assets/theme/yinhua/envelope-thumb.jpg' } },
   // 2026-09 新增六套：素材自上线起即为包内路径（原图在 picture/新主题/），themeSeed 直接建齐。
-  { theme_id: 'daoying', name: '倒影里的秋', desc: '湖畔秋信', version: 1, swatch: '', palette: { base: '#F4EFE2' }, desk: '#E8E4D3', assets: { envelope: '/assets/theme/daoying/envelope.jpg', envelopeThumb: '/assets/theme/daoying/envelope-thumb.jpg' } },
-  { theme_id: 'gonglu', name: '公路情书', desc: '麦浪旅人', version: 1, swatch: '', palette: { base: '#F3EDDA' }, desk: '#EAE4CE', assets: { envelope: '/assets/theme/gonglu/envelope.jpg', envelopeThumb: '/assets/theme/gonglu/envelope-thumb.jpg' } },
-  { theme_id: 'tiantan', name: '天坛往事', desc: '红墙飞鸟', version: 1, swatch: '', palette: { base: '#F2EFE6' }, desk: '#E6E2D6', assets: { envelope: '/assets/theme/tiantan/envelope.jpg', envelopeThumb: '/assets/theme/tiantan/envelope-thumb.jpg' } },
-  { theme_id: 'shanye', name: '山野来信', desc: '山湖秘境', version: 1, swatch: '', palette: { base: '#F3EFDC' }, desk: '#E5E6CC', assets: { envelope: '/assets/theme/shanye/envelope.jpg', envelopeThumb: '/assets/theme/shanye/envelope-thumb.jpg' } },
-  { theme_id: 'cuican', name: '璀璨如初', desc: '烟火如诗', version: 1, swatch: '', palette: { base: '#F6F3EA' }, desk: '#ECE8DE', assets: { envelope: '/assets/theme/cuican/envelope.jpg', envelopeThumb: '/assets/theme/cuican/envelope-thumb.jpg' } },
-  { theme_id: 'luori', name: '落日归海', desc: '晚霞入海', version: 1, swatch: '', palette: { base: '#F5EBD9' }, desk: '#F0DFC6', assets: { envelope: '/assets/theme/luori/envelope.jpg', envelopeThumb: '/assets/theme/luori/envelope-thumb.jpg' } },
+  { theme_id: 'daoying', name: '倒影里的秋', desc: '湖畔秋信', version: 1, swatch: '', palette: { base: '#F4EFE2' }, desk: '#E8E4D3', assets: { envelope: '', envelopeThumb: '/assets/theme/daoying/envelope-thumb.jpg' } },
+  { theme_id: 'gonglu', name: '公路情书', desc: '麦浪旅人', version: 1, swatch: '', palette: { base: '#F3EDDA' }, desk: '#EAE4CE', assets: { envelope: '', envelopeThumb: '/assets/theme/gonglu/envelope-thumb.jpg' } },
+  { theme_id: 'tiantan', name: '天坛往事', desc: '红墙飞鸟', version: 1, swatch: '', palette: { base: '#F2EFE6' }, desk: '#E6E2D6', assets: { envelope: '', envelopeThumb: '/assets/theme/tiantan/envelope-thumb.jpg' } },
+  { theme_id: 'shanye', name: '山野来信', desc: '山湖秘境', version: 1, swatch: '', palette: { base: '#F3EFDC' }, desk: '#E5E6CC', assets: { envelope: '', envelopeThumb: '/assets/theme/shanye/envelope-thumb.jpg' } },
+  { theme_id: 'cuican', name: '璀璨如初', desc: '烟火如诗', version: 1, swatch: '', palette: { base: '#F6F3EA' }, desk: '#ECE8DE', assets: { envelope: '', envelopeThumb: '/assets/theme/cuican/envelope-thumb.jpg' } },
+  { theme_id: 'luori', name: '落日归海', desc: '晚霞入海', version: 1, swatch: '', palette: { base: '#F5EBD9' }, desk: '#F0DFC6', assets: { envelope: '', envelopeThumb: '/assets/theme/luori/envelope-thumb.jpg' } },
   // 2026-09-20 新增七套：素材自上线起即为包内路径（原图在 picture/新主题2/，居中裁到 890×616），themeSeed 直接建齐。
-  { theme_id: 'niuyouguo', name: '牛油果', desc: '一颗温柔的绿', version: 1, swatch: '', palette: { base: '#F4F4E7' }, desk: '#EAECD6', assets: { envelope: '/assets/theme/niuyouguo/envelope.jpg', envelopeThumb: '/assets/theme/niuyouguo/envelope-thumb.jpg' } },
-  { theme_id: 'meiguixingyun', name: '玫瑰星云', desc: '星尘与玫瑰', version: 1, swatch: '', palette: { base: '#F7EFE9' }, desk: '#EEE3DE', assets: { envelope: '/assets/theme/meiguixingyun/envelope.jpg', envelopeThumb: '/assets/theme/meiguixingyun/envelope-thumb.jpg' } },
-  { theme_id: 'dielianhuajian', name: '蝶恋花笺', desc: '蝶影过花间', version: 1, swatch: '', palette: { base: '#F6F6EF' }, desk: '#ECEDE0', assets: { envelope: '/assets/theme/dielianhuajian/envelope.jpg', envelopeThumb: '/assets/theme/dielianhuajian/envelope-thumb.jpg' } },
-  { theme_id: 'huajianxinjian', name: '花间信笺', desc: '鎏金花影', version: 1, swatch: '', palette: { base: '#F7F1E5' }, desk: '#F0E6D8', assets: { envelope: '/assets/theme/huajianxinjian/envelope.jpg', envelopeThumb: '/assets/theme/huajianxinjian/envelope-thumb.jpg' } },
-  { theme_id: 'xiarihangxian', name: '夏日航线', desc: '盛夏航空信', version: 1, swatch: '', palette: { base: '#F5EADA' }, desk: '#E9DCC8', assets: { envelope: '/assets/theme/xiarihangxian/envelope.jpg', envelopeThumb: '/assets/theme/xiarihangxian/envelope-thumb.jpg' } },
-  { theme_id: 'suiyuejinjian', name: '岁月金笺', desc: '鎏金素笺', version: 1, swatch: '', palette: { base: '#F5F1E3' }, desk: '#ECE5D3', assets: { envelope: '/assets/theme/suiyuejinjian/envelope.jpg', envelopeThumb: '/assets/theme/suiyuejinjian/envelope-thumb.jpg' } },
-  { theme_id: 'yinranqingshu', name: '洇染情书', desc: '水彩洇开的信', version: 1, swatch: '', palette: { base: '#F0F2F1' }, desk: '#E3E8EA', assets: { envelope: '/assets/theme/yinranqingshu/envelope.jpg', envelopeThumb: '/assets/theme/yinranqingshu/envelope-thumb.jpg' } }
+  { theme_id: 'niuyouguo', name: '牛油果', desc: '一颗温柔的绿', version: 1, swatch: '', palette: { base: '#F4F4E7' }, desk: '#EAECD6', assets: { envelope: '', envelopeThumb: '/assets/theme/niuyouguo/envelope-thumb.jpg' } },
+  { theme_id: 'meiguixingyun', name: '玫瑰星云', desc: '星尘与玫瑰', version: 1, swatch: '', palette: { base: '#F7EFE9' }, desk: '#EEE3DE', assets: { envelope: '', envelopeThumb: '/assets/theme/meiguixingyun/envelope-thumb.jpg' } },
+  { theme_id: 'dielianhuajian', name: '蝶恋花笺', desc: '蝶影过花间', version: 1, swatch: '', palette: { base: '#F6F6EF' }, desk: '#ECEDE0', assets: { envelope: '', envelopeThumb: '/assets/theme/dielianhuajian/envelope-thumb.jpg' } },
+  { theme_id: 'huajianxinjian', name: '花间信笺', desc: '鎏金花影', version: 1, swatch: '', palette: { base: '#F7F1E5' }, desk: '#F0E6D8', assets: { envelope: '', envelopeThumb: '/assets/theme/huajianxinjian/envelope-thumb.jpg' } },
+  { theme_id: 'xiarihangxian', name: '夏日航线', desc: '盛夏航空信', version: 1, swatch: '', palette: { base: '#F5EADA' }, desk: '#E9DCC8', assets: { envelope: '', envelopeThumb: '/assets/theme/xiarihangxian/envelope-thumb.jpg' } },
+  { theme_id: 'suiyuejinjian', name: '岁月金笺', desc: '鎏金素笺', version: 1, swatch: '', palette: { base: '#F5F1E3' }, desk: '#ECE5D3', assets: { envelope: '', envelopeThumb: '/assets/theme/suiyuejinjian/envelope-thumb.jpg' } },
+  { theme_id: 'yinranqingshu', name: '洇染情书', desc: '水彩洇开的信', version: 1, swatch: '', palette: { base: '#F0F2F1' }, desk: '#E3E8EA', assets: { envelope: '', envelopeThumb: '/assets/theme/yinranqingshu/envelope-thumb.jpg' } }
 ];
 
 // 二十一款信纸版式：后台只管名称/描述/配色/上下架/排序/版本；版式视觉结构在

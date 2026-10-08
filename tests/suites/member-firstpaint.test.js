@@ -152,8 +152,10 @@ suite('会员中心首屏 · 缓存与骨架', () => {
       papers: [freshPaper],
       themes: [{ id: 'guiniao', name: '最新归鸟', premium: true, swatch: '#D9C3B2' }],
       storage: {
-        papers_cache: { at: Date.now(), list: [cachedPaper] },
-        theme_cache: { at: Date.now(), list: [cachedTheme] }
+        // v: 2 须与 services/theme.js 的 CACHE_VERSION 同步 —— 读取侧校验版本号，
+        // 缺 v / v 不符的缓存视为 v1 旧结构整体作废（大图下沉改造改过字段语义）
+        papers_cache: { v: 2, at: Date.now(), list: [cachedPaper] },
+        theme_cache: { v: 2, at: Date.now(), list: [cachedTheme] }
       }
     });
     // 预热会员态，确保这一条只考察专属款的时序（不掺会员状态卡的骨架）

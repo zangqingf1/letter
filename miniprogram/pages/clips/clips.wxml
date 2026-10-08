@@ -67,6 +67,6 @@
        全局共享，详情页拆信幕的两级 src 因此大概率直接命中，不必从点击那一刻才开始走
        「fileID→临时URL→下载」 -->
   <image wx:if="{{preEnv}}" class="env-pre" src="{{preEnv}}" />
-  <image wx:if="{{preEnvFull}}" class="env-pre" src="{{preEnvFull}}" />
+  <image wx:if="{{preEnvFull}}" class="env-pre" src="{{preEnvFull}}" bindload="onPreEnvFullLoad" />
 
 </view>
